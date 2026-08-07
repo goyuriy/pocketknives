@@ -2,7 +2,6 @@ import { describe, expect, it } from 'vitest';
 import type { Launch } from './types.js';
 import { simulateFlight, wrapAngle } from './flight.js';
 import { aimedLaunch, standingPoint } from './launch.js';
-import { stickingBands } from './bands.js';
 import { stickVerdict, throwFromImpact } from './stick.js';
 import { DEFAULT_CONFIG, spinRate, stickWindow } from './config.js';
 
@@ -42,10 +41,17 @@ describe('simulateFlight', () => {
     expect(reach).toBeLessThan(24);
   });
 
+  it('tumbles forward — tip over the top — not backwards', () => {
+    const { samples } = simulateFlight(launch({ spin: 10, bladeAngle: 0 }));
+    const later = samples[samples.length - 1]!;
+    // The tip's angle above the line of flight falls as the knife turns.
+    expect(later.bladeAngle).toBeLessThan(0);
+  });
+
   it('keeps tumbling at a steady rate the whole way', () => {
     const { samples } = simulateFlight(launch({ spin: 10, bladeAngle: 0.25 }));
     for (const sample of samples) {
-      expect(sample.bladeAngle).toBeCloseTo(0.25 + 10 * sample.time, 9);
+      expect(sample.bladeAngle).toBeCloseTo(0.25 - 10 * sample.time, 9);
     }
   });
 
@@ -187,24 +193,5 @@ describe('DEFAULT_CONFIG', () => {
 
   it('derives the tumble rate the bands were swept against', () => {
     expect(spinRate(DEFAULT_CONFIG)).toBeCloseTo(30, 1);
-  });
-});
-
-describe('stickingBands', () => {
-  const bands = stickingBands(standingPoint(-Math.PI / 2, 10), Math.PI / 2);
-
-  it('agrees with resolving each throw one at a time', () => {
-    const inABand = (power: number) => bands.some((b) => power >= b.from && power <= b.to);
-    for (let power = 0; power <= 1; power += 0.01) {
-      const flight = simulateFlight(aimedLaunch(standingPoint(-Math.PI / 2, 10), Math.PI / 2, power));
-      // Band edges are sampled, so allow a step of slack right at a boundary.
-      const nearEdge = bands.some((b) => Math.abs(power - b.from) < 0.01 || Math.abs(power - b.to) < 0.01);
-      if (!nearEdge) expect(inABand(power)).toBe(stickVerdict(flight.impact).stuck);
-    }
-  });
-
-  it('finds bands a player could actually aim for', () => {
-    expect(bands.length).toBeGreaterThanOrEqual(2);
-    for (const band of bands) expect(band.to - band.from).toBeGreaterThan(0.04);
   });
 });

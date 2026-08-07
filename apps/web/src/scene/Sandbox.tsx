@@ -142,9 +142,7 @@ export const Sandbox = ({ game }: { game: SandboxState }) => {
             <HeldKnife
               at={[game.stand[0], game.stand[1], game.config.style.releaseHeight]}
               heading={game.previewFlight?.impact.heading ?? game.restHeading}
-              // Cocks further as the hand gathers pace — the only cue there is
-              // before the knife leaves, and it moves with the real reading.
-              power={Math.min(1, (game.swing?.speed ?? 0) / game.config.gesture.fullPowerSwipe)}
+              bladeAngle={game.config.style.startingBladeAngle}
               spec={game.config.knife}
             />
           )}

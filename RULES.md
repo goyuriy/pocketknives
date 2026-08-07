@@ -54,6 +54,13 @@ land goes back to being a free strategic choice; landing there is a skill.
 The knife **follows through**: a stroke to the right sends it right. This is the
 opposite of a drawn-bow gesture, and rightly so — a throw is not a pull.
 
+It also **tumbles forward**, tip over the top and down, the way a thrown knife
+does. `bladeAngle` is the tip's angle above the line of flight, so that angle
+*falls* as the knife turns — the flight subtracts the tumble rather than adding
+it. Adding spins the knife backwards through the air, which is not something a
+thrown knife does, and reads as wrong immediately even to someone who could not
+say why.
+
 The knife tumbles end over end at a steady rate the whole way. Sticking asks
 three separate questions, and conflating the first two is a bug waiting to
 happen:

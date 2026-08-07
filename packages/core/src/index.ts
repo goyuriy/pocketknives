@@ -11,7 +11,6 @@ export * from './throw/flight.js';
 export * from './throw/config.js';
 export * from './throw/random.js';
 export * from './throw/launch.js';
-export * from './throw/bands.js';
 export * from './throw/swing.js';
 export * from './throw/knives.js';
 export * from './throw/stick.js';

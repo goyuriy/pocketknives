@@ -40,24 +40,25 @@ export const AimPreview = ({ flight, color }: { flight: Flight; color: string })
 };
 
 /**
- * The knife waiting in the hand, turning as the pull is drawn back.
+ * The knife waiting in the hand.
  *
- * It cocks further as power builds — the only honest cue available before
- * release, and something for the eye to hold on to while the arc is being
- * judged.
+ * Held at exactly the angle the throw begins from, so the knife carries on
+ * turning from where it was rather than snapping to a new pose the instant it
+ * leaves. The pace of the swing is shown on the meter; it does not need saying
+ * twice, and saying it here cost a visible jump at release.
  */
 export const HeldKnife = ({
   at,
   heading,
-  power,
+  bladeAngle,
   spec,
 }: {
   at: readonly [number, number, number];
   heading: number;
-  power: number;
+  bladeAngle: number;
   spec: KnifeSpec;
 }) => (
-  <group position={[...at]} rotation={bladeRotation(heading, 0.5 + power * 1.4)}>
+  <group position={[...at]} rotation={bladeRotation(heading, bladeAngle)}>
     <Knife spec={spec} />
   </group>
 );

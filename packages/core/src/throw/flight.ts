@@ -68,7 +68,11 @@ const sampleAt = (
     launch.origin[1] + Math.sin(launch.heading) * travelled,
     launch.origin[2] + verticalSpeed * time - 0.5 * gravity * time * time,
   ];
-  return { time, position, bladeAngle: launch.bladeAngle + launch.spin * time };
+  // Subtracted, not added: `bladeAngle` is the tip's angle above the line of
+  // flight, and a thrown knife tumbles *forward* — tip over the top and down —
+  // so that angle falls as it turns. Adding would spin it backwards, which is
+  // not something a thrown knife does.
+  return { time, position, bladeAngle: launch.bladeAngle - launch.spin * time };
 };
 
 const impactOf = (

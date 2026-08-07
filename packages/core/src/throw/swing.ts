@@ -90,7 +90,8 @@ export const stickingSpins = (
   if (flightTime <= 0) return [];
   const spins: number[] = [];
   for (let turn = 0; turn <= turns; turn++) {
-    const spin = (travelAngle + 2 * Math.PI * turn - config.style.startingBladeAngle) / flightTime;
+    // From `start - spin·t ≡ travelAngle (mod 2π)`, one rung per whole forward turn.
+    const spin = (config.style.startingBladeAngle - travelAngle + 2 * Math.PI * turn) / flightTime;
     if (spin > 0) spins.push(spin);
   }
   return spins;

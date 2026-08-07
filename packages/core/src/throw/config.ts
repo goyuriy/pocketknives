@@ -141,7 +141,9 @@ export const DEFAULT_CONFIG: ThrowConfig = {
      * phases them so both land where they can take ground. See RULES.md.
      */
     spinImpulse: 0.475, // 30 rad/s with the knife above
-    startingBladeAngle: -0.8,
+    // Tip up, as the knife sits in the hand — the tumble carries it forward from
+    // there, so the throw begins where the held knife was left.
+    startingBladeAngle: 0.8,
     minSpeed: 7,
     maxSpeed: 26,
   },

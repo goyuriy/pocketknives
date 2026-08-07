@@ -12,7 +12,6 @@ import {
 import { simulateFlight } from './flight.js';
 import { aimedLaunch, standingPoint } from './launch.js';
 import { stickVerdict } from './stick.js';
-import { stickingBands } from './bands.js';
 
 const withKnife = (changes: Partial<ThrowConfig['knife']>): ThrowConfig => ({
   ...DEFAULT_CONFIG,
@@ -71,10 +70,10 @@ describe('the knife is a physical object, not a set of labels', () => {
     expect(knifeLength(DEFAULT_CONFIG.knife)).toBeCloseTo(0.9, 9);
   });
 
-  it('moves the sticking bands when the knife changes', () => {
-    const standard = JSON.stringify(stickingBands(stand, heading));
-    const heavier = JSON.stringify(stickingBands(stand, heading, withKnife({ mass: 0.32 })));
-    expect(heavier).not.toBe(standard);
+  it('changes where the knife ends up when the knife changes', () => {
+    const arrive = (config: ThrowConfig) =>
+      simulateFlight(aimedLaunch(stand, heading, 0.6, config), config.flight).impact.bladeAngle;
+    expect(arrive(withKnife({ mass: 0.32 }))).not.toBeCloseTo(arrive(DEFAULT_CONFIG), 2);
   });
 });
 
@@ -117,10 +116,15 @@ describe('scatter', () => {
   });
 
   it('turns a reliable throw into an unreliable one as the spread widens', () => {
-    // Aim at the middle of a real band rather than a number written down here,
-    // so retuning the throw cannot quietly turn this into a test of nothing.
-    const band = stickingBands(stand, heading, DEFAULT_CONFIG)[0]!;
-    const dependable = (band.from + band.to) / 2;
+    // Find a power that really does stick rather than writing one down here, so
+    // retuning the throw cannot quietly turn this into a test of nothing.
+    const dependable = (() => {
+      for (let power = 0; power <= 1; power += 0.005) {
+        const flight = simulateFlight(aimedLaunch(stand, heading, power, DEFAULT_CONFIG));
+        if (stickVerdict(flight.impact, DEFAULT_CONFIG).stuck) return power;
+      }
+      throw new Error('no power sticks with the default config');
+    })();
     const sticks = (config: ThrowConfig) =>
       Array.from({ length: 200 }, (_, seed) =>
         stickVerdict(
