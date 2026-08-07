@@ -154,9 +154,23 @@ export const DEFAULT_CONFIG: ThrowConfig = {
     startingBladeAngle: 0,
   },
   stick: {
-    baseMisalignment: Math.PI / 5,
+    /*
+     * 55°, widened from 36° after play. The tumble is the hard part; it does not
+     * need to be exacting as well.
+     *
+     * This gate turns out not to be the one doing most of the rejecting —
+     * measured across the tumble range, over half of all failures are
+     * handle-first, and those are the entry gate's doing, not this one. Widening
+     * here alone bought little. The two have to move together, which is why
+     * `minEntryAngle` came down at the same time.
+     */
+    baseMisalignment: (Math.PI * 55) / 180,
     referenceBladeLength: 0.42,
-    minEntryAngle: 0.15,
+    // Just under 3°. All that is truly required is that the tip be lower than
+    // the butt — anything above zero means the point lands first. The old 0.15
+    // was caution rather than physics, and it was quietly the tightest
+    // constraint on the whole throw.
+    minEntryAngle: 0.05,
     minMomentum: 1.2,
     soilResistance: 14,
   },

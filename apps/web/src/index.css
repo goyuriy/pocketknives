@@ -337,3 +337,16 @@ button:active {
   text-align: right;
   color: var(--ink);
 }
+
+.stand {
+  display: grid;
+  grid-template-columns: 52px 1fr;
+  align-items: center;
+  gap: 9px;
+  font-size: 11px;
+  color: var(--ink-dim);
+}
+
+.stand input[type='range'] {
+  width: 100%;
+}

@@ -130,6 +130,22 @@ tumble — no drag, no wobble, no physics engine. That is deliberate: a server a
 a client must agree on where the knife landed without replaying each other's
 floating point, and a physics engine cannot promise that.
 
+## Where you stand
+
+You throw from your own ground, so the stretch of rim you still hold is the
+stretch you may throw from — and you choose where along it to stand.
+
+That gives rim frontage a value of its own. A player squeezed inland keeps their
+area but loses their angles, and can end up holding plenty of ground with no line
+on anybody. It also means an attack on someone's edge costs them more than the
+land it takes.
+
+The choice is stored as a fraction of frontage rather than an angle, so it
+survives the ground moving underneath it: lose half your edge and you are still
+standing proportionally where you were, not suddenly outside your own land.
+
+> `ownedRimArcs`, `standingBearing` — [standing.ts](packages/core/src/rules/standing.ts)
+
 ## The knife
 
 Chosen before the match, not during it: the knife is your strategy, the throw is

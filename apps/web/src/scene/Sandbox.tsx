@@ -35,7 +35,17 @@ export const Sandbox = ({ game }: { game: SandboxState }) => {
    */
   const track = (event: React.PointerEvent<HTMLDivElement>) => {
     const now = event.timeStamp || performance.now();
-    stroke.current.push({ x: event.clientX, y: event.clientY, t: now });
+    /*
+     * Browsers batch pointer moves to one per frame and keep the rest, which for
+     * a flick is most of the stroke. The kept ones carry the curve; without them
+     * a hooked stroke can arrive as three points in a near-straight line and read
+     * as having no wrist in it at all.
+     */
+    const coalesced = event.nativeEvent.getCoalescedEvents?.() ?? [];
+    const points = coalesced.length > 0 ? coalesced : [event.nativeEvent];
+    for (const point of points) {
+      stroke.current.push({ x: point.clientX, y: point.clientY, t: point.timeStamp || now });
+    }
     stroke.current = stroke.current.filter((s) => now - s.t <= STROKE_MEMORY);
   };
 

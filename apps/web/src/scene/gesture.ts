@@ -8,6 +8,17 @@ export type Sample = {
 
 /** How much of the end of the stroke counts as "the release", in milliseconds. */
 const RELEASE_WINDOW = 110;
+/**
+ * Fewest samples the release may be read from.
+ *
+ * A turn cannot be measured from two points — two points are a straight line.
+ * When events arrive sparsely, whether from a slow device or from a browser
+ * coalescing them, the time window alone can hold too few, and the stroke then
+ * reads as having no curl at all: every throw lands handle-first and nothing the
+ * player does changes it. Reaching further back is far better than reporting a
+ * flick as a push.
+ */
+const LEAST_SAMPLES = 4;
 
 const wrap = (radians: number): number => {
   const wrapped = ((radians + Math.PI) % (2 * Math.PI) + 2 * Math.PI) % (2 * Math.PI);
@@ -36,7 +47,9 @@ export const readSwing = (samples: readonly Sample[], viewportHeight: number): S
   if (samples.length < 2 || viewportHeight <= 0) return idle;
 
   const last = samples[samples.length - 1]!;
-  const window = samples.filter((s) => last.t - s.t <= RELEASE_WINDOW);
+  const recent = samples.filter((s) => last.t - s.t <= RELEASE_WINDOW);
+  const window =
+    recent.length >= LEAST_SAMPLES ? recent : samples.slice(-Math.max(LEAST_SAMPLES, recent.length));
   if (window.length < 2) return idle;
 
   const first = window[0]!;

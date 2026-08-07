@@ -10,6 +10,7 @@ import {
   passTurn,
   resolveThrow,
   simulateFlight,
+  standingBearing,
   standingPoint,
   stickVerdict,
   survivors,
@@ -69,6 +70,9 @@ export const useSandbox = (initialPlayers = 4) => {
   const [swing, setSwing] = useState<SwingReading | null>(null);
   const [lastAttempt, setLastAttempt] = useState<Attempt | null>(null);
   const [knifeId, setKnifeId] = useState('thrower');
+  // How far along their own frontage the player stands, 0 to 1. A fraction, not
+  // an angle, so the choice survives the ground moving under them.
+  const [standPosition, setStandPosition] = useState(0.5);
   const [tuning, setTuning] = useState<ThrowConfig>(DEFAULT_CONFIG);
   const [playbackScale, setPlaybackScale] = useState(0.55);
   const [stayOnPlayer, setStayOnPlayer] = useState(true);
@@ -82,7 +86,18 @@ export const useSandbox = (initialPlayers = 4) => {
   );
 
   const currentPlayer = match.players[match.turn]!;
-  const bearing = bearingOf(match.turn, match.players.length);
+  /*
+   * You throw from your own ground, so the rim you still hold is the rim you may
+   * throw from. A player squeezed inland keeps their area but loses their
+   * angles — which is why this is read off the board every turn rather than
+   * fixed at the wedge each player started with.
+   */
+  const bearing = useMemo(
+    () =>
+      standingBearing(match.board, currentPlayer, standPosition) ??
+      bearingAtStart(match.turn, match.players.length),
+    [match.board, currentPlayer, standPosition, match.turn, match.players.length],
+  );
   const stand = useMemo(() => standingPoint(bearing, ARENA_RADIUS), [bearing]);
   const restHeading = bearing + Math.PI;
 
@@ -210,6 +225,8 @@ export const useSandbox = (initialPlayers = 4) => {
     setTuning,
     knifeId,
     setKnifeId,
+    standPosition,
+    setStandPosition,
     playbackScale,
     setPlaybackScale,
     stayOnPlayer,
@@ -223,8 +240,8 @@ const newMatch = (playerCount: number): Match =>
     PLAYER_NAMES.slice(0, playerCount),
   );
 
-/** Centre bearing of a player's opening wedge — where they stand to throw. */
-const bearingOf = (index: number, playerCount: number): number =>
+/** Centre of a player's opening wedge — the fallback when they hold no rim at all. */
+const bearingAtStart = (index: number, playerCount: number): number =>
   ((index + 0.5) * 2 * Math.PI) / playerCount;
 
 export type SandboxState = ReturnType<typeof useSandbox>;

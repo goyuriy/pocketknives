@@ -77,6 +77,48 @@ describe('the knife is a physical object, not a set of labels', () => {
   });
 });
 
+describe('how much the throw forgives', () => {
+  /**
+   * The fraction of tumble rates that stick at a fixed pace — what a player
+   * actually experiences as difficulty, and the only honest way to judge a
+   * change to either gate.
+   *
+   * Bounded on both sides on purpose. Too tight and the game is a lottery; too
+   * loose and the tumble stops mattering, which is the whole mechanic.
+   */
+  const sticksAtPace = (config: ThrowConfig, power: number): number => {
+    let stuck = 0;
+    let total = 0;
+    for (let spin = 1; spin <= 90; spin += 0.05) {
+      const base = aimedLaunch(stand, heading, power, config);
+      const flight = simulateFlight({ ...base, spin }, config.flight);
+      total++;
+      if (stickVerdict(flight.impact, config).stuck) stuck++;
+    }
+    return stuck / total;
+  };
+
+  it('gives roughly one tumble in four, at any pace', () => {
+    for (const power of [0.4, 0.6, 0.8, 1]) {
+      const fraction = sticksAtPace(DEFAULT_CONFIG, power);
+      expect(fraction, `pace ${power}`).toBeGreaterThan(0.17);
+      expect(fraction, `pace ${power}`).toBeLessThan(0.35);
+    }
+  });
+
+  it('is held back by the entry gate as much as by the alignment window', () => {
+    // Widening one alone buys little: over half of all failures are the knife
+    // arriving handle-down, which the alignment window has no say in. Anyone
+    // retuning forgiveness needs to know the two gates move together.
+    const wider = {
+      ...DEFAULT_CONFIG,
+      stick: { ...DEFAULT_CONFIG.stick, baseMisalignment: DEFAULT_CONFIG.stick.baseMisalignment * 1.4 },
+    };
+    const gained = sticksAtPace(wider, 0.75) - sticksAtPace(DEFAULT_CONFIG, 0.75);
+    expect(gained).toBeLessThan(0.08);
+  });
+});
+
 describe('scatter', () => {
   const scattered = withScatter({ heading: 0.05, power: 0.04, spin: 2, startingBladeAngle: 0.2 });
 

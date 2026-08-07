@@ -110,6 +110,23 @@ export const SandboxHud = ({ game }: { game: SandboxState }) => {
         ))}
       </div>
 
+      {/*
+        Where to stand, along whatever rim this player still holds. Its own row
+        because it is a decision taken before the throw, not a setting.
+      */}
+      <label className="stand">
+        <span>stand</span>
+        <input
+          type="range"
+          min={0}
+          max={1}
+          step={0.01}
+          value={game.standPosition}
+          onChange={(event) => game.setStandPosition(Number(event.target.value))}
+          aria-label="Where to stand along your own edge"
+        />
+      </label>
+
       <div className="controls">
         <button type="button" onClick={() => game.reset(game.playerCount)}>
           Reset
