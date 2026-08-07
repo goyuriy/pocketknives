@@ -89,8 +89,27 @@ export type StickTuning = {
   readonly soilResistance: number;
 };
 
+/**
+ * How a hand's motion is read as a throw.
+ *
+ * These are the numbers that decide whether the gesture feels like throwing
+ * something. They are in abstract units — screen-heights per second, radians per
+ * second — so the mapping is the same on a phone and a desktop.
+ */
+export type GestureTuning = {
+  /** Hand speed that throws as hard as the arm can. */
+  readonly fullPowerSwipe: number;
+  /** Below this the hand was not throwing, it was resting. */
+  readonly minSwipe: number;
+  /** Turn rate of the stroke that produces the knife's nominal tumble. */
+  readonly referenceCurl: number;
+  /** How far the release direction swings the aim. */
+  readonly aimGain: number;
+};
+
 export type ThrowConfig = {
   readonly knife: KnifeSpec;
+  readonly gesture: GestureTuning;
   readonly style: ThrowStyle;
   readonly scatter: Scatter;
   readonly stick: StickTuning;
@@ -138,6 +157,12 @@ export const DEFAULT_CONFIG: ThrowConfig = {
     minEntryAngle: 0.15,
     minMomentum: 1.2,
     soilResistance: 14,
+  },
+  gesture: {
+    fullPowerSwipe: 2.6,
+    minSwipe: 0.25,
+    referenceCurl: 11,
+    aimGain: 0.9,
   },
   flight: {
     gravity: 24,

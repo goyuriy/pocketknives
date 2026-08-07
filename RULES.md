@@ -31,8 +31,28 @@ Eliminated players are skipped.
 
 ## The throw
 
-You control two things: **where you aim**, and **how hard you throw**. Pitch and
-spin are fixed — a player throws the way they throw.
+**You throw by throwing.** The stroke you make on screen is read at the moment
+you let go, and two things come out of it — the two things a hand really does:
+
+- **How fast it was moving** becomes how far the knife goes.
+- **How sharply it was turning** becomes how much the knife tumbles. A straight
+  push has none of it; a hooked flick has a great deal.
+
+They are independent, and that is the whole reason for reading the hand rather
+than offering a power slider. Under a single dial, one number set both distance
+*and* rotation, which welded them together: only a couple of distances could ever
+stick, and after ten minutes a player simply used one of them. Power stopped
+being a decision.
+
+Now any distance is reachable — a sticking tumble exists for every pace the hand
+can manage — but only if the wrist does the right thing to go with it. Where to
+land goes back to being a free strategic choice; landing there is a skill.
+
+> `readSwing` (screen stroke → reading) — [gesture.ts](apps/web/src/scene/gesture.ts)
+> `swingLaunch`, `stickingSpins` — [swing.ts](packages/core/src/throw/swing.ts)
+
+The knife **follows through**: a stroke to the right sends it right. This is the
+opposite of a drawn-bow gesture, and rightly so — a throw is not a pull.
 
 The knife tumbles end over end at a steady rate the whole way. Sticking asks
 three separate questions, and conflating the first two is a bug waiting to
@@ -102,6 +122,25 @@ A throw that fails to stick costs the turn, like any other miss.
 tumble — no drag, no wobble, no physics engine. That is deliberate: a server and
 a client must agree on where the knife landed without replaying each other's
 floating point, and a physics engine cannot promise that.
+
+## The knife
+
+Chosen before the match, not during it: the knife is your strategy, the throw is
+your execution.
+
+| Knife | Character |
+| --- | --- |
+| Kitchen | Turns easily and forgives a rough landing. The one to learn on. |
+| Thrower | Weighted forward and even-tempered. Nothing it does will surprise you. |
+| Cleaver | Heavy and slow to turn. Needs a real swing, and buries itself when it lands. |
+| Needle | Light and fast. Spins off the smallest flick and punishes a sloppy one. |
+
+Every difference is physical and already drives the flight — mass and balance set
+how much tumble a given wrist produces, blade length sets how much the ground
+forgives, edge width sets how deep it goes. None of it is a stat bar bolted onto
+a knife that behaves the same either way.
+
+> `KNIVES` — [knives.ts](packages/core/src/throw/knives.ts)
 
 ## The cut
 

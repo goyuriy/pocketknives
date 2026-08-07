@@ -9,7 +9,7 @@ export const App = () => {
   return (
     <div className="app">
       <Sandbox game={game} />
-      <TuningPanel config={game.config} onChange={game.setConfig} bands={game.bands} />
+      <TuningPanel config={game.config} onChange={game.setTuning} />
       <SandboxHud game={game} />
     </div>
   );

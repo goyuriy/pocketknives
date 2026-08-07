@@ -62,52 +62,68 @@ body {
   backdrop-filter: blur(2px);
 }
 
-.meter {
-  display: flex;
-  align-items: center;
-  gap: 10px;
+/* What the hand did: pace on top, tumble below. */
+.swing {
+  display: grid;
+  gap: 5px;
 }
 
-.meter-track {
+.swing-row {
+  display: grid;
+  grid-template-columns: 52px 1fr;
+  align-items: center;
+  gap: 9px;
+}
+
+.swing-label {
+  font-size: 11px;
+  color: var(--ink-dim);
+}
+
+.swing-track {
   position: relative;
-  flex: 1;
-  height: 10px;
+  height: 9px;
   border-radius: 999px;
   background: #0f0d0b;
   border: 1px solid var(--edge);
   overflow: hidden;
 }
 
-/* Where the knife arrives blade-first. Sandbox only — see PowerMeter. */
-.meter-band {
+.swing-fill {
   position: absolute;
-  top: 0;
-  bottom: 0;
-  background: repeating-linear-gradient(
-    -45deg,
-    #ffffff22,
-    #ffffff22 4px,
-    #ffffff0d 4px,
-    #ffffff0d 8px
-  );
+  inset: 0 auto 0 0;
+  border-radius: 999px;
+  transition: width 90ms linear;
 }
 
-.meter-needle {
+/* The tumble this throw actually wanted. */
+.swing-mark {
   position: absolute;
-  top: -3px;
-  bottom: -3px;
-  width: 3px;
-  margin-left: -1.5px;
-  border-radius: 2px;
-  box-shadow: 0 0 6px currentColor;
+  top: -2px;
+  bottom: -2px;
+  width: 2px;
+  margin-left: -1px;
+  background: #fff6e0;
+  box-shadow: 0 0 5px #fff6e0;
 }
 
-.meter-label {
+.knives {
+  display: flex;
+  gap: 5px;
+  margin-left: auto;
+}
+
+.knife {
+  padding: 4px 9px;
   font-size: 12px;
+  border-radius: 999px;
   color: var(--ink-dim);
-  font-variant-numeric: tabular-nums;
-  min-width: 96px;
-  text-align: right;
+}
+
+.knife.chosen {
+  color: var(--ink);
+  border-color: var(--ink-dim);
+  background: #ffffff14;
 }
 
 .toggle {

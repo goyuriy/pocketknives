@@ -8,7 +8,6 @@ import {
   stickWindow,
   type ThrowConfig,
 } from '@pocketknives/core';
-import type { PowerBand } from '@pocketknives/core';
 
 type Group = keyof ThrowConfig;
 
@@ -52,12 +51,18 @@ const DIALS: readonly Dial[] = [
   { group: 'stick', key: 'minMomentum', label: 'min momentum', min: 0, max: 6, step: 0.1 },
   { group: 'stick', key: 'soilResistance', label: 'ground hardness', min: 2, max: 40, step: 0.5 },
 
+  { group: 'gesture', key: 'fullPowerSwipe', label: 'full swing', min: 0.6, max: 6, step: 0.05, hint: 'hand speed for max range' },
+  { group: 'gesture', key: 'minSwipe', label: 'least swing', min: 0.02, max: 1, step: 0.01 },
+  { group: 'gesture', key: 'referenceCurl', label: 'wrist scale', min: 2, max: 30, step: 0.5, hint: 'turn rate giving nominal tumble' },
+  { group: 'gesture', key: 'aimGain', label: 'aim gain', min: 0.1, max: 2, step: 0.05 },
+
   { group: 'flight', key: 'gravity', label: 'gravity', min: 5, max: 60, step: 0.5 },
 ];
 
 const GROUP_LABELS: Record<string, string> = {
   knife: 'Knife',
   style: 'Throw',
+  gesture: 'Hand',
   scatter: 'Wobble',
   stick: 'Ground',
   flight: 'World',
@@ -66,11 +71,9 @@ const GROUP_LABELS: Record<string, string> = {
 export const TuningPanel = ({
   config,
   onChange,
-  bands,
 }: {
   config: ThrowConfig;
   onChange: (config: ThrowConfig) => void;
-  bands: readonly PowerBand[];
 }) => {
   const [open, setOpen] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -124,14 +127,7 @@ export const TuningPanel = ({
         <div><dt>inertia</dt><dd>{momentOfInertia(config.knife).toFixed(4)}</dd></div>
         <div><dt>length</dt><dd>{knifeLength(config.knife).toFixed(2)}</dd></div>
         <div><dt>min speed</dt><dd>{minStickSpeed(config).toFixed(1)}</dd></div>
-        <div>
-          <dt>bands</dt>
-          <dd>
-            {bands.length === 0
-              ? 'none — unthrowable'
-              : bands.map((b) => `${Math.round(b.from * 100)}–${Math.round(b.to * 100)}%`).join(', ')}
-          </dd>
-        </div>
+        <div><dt>per wrist</dt><dd>{(spinRate(config) / config.gesture.referenceCurl).toFixed(2)}</dd></div>
       </dl>
 
       <div className="dials">

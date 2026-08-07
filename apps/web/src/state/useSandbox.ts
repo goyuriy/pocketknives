@@ -1,31 +1,33 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
-  aimedLaunch,
+  DEFAULT_CONFIG,
   createBoard,
   createMatch,
   fieldOutlines,
+  isThrow,
+  knifeById,
+  nearestStickingSpin,
   passTurn,
   resolveThrow,
   simulateFlight,
   standingPoint,
   stickVerdict,
-  stickingBands,
   survivors,
+  swingLaunch,
   throwFromImpact,
-  DEFAULT_CONFIG,
   type Flight,
-  type ThrowConfig,
   type Match,
   type PlayerId,
   type StickVerdict,
+  type SwingReading,
+  type ThrowConfig,
   type ThrowOutcome,
-  type Vec2,
 } from '@pocketknives/core';
 import { PLAYER_NAMES } from '../ui/theme.js';
 
 export const ARENA_RADIUS = 10;
 
-/** Seconds the cut takes to draw itself across the ground before land changes hands. */
+/** Seconds the cut takes to draw itself before land changes hands. */
 const CUT_DURATION = 0.55;
 /** Seconds the result stays up before the next player may throw. */
 const REST_DURATION = 0.7;
@@ -37,8 +39,12 @@ export type Attempt = {
   /** Null when the knife never stuck — the rules were never consulted. */
   readonly outcome: ThrowOutcome | null;
   readonly playbackDuration: number;
-  /** What the scatter was drawn from. Replays the throw exactly. */
   readonly seed: number;
+  /** What the hand did, kept so a miss can be explained in the hand's own terms. */
+  readonly reading: SwingReading;
+  readonly spin: number;
+  /** The tumble this throw came closest to needing. Null if none was reachable. */
+  readonly neededSpin: number | null;
 };
 
 export type Phase =
@@ -47,42 +53,38 @@ export type Phase =
   | { readonly kind: 'cutting'; readonly attempt: Attempt }
   | { readonly kind: 'resting'; readonly attempt: Attempt };
 
-export type Aim = {
-  readonly heading: number;
-  readonly power: number;
-};
-
 /**
- * The sandbox: a board, a knife, and somewhere to stand.
+ * The sandbox: a board, a knife, and a hand to throw it with.
  *
- * A throw is resolved the instant it is released — flight, stick, and cut are
- * all pure functions, so the entire outcome is known before a single frame is
- * drawn. What follows is playback, not simulation. That separation is what lets
- * the same throw be replayed, recorded, or handed to a server later, and it
- * means the animation can never disagree with the result.
- *
- * The board is not updated when the knife lands, but when the cut finishes
- * drawing. Land changing hands is the payoff, and it has to arrive after the
- * line that caused it, not with it.
+ * A throw is resolved the instant the hand lets go — flight, stick and cut are
+ * all pure functions, so the whole outcome is known before a frame is drawn.
+ * What follows is playback, not simulation. The board is not updated when the
+ * knife lands but when the cut finishes drawing, because land changing hands is
+ * the payoff and has to arrive after the line that caused it.
  */
 export const useSandbox = (initialPlayers = 4) => {
   const [playerCount, setPlayerCount] = useState(initialPlayers);
   const [match, setMatch] = useState<Match>(() => newMatch(initialPlayers));
   const [phase, setPhase] = useState<Phase>({ kind: 'ready' });
-  const [aim, setAim] = useState<Aim | null>(null);
-  // The last throw outlives its animation: the knife stays in the ground and the
-  // verdict stays on screen until the next one is released. A sandbox is for
-  // studying what just happened, and a result that clears itself cannot be read.
+  const [swing, setSwing] = useState<SwingReading | null>(null);
   const [lastAttempt, setLastAttempt] = useState<Attempt | null>(null);
-  const [config, setConfig] = useState<ThrowConfig>(DEFAULT_CONFIG);
+  const [knifeId, setKnifeId] = useState('thrower');
+  const [tuning, setTuning] = useState<ThrowConfig>(DEFAULT_CONFIG);
   const [playbackScale, setPlaybackScale] = useState(0.55);
   const [stayOnPlayer, setStayOnPlayer] = useState(true);
   const timers = useRef<number[]>([]);
 
+  // The chosen knife is part of the config, not a decoration on top of it, so
+  // every derived quantity — tumble, forgiveness, bite — follows from the pick.
+  const config = useMemo<ThrowConfig>(
+    () => ({ ...tuning, knife: knifeById(knifeId).spec }),
+    [tuning, knifeId],
+  );
+
   const currentPlayer = match.players[match.turn]!;
   const bearing = bearingOf(match.turn, match.players.length);
   const stand = useMemo(() => standingPoint(bearing, ARENA_RADIUS), [bearing]);
-  const restHeading = bearing + Math.PI; // facing the middle of the circle
+  const restHeading = bearing + Math.PI;
 
   const alive = useMemo(
     () => survivors(match.board, match.rules, match.players),
@@ -93,23 +95,20 @@ export const useSandbox = (initialPlayers = 4) => {
     [match.board, match.rules.minSharedBorder],
   );
 
-  // Where this player can reliably stick a knife from where they stand. Bands
-  // move with the throw's tuning, so they are computed, never written down.
-  const bands = useMemo(
-    () => stickingBands(stand, restHeading, config),
-    [stand, restHeading, config],
-  );
-
   /**
-   * The throw as it would resolve right now — drawn as the aiming preview.
+   * Where the knife would go if the hand let go right now.
    *
-   * Deliberately unscattered. The preview is what the player is *aiming* at; if
-   * it jittered with every frame it would be showing them the hand's error
-   * before the hand has made it.
+   * Honest rather than helpful, and that is the point. A slow, deliberate motion
+   * draws a clear short arc; a hard flick is over before the preview means
+   * anything. You can look, or you can throw far, but not both — which is a fair
+   * description of throwing a knife.
    */
   const previewFlight = useMemo(
-    () => (aim ? simulateFlight(aimedLaunch(stand, aim.heading, aim.power, config), config.flight) : null),
-    [aim, stand, config],
+    () =>
+      swing && isThrow(swing, config)
+        ? simulateFlight(swingLaunch(stand, restHeading, swing, config), config.flight)
+        : null,
+    [swing, stand, restHeading, config],
   );
 
   useEffect(() => () => timers.current.forEach(clearTimeout), []);
@@ -121,77 +120,79 @@ export const useSandbox = (initialPlayers = 4) => {
   /**
    * Commits a throw.
    *
-   * Takes the aim as an argument rather than reading it from state. A press,
-   * drag and release can all land inside a single frame, and React has not
-   * re-rendered by then — reading the aim from state would see the value from
-   * before the gesture began and drop the throw on the floor.
+   * Takes the reading as an argument rather than from state: a whole stroke can
+   * land inside one frame, and state React has not re-rendered yet would hold
+   * the hand's position from before it moved.
    */
-  const release = useCallback((thrown: Aim) => {
-    if (phase.kind !== 'ready') return;
+  const release = useCallback(
+    (reading: SwingReading) => {
+      setSwing(null);
+      if (phase.kind !== 'ready' || !isThrow(reading, config)) return;
 
-    // A fresh seed per throw, recorded on the attempt so it can be replayed.
-    const seed = Math.floor(Math.random() * 0xffffffff);
-    const flight = simulateFlight(
-      aimedLaunch(stand, thrown.heading, thrown.power, config, seed),
-      config.flight,
-    );
-    const verdict = stickVerdict(flight.impact, config);
-    // Resolved now so the animation knows what it is showing; the board it
-    // produces is held back until the cut has finished drawing.
-    const outcome = verdict.stuck
-      ? resolveThrow(match.board, currentPlayer, throwFromImpact(flight.impact), match.rules)
-      : null;
+      const seed = Math.floor(Math.random() * 0xffffffff);
+      const launch = swingLaunch(stand, restHeading, reading, config, seed);
+      const flight = simulateFlight(launch, config.flight);
+      const verdict = stickVerdict(flight.impact, config);
+      const outcome = verdict.stuck
+        ? resolveThrow(match.board, currentPlayer, throwFromImpact(flight.impact), match.rules)
+        : null;
 
-    const attempt: Attempt = {
-      playerId: currentPlayer,
-      flight,
-      verdict,
-      outcome,
-      playbackDuration: flight.impact.time / playbackScale,
-      seed,
-    };
+      const attempt: Attempt = {
+        playerId: currentPlayer,
+        flight,
+        verdict,
+        outcome,
+        playbackDuration: flight.impact.time / playbackScale,
+        seed,
+        reading,
+        spin: launch.spin,
+        neededSpin: nearestStickingSpin(
+          launch.spin,
+          flight.impact.time,
+          -flight.impact.descentAngle,
+          config,
+        ),
+      };
 
-    setAim(null);
-    setLastAttempt(attempt);
-    setPhase({ kind: 'flying', attempt });
+      setLastAttempt(attempt);
+      setPhase({ kind: 'flying', attempt });
 
-    schedule(() => setPhase({ kind: 'cutting', attempt }), attempt.playbackDuration);
-    schedule(() => {
-      const won = attempt.outcome;
-      if (won?.kind === 'claimed') setMatch((current) => ({ ...current, board: won.board }));
-      setPhase({ kind: 'resting', attempt });
-    }, attempt.playbackDuration + CUT_DURATION);
-    schedule(() => {
-      if (!stayOnPlayer) setMatch(passTurn);
-      setPhase({ kind: 'ready' });
-    }, attempt.playbackDuration + CUT_DURATION + REST_DURATION);
-  }, [phase.kind, stand, match, currentPlayer, playbackScale, stayOnPlayer, config]);
-
-  const reset = useCallback(
-    (count: number) => {
-      timers.current.forEach(clearTimeout);
-      timers.current = [];
-      setPlayerCount(count);
-      setMatch(newMatch(count));
-      setPhase({ kind: 'ready' });
-      setAim(null);
-      setLastAttempt(null);
+      schedule(() => setPhase({ kind: 'cutting', attempt }), attempt.playbackDuration);
+      schedule(() => {
+        const won = attempt.outcome;
+        if (won?.kind === 'claimed') setMatch((current) => ({ ...current, board: won.board }));
+        setPhase({ kind: 'resting', attempt });
+      }, attempt.playbackDuration + CUT_DURATION);
+      schedule(() => {
+        if (!stayOnPlayer) setMatch(passTurn);
+        setPhase({ kind: 'ready' });
+      }, attempt.playbackDuration + CUT_DURATION + REST_DURATION);
     },
-    [],
+    [phase.kind, stand, restHeading, match, currentPlayer, playbackScale, stayOnPlayer, config],
   );
+
+  const reset = useCallback((count: number) => {
+    timers.current.forEach(clearTimeout);
+    timers.current = [];
+    setPlayerCount(count);
+    setMatch(newMatch(count));
+    setPhase({ kind: 'ready' });
+    setSwing(null);
+    setLastAttempt(null);
+  }, []);
 
   const selectPlayer = useCallback((index: number) => {
     setMatch((current) => ({ ...current, turn: index % current.players.length }));
     setPhase({ kind: 'ready' });
-    setAim(null);
+    setSwing(null);
     setLastAttempt(null);
   }, []);
 
   return {
     match,
     phase,
-    aim,
-    setAim,
+    swing,
+    setSwing,
     lastAttempt,
     release,
     reset,
@@ -202,11 +203,13 @@ export const useSandbox = (initialPlayers = 4) => {
     restHeading,
     alive,
     fields,
-    bands,
     previewFlight,
     playerCount,
     config,
-    setConfig,
+    tuning,
+    setTuning,
+    knifeId,
+    setKnifeId,
     playbackScale,
     setPlaybackScale,
     stayOnPlayer,

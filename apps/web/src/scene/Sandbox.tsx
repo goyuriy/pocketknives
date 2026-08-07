@@ -1,6 +1,6 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Canvas } from '@react-three/fiber';
-import type { Aim, SandboxState } from '../state/useSandbox.js';
+import type { SandboxState } from '../state/useSandbox.js';
 import { ARENA_RADIUS } from '../state/useSandbox.js';
 import { colorOf } from '../ui/theme.js';
 import { Arena, CutLine } from './Arena.js';
@@ -8,82 +8,58 @@ import { AimPreview, HeldKnife } from './AimPreview.js';
 import { CameraRig } from './CameraRig.js';
 import { FallenKnife, FlyingKnife, StuckKnife } from './FlyingKnife.js';
 import { PLAYFIELD_TILT } from './coords.js';
+import { readSwing, type Sample } from './gesture.js';
 
-/**
- * How far the finger must travel for full power, as a fraction of the viewport's
- * shorter side. Scaled rather than fixed so the gesture feels the same on a
- * phone as on a desktop.
- */
-const PULL_FOR_FULL_POWER = 0.34;
-/**
- * Radians of aim per fraction of viewport dragged sideways.
- *
- * Generous on purpose: a player has to be able to aim right across the circle,
- * and at a narrower ratio the far edges of it are simply unreachable.
- */
-const SWING_PER_PULL = 2.2;
+/** How much of the stroke to remember. Older than this cannot be part of a throw. */
+const STROKE_MEMORY = 400;
 
 export const Sandbox = ({ game }: { game: SandboxState }) => {
-  const { phase, aim, setAim, release } = game;
-  const anchor = useRef<{ x: number; y: number } | null>(null);
-  // The live aim, kept where the release handler can read it synchronously.
-  // State alone will not do: a whole gesture can happen inside one frame.
-  const pendingAim = useRef<Aim | null>(null);
+  const { phase, setSwing, release } = game;
+  const stroke = useRef<Sample[]>([]);
   const [cutProgress, setCutProgress] = useState(0);
 
   const canThrow = phase.kind === 'ready';
 
   /**
-   * Pull back to throw.
+   * Throw by throwing.
    *
-   * The gesture is a drawn bow, and it is inverted on *both* axes because that
-   * is what drawing something back means: pull down and the knife flies away
-   * from you, pull right and it flies to the left. Inverting only the one axis
-   * reads as broken — the hand is doing two contradictory things at once.
+   * The stroke is recorded as it happens and read at the moment the hand lets
+   * go — its pace becomes distance, and how sharply it was turning becomes
+   * tumble. Neither is a slider standing in for a hand; they are the two things
+   * a hand actually does, and they are independent, which is what lets a player
+   * reach any distance instead of the two the old power dial allowed.
    *
-   * Measured in screen space rather than world space, because the sense of it
-   * comes from the camera. The view sits behind the thrower looking down the
-   * throwing line, so "back" and "across" only mean anything relative to that,
-   * and neither maps to a world axis.
+   * Samples are kept in a ref, not state. A whole flick can happen inside one
+   * frame, and a throw assembled from state React has not re-rendered yet would
+   * be a throw that never moved.
    */
-  const updateAim = useCallback(
-    (clientX: number, clientY: number, element: HTMLElement) => {
-      const start = anchor.current;
-      if (!start) return;
-      const scale = Math.min(element.clientWidth, element.clientHeight);
-      const pullBack = (clientY - start.y) / scale;
-      const pullAcross = (clientX - start.x) / scale;
+  const track = (event: React.PointerEvent<HTMLDivElement>) => {
+    const now = event.timeStamp || performance.now();
+    stroke.current.push({ x: event.clientX, y: event.clientY, t: now });
+    stroke.current = stroke.current.filter((s) => now - s.t <= STROKE_MEMORY);
+  };
 
-      const next: Aim = {
-        heading: game.restHeading + pullAcross * SWING_PER_PULL,
-        power: Math.min(1, Math.max(0, pullBack / PULL_FOR_FULL_POWER)),
-      };
-      pendingAim.current = next;
-      setAim(next);
-    },
-    [game.restHeading, setAim],
-  );
+  const viewportHeight = (element: HTMLElement) => element.clientHeight || 1;
 
   const onPointerDown = (event: React.PointerEvent<HTMLDivElement>) => {
     if (!canThrow) return;
     event.currentTarget.setPointerCapture?.(event.pointerId);
-    anchor.current = { x: event.clientX, y: event.clientY };
-    const start: Aim = { heading: game.restHeading, power: 0 };
-    pendingAim.current = start;
-    setAim(start);
+    stroke.current = [];
+    track(event);
   };
 
   const onPointerMove = (event: React.PointerEvent<HTMLDivElement>) => {
-    if (!canThrow || !anchor.current) return;
-    updateAim(event.clientX, event.clientY, event.currentTarget);
+    if (!canThrow || stroke.current.length === 0) return;
+    track(event);
+    setSwing(readSwing(stroke.current, viewportHeight(event.currentTarget)));
   };
 
-  const onPointerUp = () => {
-    if (!anchor.current) return;
-    anchor.current = null;
-    const thrown = pendingAim.current;
-    pendingAim.current = null;
-    if (thrown) release(thrown);
+  const onPointerUp = (event: React.PointerEvent<HTMLDivElement>) => {
+    if (stroke.current.length === 0) return;
+    track(event);
+    const reading = readSwing(stroke.current, viewportHeight(event.currentTarget));
+    stroke.current = [];
+    release(reading);
   };
 
   /*
@@ -122,7 +98,9 @@ export const Sandbox = ({ game }: { game: SandboxState }) => {
   const landed = phase.kind === 'cutting' || phase.kind === 'resting';
   // The knife and its cut stay put after the animation ends, so the throw can be
   // studied rather than glimpsed. Only aiming the next one clears them.
-  const settled = landed ? phase.attempt : phase.kind === 'ready' && !aim ? game.lastAttempt : null;
+  const swinging = game.swing !== null;
+  const settled =
+    landed ? phase.attempt : phase.kind === 'ready' && !swinging ? game.lastAttempt : null;
   const shownCut = settled?.outcome?.kind === 'claimed' ? settled.outcome.cut : null;
 
   return (
@@ -156,23 +134,17 @@ export const Sandbox = ({ game }: { game: SandboxState }) => {
 
           {shownCut && <CutLine cut={shownCut} progress={cutProgress} />}
 
-          {phase.kind === 'ready' && aim && game.previewFlight && (
-            <>
-              <AimPreview flight={game.previewFlight} color={colorOf(game.currentPlayer)} />
-              <HeldKnife
-                at={[game.stand[0], game.stand[1], game.config.style.releaseHeight]}
-                heading={aim.heading}
-                power={aim.power}
-                spec={game.config.knife}
-              />
-            </>
+          {phase.kind === 'ready' && game.previewFlight && (
+            <AimPreview flight={game.previewFlight} color={colorOf(game.currentPlayer)} />
           )}
 
-          {phase.kind === 'ready' && !aim && !settled && (
+          {phase.kind === 'ready' && !settled && (
             <HeldKnife
               at={[game.stand[0], game.stand[1], game.config.style.releaseHeight]}
-              heading={game.restHeading}
-              power={0}
+              heading={game.previewFlight?.impact.heading ?? game.restHeading}
+              // Cocks further as the hand gathers pace — the only cue there is
+              // before the knife leaves, and it moves with the real reading.
+              power={Math.min(1, (game.swing?.speed ?? 0) / game.config.gesture.fullPowerSwipe)}
               spec={game.config.knife}
             />
           )}
