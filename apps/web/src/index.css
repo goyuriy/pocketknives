@@ -1,0 +1,323 @@
+:root {
+  --ink: #f2ede4;
+  --ink-dim: #9a9287;
+  --ground: #14110e;
+  --panel: #1e1a16;
+  --edge: #3a332b;
+  color-scheme: dark;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  background: var(--ground);
+  color: var(--ink);
+  font-family: ui-rounded, 'SF Pro Rounded', system-ui, -apple-system, sans-serif;
+  -webkit-tap-highlight-color: transparent;
+  overscroll-behavior: none;
+}
+
+/*
+ * The stage is sized by `inset`, not by flex.
+ *
+ * A flex-derived height is not resolved at the moment the 3D canvas first
+ * measures itself, so it latched zero and never started — a black screen until
+ * something happened to trigger a resize. Absolute positioning against a sized
+ * parent gives a definite size in the first layout pass, which is what the
+ * canvas needs. The HUD floats over the top rather than taking a share of the
+ * column, which also hands the whole viewport to the scene.
+ */
+.app {
+  position: relative;
+  height: 100%;
+  max-width: 720px;
+  margin: 0 auto;
+  overflow: hidden;
+}
+
+.stage {
+  position: absolute;
+  inset: 0;
+  touch-action: none;
+}
+
+.hud {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(to top, #14110ef2 62%, #14110e00);
+  border-top: none;
+  padding-top: 34px;
+  backdrop-filter: blur(2px);
+}
+
+.meter {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.meter-track {
+  position: relative;
+  flex: 1;
+  height: 10px;
+  border-radius: 999px;
+  background: #0f0d0b;
+  border: 1px solid var(--edge);
+  overflow: hidden;
+}
+
+/* Where the knife arrives blade-first. Sandbox only — see PowerMeter. */
+.meter-band {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  background: repeating-linear-gradient(
+    -45deg,
+    #ffffff22,
+    #ffffff22 4px,
+    #ffffff0d 4px,
+    #ffffff0d 8px
+  );
+}
+
+.meter-needle {
+  position: absolute;
+  top: -3px;
+  bottom: -3px;
+  width: 3px;
+  margin-left: -1.5px;
+  border-radius: 2px;
+  box-shadow: 0 0 6px currentColor;
+}
+
+.meter-label {
+  font-size: 12px;
+  color: var(--ink-dim);
+  font-variant-numeric: tabular-nums;
+  min-width: 96px;
+  text-align: right;
+}
+
+.toggle {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 13px;
+  color: var(--ink-dim);
+}
+
+.toggle input[type='range'] {
+  width: 68px;
+}
+
+.stage canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.hud {
+  padding: 12px 16px calc(12px + env(safe-area-inset-bottom));
+  border-top: 1px solid var(--edge);
+  background: var(--panel);
+  display: grid;
+  gap: 10px;
+}
+
+.turn {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 17px;
+  font-weight: 600;
+}
+
+.swatch {
+  width: 14px;
+  height: 14px;
+  border-radius: 4px;
+  flex: none;
+}
+
+.message {
+  font-size: 14px;
+  color: var(--ink-dim);
+  min-height: 1.3em;
+}
+
+.standings {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.standing {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+  padding: 4px 9px;
+  border: 1px solid var(--edge);
+  border-radius: 999px;
+}
+
+.standing.out {
+  opacity: 0.4;
+  text-decoration: line-through;
+}
+
+.controls {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+button,
+select {
+  font: inherit;
+  font-size: 14px;
+  color: var(--ink);
+  background: transparent;
+  border: 1px solid var(--edge);
+  border-radius: 10px;
+  padding: 7px 13px;
+  cursor: pointer;
+}
+
+button:active {
+  background: var(--edge);
+}
+
+.hint {
+  font-size: 12px;
+  color: var(--ink-dim);
+  margin-left: auto;
+  text-align: right;
+}
+
+/* --- Tuning workbench ---------------------------------------------------- */
+
+.tuning-toggle {
+  position: absolute;
+  top: calc(10px + env(safe-area-inset-top));
+  right: 10px;
+  font-size: 13px;
+  background: #1e1a16cc;
+  backdrop-filter: blur(3px);
+}
+
+.tuning {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: min(330px, 92vw);
+  overflow-y: auto;
+  padding: 12px 14px calc(16px + env(safe-area-inset-bottom));
+  background: #16130fee;
+  backdrop-filter: blur(6px);
+  border-left: 1px solid var(--edge);
+  display: grid;
+  gap: 12px;
+  align-content: start;
+}
+
+.tuning-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  position: sticky;
+  top: 0;
+  background: #16130f;
+  padding-bottom: 8px;
+  z-index: 1;
+}
+
+.tuning-head strong {
+  flex: 1;
+  font-size: 14px;
+}
+
+.tuning-head button {
+  padding: 4px 8px;
+  font-size: 12px;
+}
+
+/* The numbers the dials add up to — the reason to look at this panel at all. */
+.derived {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 4px 10px;
+  padding: 9px 10px;
+  border: 1px solid var(--edge);
+  border-radius: 10px;
+  font-size: 12px;
+}
+
+.derived div {
+  display: flex;
+  justify-content: space-between;
+  gap: 6px;
+}
+
+.derived div:last-child {
+  grid-column: 1 / -1;
+}
+
+.derived dt {
+  color: var(--ink-dim);
+}
+
+.derived dd {
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.dials {
+  display: grid;
+  gap: 12px;
+}
+
+.dials h4 {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.09em;
+  color: var(--ink-dim);
+  margin-bottom: 5px;
+}
+
+.dial {
+  display: grid;
+  grid-template-columns: 82px 1fr 52px;
+  align-items: center;
+  gap: 7px;
+  font-size: 12px;
+  padding: 1px 0;
+}
+
+.dial-name {
+  color: var(--ink-dim);
+}
+
+.dial input[type='range'] {
+  width: 100%;
+}
+
+.dial-value {
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  color: var(--ink);
+}

@@ -1,0 +1,15 @@
+{
+  "name": "pocketknives",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "pnpm --filter @pocketknives/web dev",
+    "build": "pnpm -r build",
+    "test": "pnpm --filter @pocketknives/core test",
+    "typecheck": "pnpm -r typecheck"
+  },
+  "devDependencies": {
+    "typescript": "^5.7.2"
+  },
+  "packageManager": "pnpm@11.20.0"
+}

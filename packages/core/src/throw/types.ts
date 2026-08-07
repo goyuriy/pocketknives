@@ -1,0 +1,74 @@
+import type { Vec2, Vec3 } from '../types.js';
+
+/**
+ * A knife leaving the hand.
+ *
+ * The whole flight happens in one vertical plane — the plane containing
+ * `heading` — so the knife's tumble is a single angle rather than a full
+ * orientation. That is not a simplification of the physics so much as a
+ * statement of it: a thrown knife rotates about one axis, and everything the
+ * game needs follows from where in that rotation it happens to be when it
+ * arrives.
+ */
+export type Launch = {
+  readonly origin: Vec3;
+  /** Bearing across the ground, radians. The cut will run along this line. */
+  readonly heading: number;
+  /** Launch angle above the horizontal, radians. */
+  readonly pitch: number;
+  /** Launch speed, arena units per second. */
+  readonly speed: number;
+  /** Tumble rate in the flight plane, radians per second. */
+  readonly spin: number;
+  /** Where in its tumble the knife starts, radians. Zero points along the throw. */
+  readonly bladeAngle: number;
+};
+
+export type FlightSample = {
+  readonly time: number;
+  readonly position: Vec3;
+  /** Blade angle within the flight plane: 0 is tip-forward, -π/2 is tip-down. */
+  readonly bladeAngle: number;
+};
+
+export type Impact = {
+  readonly time: number;
+  /** Where it met the ground, in playfield coordinates. */
+  readonly point: Vec2;
+  readonly speed: number;
+  readonly bladeAngle: number;
+  /** Direction of travel within the flight plane, radians below horizontal. */
+  readonly descentAngle: number;
+  /**
+   * How far the blade was from pointing along its own path, radians.
+   *
+   * Zero is a knife driving in exactly the way it was travelling — the clean
+   * stick. Approaching a right angle it is landing flat, and it will slap and
+   * bounce however hard it was thrown.
+   */
+  readonly misalignment: number;
+  /** Bearing of the blade across the ground — the same line it was thrown along. */
+  readonly heading: number;
+};
+
+export type Flight = {
+  readonly samples: readonly FlightSample[];
+  readonly impact: Impact;
+};
+
+export type FlightTuning = {
+  readonly gravity: number;
+  /** Seconds between trajectory samples. The impact is always sampled exactly. */
+  readonly sampleInterval: number;
+};
+
+export type StickVerdict = {
+  readonly stuck: boolean;
+  /**
+   * How cleanly, from 0 to 1. Drives how the landing reads: a bare stick
+   * shudders and leans, a perfect one goes in dead straight and rings.
+   */
+  readonly quality: number;
+  /** How far the point buried itself, in arena units. Zero when it skipped. */
+  readonly depth: number;
+};
