@@ -36,11 +36,15 @@ export const Sandbox = ({ game }: { game: SandboxState }) => {
   /**
    * Pull back to throw.
    *
-   * Read against the camera rather than the world: the view sits behind the
-   * thrower looking down the throwing line, so dragging *down* the screen pulls
-   * the arm back, and dragging sideways swings the aim the way it looks like it
-   * should. Neither maps to a world axis, which is why the gesture is measured
-   * in screen space and only then turned into a heading.
+   * The gesture is a drawn bow, and it is inverted on *both* axes because that
+   * is what drawing something back means: pull down and the knife flies away
+   * from you, pull right and it flies to the left. Inverting only the one axis
+   * reads as broken — the hand is doing two contradictory things at once.
+   *
+   * Measured in screen space rather than world space, because the sense of it
+   * comes from the camera. The view sits behind the thrower looking down the
+   * throwing line, so "back" and "across" only mean anything relative to that,
+   * and neither maps to a world axis.
    */
   const updateAim = useCallback(
     (clientX: number, clientY: number, element: HTMLElement) => {
@@ -51,7 +55,7 @@ export const Sandbox = ({ game }: { game: SandboxState }) => {
       const pullAcross = (clientX - start.x) / scale;
 
       const next: Aim = {
-        heading: game.restHeading - pullAcross * SWING_PER_PULL,
+        heading: game.restHeading + pullAcross * SWING_PER_PULL,
         power: Math.min(1, Math.max(0, pullBack / PULL_FOR_FULL_POWER)),
       };
       pendingAim.current = next;
