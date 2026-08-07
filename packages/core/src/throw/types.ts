@@ -47,6 +47,19 @@ export type Impact = {
    * bounce however hard it was thrown.
    */
   readonly misalignment: number;
+  /**
+   * How far below horizontal the blade itself is pointing, radians.
+   *
+   * Positive means the point is the lowest part of the knife and will reach the
+   * ground first. Negative means the blade is tipped up and the butt of the
+   * handle is lower — whatever else is true, that knife lands handle-first.
+   *
+   * Distinct from `misalignment`, and both are needed. Misalignment asks whether
+   * the knife is travelling the way it points; this asks which end is down. A
+   * knife can be beautifully aligned with a descending path and still have its
+   * tip above horizontal, because the path is steeper than the knife.
+   */
+  readonly entryAngle: number;
   /** Bearing of the blade across the ground — the same line it was thrown along. */
   readonly heading: number;
 };
@@ -62,8 +75,19 @@ export type FlightTuning = {
   readonly sampleInterval: number;
 };
 
+/** Why a throw ended the way it did — the difference between learning and guessing. */
+export type StickOutcome =
+  | 'stuck'
+  /** Landed across its own path and skipped away. A fault of power. */
+  | 'flat'
+  /** Tip was above horizontal, so the butt struck first. A fault of the tumble. */
+  | 'handle_first'
+  /** Nothing left in it to bury the point. */
+  | 'too_slow';
+
 export type StickVerdict = {
   readonly stuck: boolean;
+  readonly outcome: StickOutcome;
   /**
    * How cleanly, from 0 to 1. Drives how the landing reads: a bare stick
    * shudders and leans, a perfect one goes in dead straight and rings.

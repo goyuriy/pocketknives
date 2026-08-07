@@ -117,10 +117,16 @@ describe('scatter', () => {
   });
 
   it('turns a reliable throw into an unreliable one as the spread widens', () => {
+    // Aim at the middle of a real band rather than a number written down here,
+    // so retuning the throw cannot quietly turn this into a test of nothing.
+    const band = stickingBands(stand, heading, DEFAULT_CONFIG)[0]!;
+    const dependable = (band.from + band.to) / 2;
     const sticks = (config: ThrowConfig) =>
       Array.from({ length: 200 }, (_, seed) =>
-        stickVerdict(simulateFlight(aimedLaunch(stand, heading, 0.76, config, seed)).impact, config)
-          .stuck,
+        stickVerdict(
+          simulateFlight(aimedLaunch(stand, heading, dependable, config, seed)).impact,
+          config,
+        ).stuck,
       ).filter(Boolean).length;
 
     expect(sticks(DEFAULT_CONFIG)).toBe(200);

@@ -34,10 +34,22 @@ Eliminated players are skipped.
 You control two things: **where you aim**, and **how hard you throw**. Pitch and
 spin are fixed — a player throws the way they throw.
 
-The knife tumbles end over end at a steady rate the whole way. It sticks only if
-it arrives **blade-first** — pointing the way it is travelling. A knife that
-arrives across its path lands on its flat and skips away, and throwing harder
-only makes it skip further.
+The knife tumbles end over end at a steady rate the whole way. Sticking asks
+three separate questions, and conflating the first two is a bug waiting to
+happen:
+
+1. **Is the point the lowest part of the knife?** If the blade is tipped above
+   horizontal, the butt of the handle is lower and strikes first. A knife that
+   lands on its handle has not stuck, however it was travelling.
+2. **Is it travelling the way it points?** A knife arriving along its own path
+   drives the point in. One arriving across its path lands on its flat and
+   skips, and throwing harder only makes it skip further.
+3. **Has it enough left to bury the point?**
+
+The first two are not the same test. A knife can be perfectly aligned with its
+descending path and *still* have its tip above horizontal — that happens
+whenever the path is steeper than the knife — so checking only the alignment
+reports a handle-first landing as a clean stick.
 
 Since flight time is set by power and the tumble runs at a fixed rate, **how far
 you throw decides where in its rotation the knife arrives**. This has a
@@ -52,14 +64,29 @@ into which opponent, from where I stand". You throw from just outside the rim on
 the bearing of your own ground, so your position decides which enemies your bands
 can touch.
 
-**The two bands are not equally useful, and at the opening position they are not
-both offensive.** Measured from a four-player start, the short band reaches 4
-units and lands at radius 8 on your own bearing — inside your own wedge, wherever
-you aim it. Only the long band, reaching 15 units past the centre, can take
-ground on the first turn. The short band becomes worth having later, once an
-enemy holds land near you. Whether that is the right shape for the game, or
-whether both bands should threaten from the start, is an open tuning question —
-moving the stand-off, the spin, or the power range all shift it.
+**Both bands can take ground.** Measured from a four-player start, sweeping the
+whole aim range and asking what fraction of it lands on somebody else's ground:
+
+| Band | Power | Of the aim range, lands on an enemy |
+| --- | --- | --- |
+| short | 41–50% | 48% |
+| long | 90–97% | 36% |
+
+That took all three of the knife's rotation parameters working together, and it
+is worth knowing which does what:
+
+- **Balance** (tip-heavy, 0.62) raises the moment of inertia, which slows the
+  tumble, which pushes the first blade-first arrival further downrange. This is
+  what drags the short band off your own ground.
+- **Spin** sets how far apart the bands are. The knife comes back blade-first
+  once per turn, so a faster tumble packs more bands into the power range.
+- **Starting rotation** slides them all along it. Spacing and phase are separate
+  controls, and tuning one for the other's job is how you end up with a band
+  landing somewhere useless.
+
+An earlier tuning had a centre-balanced knife whose short band reached 4 units
+and landed at radius 8 on the thrower's own bearing — inside their own wedge
+wherever they aimed it, and so worth nothing at all.
 
 Full power just reaches the far rim. Nobody is drawn standing there — the circle
 is what you watch — but the throw starts from a player's own side, and that is
@@ -159,7 +186,19 @@ All of these cost the turn. None allow a retry.
 | `own_territory` | The knife landed on your own ground. |
 | `no_connection` | The half on your side doesn't touch land you hold. |
 | `degenerate_cut` | No clean cut there — landed exactly on a border, or the line grazes a single edge. |
-| *didn't stick* | The blade arrived across its path and skipped away. Decided before the rules are consulted at all. |
+
+And the ways it fails before the rules are consulted at all — the knife never
+stuck, so there was no line to draw:
+
+| Reason | What happened | What to change |
+| --- | --- | --- |
+| `handle_first` | Tip above horizontal, so the butt struck first. Under-rotated. | Power |
+| `flat` | Arrived across its own path and skipped away. | Power |
+| `too_slow` | Nothing left in it to bury the point. | Power |
+
+All three are faults of *power*, because power sets where in its tumble the knife
+arrives. `handle_first` and `flat` are opposite ends of the same rotation, which
+is why the game names them separately: it tells the player which way to move.
 
 ---
 
@@ -205,6 +244,7 @@ stick is, and how deep it buries.
 | Group | Fields | What it decides |
 | --- | --- | --- |
 | `knife` | `bladeLength`, `handleLength`, `mass`, `balance`, `edgeWidth` | The object itself |
+| `stick` | `minEntryAngle` | How far below horizontal the point must aim to be the end that arrives |
 | `style` | `pitch`, `spinImpulse`, `startingBladeAngle`, `releaseHeight`, `minSpeed`, `maxSpeed` | How a player throws it |
 | `scatter` | `heading`, `power`, `spin`, `startingBladeAngle` | How badly (all seeded — see below) |
 | `stick` | `baseMisalignment`, `minMomentum`, `soilResistance` | What the ground does about it |
@@ -224,10 +264,11 @@ Measured from a four-player start:
 
 | Knife | Tumble | Bands |
 | --- | --- | --- |
-| default | 24 rad/s | 1–18%, 70–82% |
-| heavy (`mass` 0.4) | 12 rad/s | 0–16% — barely rotates, so it only sticks up close |
-| light (`mass` 0.1) | 48 rad/s | 11–18%, 45–51%, 75–81% — three narrow bands, much harder |
-| long blade (0.84) | 11 rad/s | 0–43% — nearly half the range sticks, very forgiving |
+| default (tip-heavy) | 30 rad/s | 41–50%, 90–97% — both offensive |
+| centre-balanced | 34 rad/s | shifts both bands inward; the short one lands on your own ground |
+| heavy (`mass` 0.4) | 15 rad/s | barely rotates, so it only sticks up close |
+| light (`mass` 0.1) | 60 rad/s | more bands, each narrower — much harder |
+| long blade (0.84) | wider window | nearly half the range sticks, very forgiving |
 
 These interact, so **retune by sweeping and reading the bands**, never by nudging
 one number and hoping. `stickingBands` is that sweep, and the panel runs it live.

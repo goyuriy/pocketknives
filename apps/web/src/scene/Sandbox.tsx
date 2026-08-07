@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Canvas } from '@react-three/fiber';
-import type { SandboxState } from '../state/useSandbox.js';
+import type { Aim, SandboxState } from '../state/useSandbox.js';
 import { ARENA_RADIUS } from '../state/useSandbox.js';
 import { colorOf } from '../ui/theme.js';
 import { Arena, CutLine } from './Arena.js';
@@ -26,6 +26,9 @@ const SWING_PER_PULL = 2.2;
 export const Sandbox = ({ game }: { game: SandboxState }) => {
   const { phase, aim, setAim, release } = game;
   const anchor = useRef<{ x: number; y: number } | null>(null);
+  // The live aim, kept where the release handler can read it synchronously.
+  // State alone will not do: a whole gesture can happen inside one frame.
+  const pendingAim = useRef<Aim | null>(null);
   const [cutProgress, setCutProgress] = useState(0);
 
   const canThrow = phase.kind === 'ready';
@@ -47,10 +50,12 @@ export const Sandbox = ({ game }: { game: SandboxState }) => {
       const pullBack = (clientY - start.y) / scale;
       const pullAcross = (clientX - start.x) / scale;
 
-      setAim({
+      const next: Aim = {
         heading: game.restHeading - pullAcross * SWING_PER_PULL,
         power: Math.min(1, Math.max(0, pullBack / PULL_FOR_FULL_POWER)),
-      });
+      };
+      pendingAim.current = next;
+      setAim(next);
     },
     [game.restHeading, setAim],
   );
@@ -59,7 +64,9 @@ export const Sandbox = ({ game }: { game: SandboxState }) => {
     if (!canThrow) return;
     event.currentTarget.setPointerCapture?.(event.pointerId);
     anchor.current = { x: event.clientX, y: event.clientY };
-    setAim({ heading: game.restHeading, power: 0 });
+    const start: Aim = { heading: game.restHeading, power: 0 };
+    pendingAim.current = start;
+    setAim(start);
   };
 
   const onPointerMove = (event: React.PointerEvent<HTMLDivElement>) => {
@@ -70,7 +77,9 @@ export const Sandbox = ({ game }: { game: SandboxState }) => {
   const onPointerUp = () => {
     if (!anchor.current) return;
     anchor.current = null;
-    release();
+    const thrown = pendingAim.current;
+    pendingAim.current = null;
+    if (thrown) release(thrown);
   };
 
   /*

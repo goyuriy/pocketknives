@@ -77,6 +77,12 @@ export type StickTuning = {
    */
   readonly baseMisalignment: number;
   readonly referenceBladeLength: number;
+  /**
+   * How far below horizontal the blade must point for the tip to be the part
+   * that arrives. At or under this the butt of the handle is the lowest point
+   * and the knife lands on its handle.
+   */
+  readonly minEntryAngle: number;
   /** Momentum needed to bury the point at all, before the edge helps. */
   readonly minMomentum: number;
   /** How hard the ground is. Higher means shallower bites. */
@@ -96,16 +102,27 @@ export const DEFAULT_CONFIG: ThrowConfig = {
     bladeLength: 0.42,
     handleLength: 0.48,
     mass: 0.2,
-    balance: 0.5,
+    // Tip-heavy, as a throwing knife is. This is not decoration: weight forward
+    // raises the moment of inertia, which slows the tumble, which pushes the
+    // first blade-first arrival further downrange — and that is what makes the
+    // short band land on someone else's ground instead of your own.
+    balance: 0.62,
     edgeWidth: 0.03,
   },
   style: {
     pitch: 0.35,
     releaseHeight: 1.4,
-    // Chosen to give a 24 rad/s tumble with the default knife — the rate the
-    // sticking bands were swept against.
-    spinImpulse: 0.324,
-    startingBladeAngle: 0,
+    /*
+     * Spin and starting angle place the sticking bands, and they do different
+     * jobs. Spin sets how far apart the bands are — the knife comes back
+     * blade-first once per turn, so a faster tumble packs more bands into the
+     * power range. The starting angle slides them all along it.
+     *
+     * Swept together: 30 rad/s spaces two bands across the range, and -0.8
+     * phases them so both land where they can take ground. See RULES.md.
+     */
+    spinImpulse: 0.475, // 30 rad/s with the knife above
+    startingBladeAngle: -0.8,
     minSpeed: 7,
     maxSpeed: 26,
   },
@@ -118,6 +135,7 @@ export const DEFAULT_CONFIG: ThrowConfig = {
   stick: {
     baseMisalignment: Math.PI / 5,
     referenceBladeLength: 0.42,
+    minEntryAngle: 0.15,
     minMomentum: 1.2,
     soilResistance: 14,
   },

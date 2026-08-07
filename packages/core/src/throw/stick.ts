@@ -1,5 +1,5 @@
 import type { Throw } from '../types.js';
-import type { Impact, StickVerdict } from './types.js';
+import type { Impact, StickOutcome, StickVerdict } from './types.js';
 import {
   DEFAULT_CONFIG,
   biteDepth,
@@ -8,32 +8,48 @@ import {
   type ThrowConfig,
 } from './config.js';
 
+const failed = (outcome: StickOutcome): StickVerdict => ({
+  stuck: false,
+  outcome,
+  quality: 0,
+  depth: 0,
+});
+
 /**
  * Did it stick?
  *
- * One question decides it: was the blade pointing the way it was travelling?
- * A knife that arrives along its own path drives the point in. One that arrives
- * across its path lands on its flat and skips away, and no amount of force
- * changes that — throwing harder only makes it bounce further.
+ * Three things have to be true, and they are genuinely different questions:
  *
- * Both thresholds come from the knife itself. A longer blade reaches the ground
- * over a wider range of angles and so forgives more; a heavier one needs less
- * speed to bury its point. Neither is a free-floating constant, which is what
- * makes the physical parameters worth tuning.
+ * 1. **Is the point the lowest part of the knife?** If the blade is tipped up,
+ *    the butt of the handle is lower and strikes first, and a knife that lands
+ *    on its handle has not stuck no matter how it was travelling.
+ * 2. **Is it travelling the way it points?** A knife that arrives along its own
+ *    path drives the point in. One that arrives across its path lands on its
+ *    flat and skips, and throwing harder only makes it skip further.
+ * 3. **Has it enough left to bury the point?**
+ *
+ * The first two are easy to conflate and must not be. A knife can be perfectly
+ * aligned with its descending path and still have its tip above horizontal —
+ * that happens whenever the path is steeper than the knife — and checking only
+ * the alignment reports a handle-first landing as a clean stick.
+ *
+ * Both thresholds come from the knife itself: a longer blade reaches the ground
+ * over a wider range of angles, a heavier one needs less speed to bury.
  */
 export const stickVerdict = (
   impact: Impact,
   config: ThrowConfig = DEFAULT_CONFIG,
 ): StickVerdict => {
-  const window = stickWindow(config);
-  if (impact.speed < minStickSpeed(config)) return { stuck: false, quality: 0, depth: 0 };
-  if (impact.misalignment >= window) return { stuck: false, quality: 0, depth: 0 };
+  if (impact.entryAngle <= config.stick.minEntryAngle) return failed('handle_first');
+  if (impact.misalignment >= stickWindow(config)) return failed('flat');
+  if (impact.speed < minStickSpeed(config)) return failed('too_slow');
 
   return {
     stuck: true,
+    outcome: 'stuck',
     // 1 for a knife driving in exactly along its path, tapering to 0 where it
     // would have skipped.
-    quality: 1 - impact.misalignment / window,
+    quality: 1 - impact.misalignment / stickWindow(config),
     depth: biteDepth(config, impact.speed),
   };
 };

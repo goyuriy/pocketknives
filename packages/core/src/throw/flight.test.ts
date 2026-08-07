@@ -99,9 +99,10 @@ describe('the tumble decides the throw', () => {
   });
 
   it('rates a knife that drives in along its path above one that barely bites', () => {
-    const clean = stickVerdict({ ...atPower(0.5).flight.impact, misalignment: 0 });
+    const arriving = { ...atPower(0.5).flight.impact, entryAngle: 0.6 };
+    const clean = stickVerdict({ ...arriving, misalignment: 0 });
     const scrappy = stickVerdict({
-      ...atPower(0.5).flight.impact,
+      ...arriving,
       misalignment: stickWindow(DEFAULT_CONFIG) * 0.9,
     });
     expect(clean.quality).toBeCloseTo(1, 6);
@@ -111,13 +112,43 @@ describe('the tumble decides the throw', () => {
 
   it('refuses a knife that lands on its flat, however hard it was thrown', () => {
     const flung = simulateFlight(launch({ speed: 40 }));
-    const flat = stickVerdict({ ...flung.impact, misalignment: Math.PI / 2 });
-    expect(flat.stuck).toBe(false);
+    const flat = stickVerdict({ ...flung.impact, entryAngle: 0.6, misalignment: Math.PI / 2 });
+    expect(flat).toMatchObject({ stuck: false, outcome: 'flat' });
+  });
+
+  it('refuses a knife that arrives tip-up, however well it is aligned', () => {
+    // The bug this guards: a blade tipped above horizontal has its handle as the
+    // lowest point, so the butt strikes first. Alignment with the path says
+    // nothing about it — a steep path and a shallow knife can agree perfectly
+    // and still land on the handle.
+    const arriving = simulateFlight(launch()).impact;
+    const tipUp = stickVerdict({ ...arriving, misalignment: 0, entryAngle: -0.2 });
+    const barelyDown = stickVerdict({ ...arriving, misalignment: 0, entryAngle: 0.02 });
+
+    expect(tipUp).toMatchObject({ stuck: false, outcome: 'handle_first' });
+    expect(barelyDown).toMatchObject({ stuck: false, outcome: 'handle_first' });
+    expect(stickVerdict({ ...arriving, misalignment: 0, entryAngle: 0.6 }).stuck).toBe(true);
+  });
+
+  it('never reports a stick for a knife whose butt is lower than its point', () => {
+    // Swept across the whole power range against real flights, not fabricated
+    // impacts: nothing that actually lands handle-down may come back stuck.
+    for (let power = 0; power <= 1; power += 0.005) {
+      const { impact } = simulateFlight(aimedLaunch([0, -12], Math.PI / 2, power));
+      if (Math.sin(impact.bladeAngle) >= 0) {
+        expect(stickVerdict(impact).stuck, `power ${power.toFixed(3)} landed tip-up`).toBe(false);
+      }
+    }
   });
 
   it('refuses a knife with no pace left in it', () => {
-    const impact = { ...simulateFlight(launch()).impact, misalignment: 0, speed: 1 };
-    expect(stickVerdict(impact).stuck).toBe(false);
+    const impact = {
+      ...simulateFlight(launch()).impact,
+      misalignment: 0,
+      entryAngle: 0.6,
+      speed: 1,
+    };
+    expect(stickVerdict(impact)).toMatchObject({ stuck: false, outcome: 'too_slow' });
   });
 });
 
@@ -155,7 +186,7 @@ describe('DEFAULT_CONFIG', () => {
   });
 
   it('derives the tumble rate the bands were swept against', () => {
-    expect(spinRate(DEFAULT_CONFIG)).toBeCloseTo(24, 6);
+    expect(spinRate(DEFAULT_CONFIG)).toBeCloseTo(30, 1);
   });
 });
 

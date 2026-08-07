@@ -118,13 +118,21 @@ export const useSandbox = (initialPlayers = 4) => {
     timers.current.push(window.setTimeout(fn, seconds * 1000));
   };
 
-  const release = useCallback(() => {
-    if (phase.kind !== 'ready' || !aim) return;
+  /**
+   * Commits a throw.
+   *
+   * Takes the aim as an argument rather than reading it from state. A press,
+   * drag and release can all land inside a single frame, and React has not
+   * re-rendered by then — reading the aim from state would see the value from
+   * before the gesture began and drop the throw on the floor.
+   */
+  const release = useCallback((thrown: Aim) => {
+    if (phase.kind !== 'ready') return;
 
     // A fresh seed per throw, recorded on the attempt so it can be replayed.
     const seed = Math.floor(Math.random() * 0xffffffff);
     const flight = simulateFlight(
-      aimedLaunch(stand, aim.heading, aim.power, config, seed),
+      aimedLaunch(stand, thrown.heading, thrown.power, config, seed),
       config.flight,
     );
     const verdict = stickVerdict(flight.impact, config);
@@ -157,7 +165,7 @@ export const useSandbox = (initialPlayers = 4) => {
       if (!stayOnPlayer) setMatch(passTurn);
       setPhase({ kind: 'ready' });
     }, attempt.playbackDuration + CUT_DURATION + REST_DURATION);
-  }, [phase.kind, aim, stand, match, currentPlayer, playbackScale, stayOnPlayer, config]);
+  }, [phase.kind, stand, match, currentPlayer, playbackScale, stayOnPlayer, config]);
 
   const reset = useCallback(
     (count: number) => {

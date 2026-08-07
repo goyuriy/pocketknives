@@ -88,6 +88,10 @@ const impactOf = (
     speed: Math.hypot(horizontalSpeed, fallSpeed),
     bladeAngle: landing.bladeAngle,
     descentAngle: -travelAngle,
+    // Which end is down, from the blade's own vertical component. Folded into
+    // [-π/2, π/2] because only the up-or-down of it matters here; whether the
+    // knife also points backwards is `misalignment`'s business.
+    entryAngle: Math.asin(-Math.sin(landing.bladeAngle)),
     misalignment: Math.abs(wrapAngle(landing.bladeAngle - travelAngle)),
     heading: launch.heading,
   };

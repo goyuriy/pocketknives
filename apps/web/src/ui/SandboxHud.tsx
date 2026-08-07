@@ -1,4 +1,4 @@
-import { area, type MissReason } from '@pocketknives/core';
+import { area, type MissReason, type StickOutcome } from '@pocketknives/core';
 import type { Attempt, SandboxState } from '../state/useSandbox.js';
 import { colorOf } from './theme.js';
 import { PowerMeter } from './PowerMeter.js';
@@ -11,16 +11,31 @@ const MISS_TEXT: Record<MissReason, string> = {
 };
 
 /**
+ * Why a knife that never stuck never stuck.
+ *
+ * A failed throw has to explain itself or there is nothing to learn from it, and
+ * these fail for different reasons that call for different fixes. Landing flat
+ * or handle-first are both faults of *power*, because power sets where in its
+ * tumble the knife arrives — but they are opposite ends of the same rotation,
+ * and saying which one it was tells the player which way to move.
+ */
+const NOT_STUCK: Record<Exclude<StickOutcome, 'stuck'>, string> = {
+  flat: 'Landed flat and skipped. Change the power, not the aim.',
+  handle_first: 'Came down handle-first — under-rotated. Throw a little harder.',
+  too_slow: 'Nothing left in it to bite. Throw harder.',
+};
+
+/**
  * Says why a throw did what it did.
  *
- * A failed throw has to explain itself or there is nothing to learn from it —
- * and the two ways to fail are different in kind. Landing flat is a fault of
- * *power*, because power sets the tumble. Landing badly is a fault of *aim*.
- * Telling them apart is the difference between a player improving and a player
- * guessing.
+ * Sticking and claiming are separate questions and are reported separately: a
+ * clean stick that wins nothing is a fault of aim, and reading it as a bad throw
+ * would send the player off tuning the wrong thing.
  */
 const describe = (attempt: Attempt, arenaArea: number): string => {
-  if (!attempt.verdict.stuck) return 'Landed flat and skipped. Change the power, not the aim.';
+  if (!attempt.verdict.stuck) {
+    return NOT_STUCK[attempt.verdict.outcome as Exclude<StickOutcome, 'stuck'>];
+  }
   if (!attempt.outcome || attempt.outcome.kind === 'miss') {
     return `Stuck clean. ${attempt.outcome ? MISS_TEXT[attempt.outcome.reason] : ''}`.trim();
   }
