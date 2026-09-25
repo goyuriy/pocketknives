@@ -31,104 +31,70 @@ Eliminated players are skipped.
 
 ## The throw
 
-**You throw by throwing.** The stroke you make on screen is read at the moment
-you let go, and two things come out of it — the two things a hand really does:
+**You move your hand; your hand throws the knife.** The finger never touches the
+knife. It works the arm on screen — pull down to draw the arm back, flick up to
+bring it through — and the moment the finger lets go, the arm releases.
 
-- **How fast it was moving** becomes how far the knife goes.
-- **How sharply it was turning** becomes how much the knife tumbles. A straight
-  push has none of it; a hooked flick has a great deal.
+Two things are read from the last moments of the flick, and nothing else:
 
-They are independent, and that is the whole reason for reading the hand rather
-than offering a power slider. Under a single dial, one number set both distance
-*and* rotation, which welded them together: only a couple of distances could ever
-stick, and after ten minutes a player simply used one of them. Power stopped
-being a decision.
+- **Which way it was going** becomes the direction of the throw. The knife
+  follows through: a flick to the right sends it right.
+- **How fast it was going** becomes how far the knife flies.
 
-Now any distance is reachable — a sticking tumble exists for every pace the hand
-can manage — but only if the wrist does the right thing to go with it. Where to
-land goes back to being a free strategic choice; landing there is a skill.
+A stroke going backwards is winding up, not throwing — letting go mid-wind-up
+throws nothing.
 
-> `readSwing` (screen stroke → reading) — [gesture.ts](apps/web/src/scene/gesture.ts)
-> `swingLaunch`, `stickingSpins` — [swing.ts](packages/core/src/throw/swing.ts)
+> `readSwing`, `armSwing` — [gesture.ts](apps/web/src/scene/gesture.ts)
+> `armPose` — [armPose.ts](apps/web/src/scene/hand/armPose.ts)
+> `swingLaunch` — [swing.ts](packages/core/src/throw/swing.ts)
 
-The knife **follows through**: a stroke to the right sends it right. This is the
-opposite of a drawn-bow gesture, and rightly so — a throw is not a pull.
+**The wrist is automatic.** Given the distance, the hand turns the knife by
+exactly as much as that distance needs to bring it in point-first — aiming for
+the middle of the range that sticks, not the edge of it. So a clean throw sticks
+wherever it lands, and the question a turn asks is the one the circle is about:
+*where* to cut.
 
-It also **tumbles forward**, tip over the top and down, the way a thrown knife
-does. `bladeAngle` is the tip's angle above the line of flight, so that angle
-*falls* as the knife turns — the flight subtracts the tumble rather than adding
-it. Adding spins the knife backwards through the air, which is not something a
-thrown knife does, and reads as wrong immediately even to someone who could not
-say why.
+An earlier version made the player control the tumble too, by how sharply the
+stroke curled. It was more to learn than a casual game wants, and it made every
+miss the player's wrist rather than their choice.
 
-The knife tumbles end over end at a steady rate the whole way. Sticking asks
-three separate questions, and conflating the first two is a bug waiting to
-happen:
+> `wristSpin`, `sweetSpotAngle` — [swing.ts](packages/core/src/throw/swing.ts)
+
+**What still goes wrong is the hand.** Every throw carries a little seeded
+wobble — in the tumble, and in the pace the wrist planned for — and the longer
+the knife is in the air, the more that wobble grows. So reaching far is a risk,
+not a free choice. With the Thrower:
+
+| Throw | Reach | Sticks |
+| --- | --- | --- |
+| gentle | 6 | 99% |
+| medium | 10 | 95% |
+| hard | 15 | 87% |
+| full | 21 | 77% |
+
+The knife still **tumbles forward**, tip over the top and down, the way a thrown
+knife does. Sticking asks three separate questions:
 
 1. **Is the point the lowest part of the knife?** If the blade is tipped above
-   horizontal, the butt of the handle is lower and strikes first. A knife that
-   lands on its handle has not stuck, however it was travelling.
-2. **Is it travelling the way it points?** A knife arriving along its own path
-   drives the point in. One arriving across its path lands on its flat and
-   skips, and throwing harder only makes it skip further.
+   horizontal, the butt of the handle strikes first.
+2. **Is it travelling the way it points?** A knife arriving across its own path
+   lands on its flat and skips.
 3. **Has it enough left to bury the point?**
 
 The first two are not the same test. A knife can be perfectly aligned with its
-descending path and *still* have its tip above horizontal — that happens
-whenever the path is steeper than the knife — so checking only the alignment
-reports a handle-first landing as a clean stick.
+descending path and still have its tip above horizontal, whenever the path is
+steeper than the knife.
 
-Since flight time is set by power and the tumble runs at a fixed rate, **how far
-you throw decides where in its rotation the knife arrives**. This has a
-consequence that shapes the whole game:
+Full power from the Thrower just reaches the far rim. A throw that fails to
+stick costs the turn, like any other miss.
 
-> **You cannot stick the knife at an arbitrary distance.** There are two bands of
-> power that land it blade-first, together covering roughly a quarter of the
-> range. Everything between them bounces.
-
-So the tactical question is never "how far can I reach" but "which band reaches
-into which opponent, from where I stand". You throw from just outside the rim on
-the bearing of your own ground, so your position decides which enemies your bands
-can touch.
-
-**Both bands can take ground.** Measured from a four-player start, sweeping the
-whole aim range and asking what fraction of it lands on somebody else's ground:
-
-| Band | Power | Of the aim range, lands on an enemy |
-| --- | --- | --- |
-| short | 41–50% | 48% |
-| long | 90–97% | 36% |
-
-That took all three of the knife's rotation parameters working together, and it
-is worth knowing which does what:
-
-- **Balance** (tip-heavy, 0.62) raises the moment of inertia, which slows the
-  tumble, which pushes the first blade-first arrival further downrange. This is
-  what drags the short band off your own ground.
-- **Spin** sets how far apart the bands are. The knife comes back blade-first
-  once per turn, so a faster tumble packs more bands into the power range.
-- **Starting rotation** slides them all along it. Spacing and phase are separate
-  controls, and tuning one for the other's job is how you end up with a band
-  landing somewhere useless.
-
-An earlier tuning had a centre-balanced knife whose short band reached 4 units
-and landed at radius 8 on the thrower's own bearing — inside their own wedge
-wherever they aimed it, and so worth nothing at all.
-
-Full power just reaches the far rim. Nobody is drawn standing there — the circle
-is what you watch — but the throw starts from a player's own side, and that is
-what makes position matter.
-
-> `aimedLaunch` — [launch.ts](packages/core/src/throw/launch.ts)
 > `simulateFlight` — [flight.ts](packages/core/src/throw/flight.ts)
 > `stickVerdict` — [stick.ts](packages/core/src/throw/stick.ts)
 
-A throw that fails to stick costs the turn, like any other miss.
-
-**The flight carries no randomness.** It is a closed-form arc with a constant
-tumble — no drag, no wobble, no physics engine. That is deliberate: a server and
-a client must agree on where the knife landed without replaying each other's
-floating point, and a physics engine cannot promise that.
+**The flight itself carries no randomness.** It is a closed-form arc with a
+constant tumble — no drag, no physics engine — so a server and a client agree on
+where the knife landed without replaying each other's floating point. The wobble
+is applied before the flight, from a recorded seed (see below).
 
 ## Where you stand
 
@@ -149,19 +115,30 @@ standing proportionally where you were, not suddenly outside your own land.
 ## The knife
 
 Chosen before the match, not during it: the knife is your strategy, the throw is
-your execution.
+your execution. Each trades **reach** against **forgiveness**.
 
-| Knife | Character |
-| --- | --- |
-| Kitchen | Turns easily and forgives a rough landing. The one to learn on. |
-| Thrower | Weighted forward and even-tempered. Nothing it does will surprise you. |
-| Cleaver | Heavy and slow to turn. Needs a real swing, and buries itself when it lands. |
-| Needle | Light and fast. Spins off the smallest flick and punishes a sloppy one. |
+| Knife | Hands | Full reach | Sticks at full reach | Character |
+| --- | --- | --- | --- | --- |
+| Kitchen | 1 | 24 | 82% | Long in the blade and forgiving of a shaky hand. |
+| Thrower | 1 | 21 | 77% | Weighted forward and even-tempered. |
+| Cleaver | 1 | 16 | 91% | Heavy and slow to turn, buries itself to the handle. |
+| Needle | 1 | 27 | 59% | Light and whirling. Flies furthest, forgives nothing. |
+| Greatsword | 2 | 11 | 100% | Barely turns, drops point-first from anywhere — but only reaches the middle. |
 
-Every difference is physical and already drives the flight — mass and balance set
-how much tumble a given wrist produces, blade length sets how much the ground
-forgives, edge width sets how deep it goes. None of it is a stat bar bolted onto
-a knife that behaves the same either way.
+Every difference is physical:
+
+- **Weight** sets reach. The same arm throws a heavy blade slower — launch speed
+  scales as `(referenceMass / mass) ^ weightPenalty`.
+- **Blade length** sets forgiveness. A longer point reaches the ground first over
+  a wider range of angles, so more of the wobble still sticks.
+- **Mass and balance** set how many turns it makes on the way. The wrist picks
+  the sticking tumble nearest the knife's natural one, so a cleaver turns once
+  and a needle whirls ten times — the knife keeps its character even though
+  nobody chooses its spin.
+- **Edge width** sets how deep it bites.
+
+A sword is held in two hands, and the player sees both on screen. That is how it
+is held, not physics — the flight never reads it.
 
 > `KNIVES` — [knives.ts](packages/core/src/throw/knives.ts)
 
@@ -252,15 +229,14 @@ All of these cost the turn. None allow a retry.
 And the ways it fails before the rules are consulted at all — the knife never
 stuck, so there was no line to draw:
 
-| Reason | What happened | What to change |
-| --- | --- | --- |
-| `handle_first` | Tip above horizontal, so the butt struck first. Under-rotated. | Power |
-| `flat` | Arrived across its own path and skipped away. | Power |
-| `too_slow` | Nothing left in it to bury the point. | Power |
+| Reason | What happened |
+| --- | --- |
+| `handle_first` | The hand wobbled; the knife came in under-turned and the butt struck first. |
+| `flat` | The hand wobbled the other way; it arrived across its own path and skipped. |
+| `too_slow` | Nothing left in it to bury the point. |
 
-All three are faults of *power*, because power sets where in its tumble the knife
-arrives. `handle_first` and `flat` are opposite ends of the same rotation, which
-is why the game names them separately: it tells the player which way to move.
+A clean throw never fails these — the wrist sees to it. They are the hand's
+wobble, and the lever a player has on them is how far they reach.
 
 ---
 
@@ -294,58 +270,40 @@ it. Values are in arena units, where the arena radius is 10.
 
 Everything about the throw lives in one file:
 [config.ts](packages/core/src/throw/config.ts). The sandbox exposes it as live
-dials — press **Tune** — with the derived numbers and the current bands shown
-above the sliders, and a **Copy JSON** button to paste a tuned config back into
-the file.
-
-**The knife is a physical object, and its physics really do drive the game.**
-Nothing in the config is decorative; each field feeds a derived quantity, so a
-change to mass or blade length changes how the knife tumbles, how forgiving the
-stick is, and how deep it buries.
+dials — press **Tune** — with the derived numbers shown above the sliders, and a
+**Copy JSON** button to paste a tuned config back into the file.
 
 | Group | Fields | What it decides |
 | --- | --- | --- |
 | `knife` | `bladeLength`, `handleLength`, `mass`, `balance`, `edgeWidth` | The object itself |
-| `stick` | `minEntryAngle` | How far below horizontal the point must aim to be the end that arrives |
-| `style` | `pitch`, `spinImpulse`, `startingBladeAngle`, `releaseHeight`, `minSpeed`, `maxSpeed` | How a player throws it |
-| `scatter` | `heading`, `power`, `spin`, `startingBladeAngle` | How badly (all seeded — see below) |
-| `stick` | `baseMisalignment`, `minMomentum`, `soilResistance` | What the ground does about it |
+| `gesture` | `fullPowerSwipe`, `minSwipe`, `aimGain` | How a flick is read |
+| `style` | `pitch`, `spinImpulse`, `startingBladeAngle`, `releaseHeight`, `minSpeed`, `maxSpeed`, `referenceMass`, `weightPenalty` | How the arm throws |
+| `scatter` | `spin`, `power`, `startingBladeAngle`, `heading` | How much the hand wobbles (seeded) |
+| `stick` | `baseMisalignment`, `minEntryAngle`, `minMomentum`, `soilResistance` | What the ground accepts |
 | `flight` | `gravity`, `sampleInterval` | The world |
 
 Derived, and read through helpers so there is one definition of each:
 
-- **tumble rate** = `spinImpulse / momentOfInertia`. The same flick of the wrist
-  spins a light knife faster than a heavy one.
-- **stick window** scales with blade length. A longer point leads further ahead
-  of the knife's centre and so reaches the ground over a wider range of angles.
+- **natural tumble** = `spinImpulse / momentOfInertia`. Decides how many turns a
+  throw makes, not whether it sticks.
+- **reach factor** from mass — see the knife section.
+- **stick window** scales with blade length.
 - **bite depth** from mass, impact speed and edge width, capped at the blade.
 
-### Three levers that change the game, not just the numbers
-
-Measured from a four-player start:
-
-| Knife | Tumble | Bands |
-| --- | --- | --- |
-| default (tip-heavy) | 30 rad/s | 41–50%, 90–97% — both offensive |
-| centre-balanced | 34 rad/s | shifts both bands inward; the short one lands on your own ground |
-| heavy (`mass` 0.4) | 15 rad/s | barely rotates, so it only sticks up close |
-| light (`mass` 0.1) | 60 rad/s | more bands, each narrower — much harder |
-| long blade (0.84) | wider window | nearly half the range sticks, very forgiving |
-
-These interact, so **retune by sweeping and reading the bands**, never by nudging
-one number and hoping. `stickingBands` is that sweep, and the panel runs it live.
+`scatter.spin` is the main difficulty dial: it is the wobble that grows with
+flight time. `scatter.heading` stays at zero on purpose — where the knife goes is
+the player's decision, and wobbling the aim would only take it away.
 
 ### Scatter is seeded, always
 
-A throw is recorded as an aim, a power and a **seed**. Feed the same three back
-in anywhere — another machine, a server checking a client, a replay months later
-— and the knife lands in exactly the same place. Nothing reaches for a global
-random source, because randomness that cannot be replayed would make a throw
-impossible to verify and the game impossible to referee.
+A throw is recorded as a direction, a pace and a **seed**. Feed the same three
+back in anywhere — another machine, a server checking a client, a replay months
+later — and the knife lands in exactly the same place. Nothing reaches for a
+global random source, because randomness that cannot be replayed would make a
+throw impossible to verify and the game impossible to referee.
 
-Spreads default to zero. An obedient knife is the right starting point for tuning
-everything else, and the aiming preview is drawn unscattered on purpose — it
-shows what the player is aiming at, not the error their hand is about to make.
+The aiming preview is drawn without the wobble. It shows what the player is
+aiming at, not the error their hand is about to make.
 
 ## Not settled yet
 
@@ -357,4 +315,4 @@ shows what the player is aiming at, not the error their hand is about to make.
 - **Roll.** The knife currently tumbles strictly within its flight plane, so the
   cut always runs along the throw. Letting a player put a twist on it would free
   the line from the aim — more control, and a third thing to learn. Deliberately
-  left out until the two-dial version has been played.
+  left out until the direction-and-pace version has been played.

@@ -13,11 +13,14 @@ import { toWorld } from './coords.js';
  * camera lifts and swings over the circle, because what the throw *won* is a
  * shape, and a shape is only legible from above.
  *
- * Nobody is drawn standing at the throwing position. The camera is the player.
+ * Aiming, the camera stands just over the thrower's right shoulder, close
+ * enough that their own arm is in the foreground — it is the thing they are
+ * controlling, so it has to be seen — and high enough that the circle still
+ * spreads out above it.
  */
-const AIM_SWING = 0.26;
-const AIM_HEIGHT = 12;
-const AIM_SETBACK = 19;
+const AIM_SWING = -0.1;
+const AIM_HEIGHT = 4.5;
+const AIM_SETBACK = 7;
 const OVER_HEIGHT = 30;
 const OVER_SETBACK = 4;
 /*
@@ -25,7 +28,7 @@ const OVER_SETBACK = 4;
  * high in frame to stay clear of it. Aiming the camera below the ground plane
  * tilts it down, which lifts everything above that point up the screen.
  */
-const AIM_FOCUS_DROP = -4.5;
+const AIM_FOCUS_DROP = -6.5;
 
 export const CameraRig = ({
   stand,

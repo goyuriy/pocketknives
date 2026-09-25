@@ -1,16 +1,14 @@
 import type { Vec2, Vec3 } from '../types.js';
 import type { Launch } from './types.js';
-import { DEFAULT_CONFIG, spinRate, type ThrowConfig } from './config.js';
+import { DEFAULT_CONFIG, launchSpeed, spinRate, type ThrowConfig } from './config.js';
 import { jitter, seededRandom } from './random.js';
 
-const clamp01 = (value: number): number => Math.min(1, Math.max(0, value));
-
 /**
- * Turns an aim and a pull into a knife in the air.
+ * Turns an aim and a power into a knife in the air, at the knife's natural
+ * tumble with no wrist correction.
  *
- * The two dials a player has: where to point, and how hard. Everything else —
- * pitch, tumble, release height — comes from the config, because a player throws
- * the way they throw.
+ * The raw physics, without the automatic wrist of `swingLaunch` — which makes
+ * it the right tool for measuring what the knife and the ground do on their own.
  *
  * `seed` is what makes the scatter replayable. Record it alongside the aim and
  * the power and the throw can be reproduced exactly; omit it and the throw is
@@ -28,7 +26,7 @@ export const aimedLaunch = (
     origin: [from[0], from[1], style.releaseHeight] as Vec3,
     heading,
     pitch: style.pitch,
-    speed: style.minSpeed + (style.maxSpeed - style.minSpeed) * clamp01(power),
+    speed: launchSpeed(config, power),
     spin: spinRate(config),
     bladeAngle: style.startingBladeAngle,
   };

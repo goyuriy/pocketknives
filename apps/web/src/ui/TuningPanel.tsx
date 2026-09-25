@@ -6,6 +6,7 @@ import {
   momentOfInertia,
   spinRate,
   stickWindow,
+  weightFactor,
   type ThrowConfig,
 } from '@pocketknives/core';
 
@@ -36,15 +37,16 @@ const DIALS: readonly Dial[] = [
   { group: 'knife', key: 'edgeWidth', label: 'edge', min: 0.005, max: 0.09, step: 0.001, hint: 'finer bites deeper' },
 
   { group: 'style', key: 'pitch', label: 'pitch', min: 0, max: 1.2, step: 0.01 },
-  { group: 'style', key: 'spinImpulse', label: 'wrist flick', min: 0, max: 1.2, step: 0.005, hint: 'sets the tumble' },
+  { group: 'style', key: 'spinImpulse', label: 'natural spin', min: 0, max: 1.2, step: 0.005, hint: 'how many turns a throw makes' },
   { group: 'style', key: 'startingBladeAngle', label: 'start angle', min: -3.14, max: 3.14, step: 0.02 },
   { group: 'style', key: 'releaseHeight', label: 'release height', min: 0.3, max: 3, step: 0.05 },
   { group: 'style', key: 'minSpeed', label: 'min power', min: 2, max: 20, step: 0.5 },
   { group: 'style', key: 'maxSpeed', label: 'max power', min: 10, max: 45, step: 0.5 },
+  { group: 'style', key: 'weightPenalty', label: 'weight drag', min: 0, max: 0.6, step: 0.01, hint: 'how much heavy knives lose reach' },
 
   { group: 'scatter', key: 'heading', label: 'aim wobble', min: 0, max: 0.2, step: 0.005 },
   { group: 'scatter', key: 'power', label: 'power wobble', min: 0, max: 0.25, step: 0.005 },
-  { group: 'scatter', key: 'spin', label: 'spin wobble', min: 0, max: 8, step: 0.1 },
+  { group: 'scatter', key: 'spin', label: 'spin wobble', min: 0, max: 5, step: 0.05, hint: 'the main source of misses' },
   { group: 'scatter', key: 'startingBladeAngle', label: 'grip wobble', min: 0, max: 1, step: 0.02 },
 
   { group: 'stick', key: 'baseMisalignment', label: 'stick window', min: 0.05, max: 1.2, step: 0.01 },
@@ -53,7 +55,6 @@ const DIALS: readonly Dial[] = [
 
   { group: 'gesture', key: 'fullPowerSwipe', label: 'full swing', min: 0.6, max: 6, step: 0.05, hint: 'hand speed for max range' },
   { group: 'gesture', key: 'minSwipe', label: 'least swing', min: 0.02, max: 1, step: 0.01 },
-  { group: 'gesture', key: 'referenceCurl', label: 'wrist scale', min: 2, max: 30, step: 0.5, hint: 'turn rate giving nominal tumble' },
   { group: 'gesture', key: 'aimGain', label: 'aim gain', min: 0.1, max: 2, step: 0.05 },
 
   { group: 'flight', key: 'gravity', label: 'gravity', min: 5, max: 60, step: 0.5 },
@@ -127,7 +128,7 @@ export const TuningPanel = ({
         <div><dt>inertia</dt><dd>{momentOfInertia(config.knife).toFixed(4)}</dd></div>
         <div><dt>length</dt><dd>{knifeLength(config.knife).toFixed(2)}</dd></div>
         <div><dt>min speed</dt><dd>{minStickSpeed(config).toFixed(1)}</dd></div>
-        <div><dt>per wrist</dt><dd>{(spinRate(config) / config.gesture.referenceCurl).toFixed(2)}</dd></div>
+        <div><dt>reach</dt><dd>×{weightFactor(config).toFixed(2)}</dd></div>
       </dl>
 
       <div className="dials">

@@ -1,16 +1,13 @@
 import { useMemo } from 'react';
 import { DoubleSide } from 'three';
-import type { Flight, KnifeSpec } from '@pocketknives/core';
-import { Knife } from './Knife.js';
-import { bladeRotation } from './coords.js';
+import type { Flight } from '@pocketknives/core';
 
 /**
  * The arc the knife will follow, and where it will come down.
  *
- * The arc is shown; whether the knife will *stick* is not. That line is drawn
- * deliberately. Where it lands is a matter of aim, and hiding it would just be
- * unfair — but whether it arrives blade-first is the skill the game is about,
- * and handing that over would leave nothing to learn.
+ * Drawn from the throw the hand is making, without the wobble it is about to
+ * add. It shows what the player is aiming at, which is theirs to know; whether
+ * their hand stays steady enough to stick it there is not.
  */
 export const AimPreview = ({ flight, color }: { flight: Flight; color: string }) => {
   const beads = useMemo(() => {
@@ -38,27 +35,3 @@ export const AimPreview = ({ flight, color }: { flight: Flight; color: string })
     </group>
   );
 };
-
-/**
- * The knife waiting in the hand.
- *
- * Held at exactly the angle the throw begins from, so the knife carries on
- * turning from where it was rather than snapping to a new pose the instant it
- * leaves. The pace of the swing is shown on the meter; it does not need saying
- * twice, and saying it here cost a visible jump at release.
- */
-export const HeldKnife = ({
-  at,
-  heading,
-  bladeAngle,
-  spec,
-}: {
-  at: readonly [number, number, number];
-  heading: number;
-  bladeAngle: number;
-  spec: KnifeSpec;
-}) => (
-  <group position={[...at]} rotation={bladeRotation(heading, bladeAngle)}>
-    <Knife spec={spec} />
-  </group>
-);

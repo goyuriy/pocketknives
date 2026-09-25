@@ -20,8 +20,14 @@ const withKnife = (changes: Partial<ThrowConfig['knife']>): ThrowConfig => ({
 
 const withScatter = (changes: Partial<ThrowConfig['scatter']>): ThrowConfig => ({
   ...DEFAULT_CONFIG,
-  scatter: { ...DEFAULT_CONFIG.scatter, ...changes },
+  scatter: { spin: 0, heading: 0, power: 0, startingBladeAngle: 0, ...changes },
 });
+
+/** A perfectly obedient hand — the baseline every scatter test measures against. */
+const steady: ThrowConfig = {
+  ...DEFAULT_CONFIG,
+  scatter: { spin: 0, heading: 0, power: 0, startingBladeAngle: 0 },
+};
 
 const stand = standingPoint(-Math.PI / 2, 10);
 const heading = Math.PI / 2;
@@ -124,7 +130,7 @@ describe('scatter', () => {
 
   it('changes nothing when no seed is given', () => {
     const a = aimedLaunch(stand, heading, 0.5, scattered);
-    const b = aimedLaunch(stand, heading, 0.5, DEFAULT_CONFIG);
+    const b = aimedLaunch(stand, heading, 0.5, steady);
     expect(a).toEqual(b);
   });
 
@@ -141,9 +147,9 @@ describe('scatter', () => {
   });
 
   it('stays obedient when every spread is zero, whatever the seed', () => {
-    const clean = aimedLaunch(stand, heading, 0.5, DEFAULT_CONFIG);
+    const clean = aimedLaunch(stand, heading, 0.5, steady);
     for (const seed of [1, 99, 1234567]) {
-      expect(aimedLaunch(stand, heading, 0.5, DEFAULT_CONFIG, seed)).toEqual(clean);
+      expect(aimedLaunch(stand, heading, 0.5, steady, seed)).toEqual(clean);
     }
   });
 
@@ -162,8 +168,8 @@ describe('scatter', () => {
     // retuning the throw cannot quietly turn this into a test of nothing.
     const dependable = (() => {
       for (let power = 0; power <= 1; power += 0.005) {
-        const flight = simulateFlight(aimedLaunch(stand, heading, power, DEFAULT_CONFIG));
-        if (stickVerdict(flight.impact, DEFAULT_CONFIG).stuck) return power;
+        const flight = simulateFlight(aimedLaunch(stand, heading, power, steady));
+        if (stickVerdict(flight.impact, steady).stuck) return power;
       }
       throw new Error('no power sticks with the default config');
     })();
@@ -175,7 +181,7 @@ describe('scatter', () => {
         ).stuck,
       ).filter(Boolean).length;
 
-    expect(sticks(DEFAULT_CONFIG)).toBe(200);
+    expect(sticks(steady)).toBe(200);
     expect(sticks(withScatter({ power: 0.12 }))).toBeLessThan(200);
   });
 });

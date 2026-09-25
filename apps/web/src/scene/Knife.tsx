@@ -14,6 +14,8 @@ import type { KnifeSpec } from '@pocketknives/core';
  * The model points along `+x` with its balance point at the origin, which is
  * where the flight puts it.
  */
+const SWORD_LENGTH = 0.8;
+
 export const Knife = ({ spec, dimmed = false }: { spec: KnifeSpec; dimmed?: boolean }) => {
   const { bladeLength, handleLength, balance, edgeWidth } = spec;
   // The model is built about the balance point, because that is what the flight
@@ -22,20 +24,23 @@ export const Knife = ({ spec, dimmed = false }: { spec: KnifeSpec; dimmed?: bool
   const butt = tip - (bladeLength + handleLength);
   const shoulder = tip - bladeLength;
   const halfEdge = Math.max(edgeWidth, 0.006) / 2;
+  // A blade this long is a sword, and a sword has a guard and the width to carry it.
+  const isSword = bladeLength >= SWORD_LENGTH;
+  const halfWidth = isSword ? 0.085 : 0.055;
 
   const bladeGeometry = useMemo(() => {
     const blade = new Shape();
-    blade.moveTo(shoulder, -0.055);
-    blade.lineTo(tip - bladeLength * 0.3, -0.05);
+    blade.moveTo(shoulder, -halfWidth);
+    blade.lineTo(tip - bladeLength * 0.3, -halfWidth * 0.9);
     blade.lineTo(tip, 0); // the point
-    blade.lineTo(tip - bladeLength * 0.3, 0.05);
-    blade.lineTo(shoulder, 0.055);
+    blade.lineTo(tip - bladeLength * 0.3, halfWidth * 0.9);
+    blade.lineTo(shoulder, halfWidth);
     blade.closePath();
     return standUpright(
       new ExtrudeGeometry(blade, { depth: halfEdge * 2, bevelEnabled: false }),
       halfEdge * 2,
     );
-  }, [shoulder, tip, bladeLength, halfEdge]);
+  }, [shoulder, tip, bladeLength, halfEdge, halfWidth]);
 
   const handleGeometry = useMemo(() => {
     const handle = new Shape();
@@ -51,14 +56,20 @@ export const Knife = ({ spec, dimmed = false }: { spec: KnifeSpec; dimmed?: bool
     <group>
       <mesh geometry={bladeGeometry} castShadow>
         <meshStandardMaterial
-          color={dimmed ? '#7d8590' : '#d9dee4'}
-          metalness={0.85}
-          roughness={0.28}
+          color={dimmed ? '#7d8590' : '#e4e8ec'}
+          metalness={0.55}
+          roughness={0.32}
         />
       </mesh>
       <mesh geometry={handleGeometry} castShadow>
         <meshStandardMaterial color={dimmed ? '#3a2b22' : '#5a3d2b'} roughness={0.85} />
       </mesh>
+      {isSword && (
+        <mesh position={[shoulder, 0, 0]} castShadow>
+          <boxGeometry args={[0.05, 0.07, 0.42]} />
+          <meshStandardMaterial color={dimmed ? '#5d5446' : '#a08a5c'} metalness={0.6} roughness={0.4} />
+        </mesh>
+      )}
     </group>
   );
 };

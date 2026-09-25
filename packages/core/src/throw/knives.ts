@@ -6,6 +6,12 @@ export type KnifeChoice = {
   /** One line a player can decide on without reading a stat block. */
   readonly character: string;
   readonly spec: KnifeSpec;
+  /**
+   * How many hands it takes to throw. Not physics — the flight never reads it —
+   * but it is how the thing is held, and so what the player sees themselves
+   * doing: a knife is flicked from one fist, a sword heaved from two.
+   */
+  readonly hands: 1 | 2;
 };
 
 /**
@@ -17,15 +23,15 @@ export type KnifeChoice = {
  * hundred that differ by a decimal.
  *
  * Every difference here is physical and already drives the flight — mass and
- * balance set how the wrist translates into tumble, blade length sets how much
- * the ground forgives, edge sets how deep it goes. None of it is a stat bar
- * bolted on top of a fixed knife.
+ * balance set how lazily or wildly it turns, blade length sets how much a shaky
+ * throw is forgiven, edge sets how deep it goes. None of it is a stat bar bolted
+ * on top of a fixed knife.
  */
 export const KNIVES: readonly KnifeChoice[] = [
   {
     id: 'kitchen',
     name: 'Kitchen',
-    character: 'Turns easily and forgives a rough landing. The one to learn on.',
+    character: 'Long in the blade and forgiving of a shaky hand. The one to learn on.',
     spec: {
       bladeLength: 0.52,
       handleLength: 0.42,
@@ -33,6 +39,7 @@ export const KNIVES: readonly KnifeChoice[] = [
       balance: 0.58,
       edgeWidth: 0.028,
     },
+    hands: 1,
   },
   {
     id: 'thrower',
@@ -45,11 +52,12 @@ export const KNIVES: readonly KnifeChoice[] = [
       balance: 0.62,
       edgeWidth: 0.03,
     },
+    hands: 1,
   },
   {
     id: 'cleaver',
     name: 'Cleaver',
-    character: 'Heavy and slow to turn. Needs a real swing, and buries itself when it lands.',
+    character: 'Heavy and slow to turn, and buries itself to the handle when it lands.',
     spec: {
       bladeLength: 0.46,
       handleLength: 0.44,
@@ -57,18 +65,35 @@ export const KNIVES: readonly KnifeChoice[] = [
       balance: 0.68,
       edgeWidth: 0.05,
     },
+    hands: 1,
   },
   {
     id: 'needle',
     name: 'Needle',
-    character: 'Light and fast. Spins off the smallest flick and punishes a sloppy one.',
+    character: 'Light and whirling. Flies furthest, and its short point forgives nothing.',
     spec: {
-      bladeLength: 0.34,
-      handleLength: 0.36,
-      mass: 0.09,
+      bladeLength: 0.36,
+      handleLength: 0.44,
+      mass: 0.12,
       balance: 0.55,
       edgeWidth: 0.012,
     },
+    hands: 1,
+  },
+  {
+    id: 'greatsword',
+    name: 'Greatsword',
+    character: 'Two hands, barely a turn in the air, and it drops point-first from anywhere.',
+    spec: {
+      bladeLength: 1.15,
+      handleLength: 0.5,
+      mass: 0.9,
+      // Balanced close to the guard, as a sword is — so it is the long blade,
+      // not the grip, that swings round and leads it down.
+      balance: 0.4,
+      edgeWidth: 0.04,
+    },
+    hands: 2,
   },
 ];
 

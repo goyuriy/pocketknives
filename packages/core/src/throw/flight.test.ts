@@ -187,11 +187,11 @@ describe('DEFAULT_CONFIG', () => {
     expect(DEFAULT_CONFIG.flight.sampleInterval).toBeLessThanOrEqual(1 / 60);
   });
 
-  it('ships with scatter off, so tuning starts from an obedient knife', () => {
-    expect(Object.values(DEFAULT_CONFIG.scatter).every((v) => v === 0)).toBe(true);
+  it('ships with the aim left exact — only the tumble and pace wobble', () => {
+    expect(DEFAULT_CONFIG.scatter.heading).toBe(0);
   });
 
-  it('derives the tumble rate the bands were swept against', () => {
+  it('derives the natural tumble the wrist settles near', () => {
     expect(spinRate(DEFAULT_CONFIG)).toBeCloseTo(30, 1);
   });
 });

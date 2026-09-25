@@ -1,4 +1,5 @@
-import type { SwingReading } from '@pocketknives/core';
+import { isThrow, swingPower, type SwingReading, type ThrowConfig } from '@pocketknives/core';
+import { READY_SWING } from './hand/armPose.js';
 
 export type Sample = {
   readonly x: number;
@@ -9,21 +10,12 @@ export type Sample = {
 /** How much of the end of the stroke counts as "the release", in milliseconds. */
 const RELEASE_WINDOW = 110;
 /**
- * Fewest samples the release may be read from.
- *
- * A turn cannot be measured from two points — two points are a straight line.
- * When events arrive sparsely, whether from a slow device or from a browser
- * coalescing them, the time window alone can hold too few, and the stroke then
- * reads as having no curl at all: every throw lands handle-first and nothing the
- * player does changes it. Reaching further back is far better than reporting a
- * flick as a push.
+ * Fewest samples the release may be read from. When events arrive sparsely the
+ * time window alone can hold just one, and a single point has no speed at all.
  */
-const LEAST_SAMPLES = 4;
-
-const wrap = (radians: number): number => {
-  const wrapped = ((radians + Math.PI) % (2 * Math.PI) + 2 * Math.PI) % (2 * Math.PI);
-  return wrapped - Math.PI;
-};
+const LEAST_SAMPLES = 3;
+/** Screen-heights of pull that draw the arm all the way back. */
+const WIND_SPAN = 0.22;
 
 /**
  * Reads a throwing motion out of the last moments of a stroke.
@@ -32,26 +24,17 @@ const wrap = (radians: number): number => {
  * the throw — a player who wanders around the screen and then flicks has thrown
  * a flick, and averaging in the wandering would say otherwise.
  *
- * Two numbers come out of it, and they are independent because the hand really
- * does control them separately:
- *
- * - **speed**, the pace of travel at release, which becomes distance
- * - **curl**, how fast the direction of travel was *turning*, which becomes
- *   tumble. A straight push has none; a hooked flick has a great deal.
- *
- * Everything is normalised by viewport height, so the same motion of the same
- * physical hand reads the same on a phone and a monitor.
+ * Normalised by viewport height, so the same motion of the same physical hand
+ * reads the same on a phone and a monitor.
  */
 export const readSwing = (samples: readonly Sample[], viewportHeight: number): SwingReading => {
-  const idle: SwingReading = { speed: 0, curl: 0, aimOffset: 0 };
+  const idle: SwingReading = { speed: 0, aimOffset: 0 };
   if (samples.length < 2 || viewportHeight <= 0) return idle;
 
   const last = samples[samples.length - 1]!;
   const recent = samples.filter((s) => last.t - s.t <= RELEASE_WINDOW);
   const window =
     recent.length >= LEAST_SAMPLES ? recent : samples.slice(-Math.max(LEAST_SAMPLES, recent.length));
-  if (window.length < 2) return idle;
-
   const first = window[0]!;
   const elapsed = (last.t - first.t) / 1000;
   if (elapsed <= 0) return idle;
@@ -61,7 +44,6 @@ export const readSwing = (samples: readonly Sample[], viewportHeight: number): S
 
   return {
     speed: Math.hypot(dx, dy) / viewportHeight / elapsed,
-    curl: turnRate(window),
     // Zero when travelling straight up the screen, positive to the right. The
     // camera sits behind the thrower, so "up the screen" is away from them.
     aimOffset: Math.atan2(dx, -dy),
@@ -69,33 +51,22 @@ export const readSwing = (samples: readonly Sample[], viewportHeight: number): S
 };
 
 /**
- * How fast the direction of travel was turning, in radians per second.
+ * How far through its swing the arm is, from where the finger is now.
  *
- * Measured between successive segments of the stroke rather than from its
- * overall shape, so a late hook counts for as much as it should. Segments too
- * short to have a reliable direction are skipped — at the end of a flick the
- * samples bunch up, and noise there would read as enormous curl.
+ * `-1` is drawn fully back, `0` the moment of release. Pulling the finger down
+ * the screen draws the arm back; bringing it up again, or flicking it up fast,
+ * brings the arm forward to let go. The arm is the player's hand on screen, so it
+ * has to answer the finger at once — including before the flick is fast enough
+ * to count as a throw.
  */
-const turnRate = (window: readonly Sample[]): number => {
-  let turned = 0;
-  let elapsed = 0;
-  let previousDirection: number | null = null;
-
-  for (let i = 1; i < window.length; i++) {
-    const from = window[i - 1]!;
-    const to = window[i]!;
-    const dx = to.x - from.x;
-    const dy = to.y - from.y;
-    if (Math.hypot(dx, dy) < 1.5) continue;
-
-    const direction = Math.atan2(dy, dx);
-    const dt = (to.t - from.t) / 1000;
-    if (previousDirection !== null && dt > 0) {
-      turned += wrap(direction - previousDirection);
-      elapsed += dt;
-    }
-    previousDirection = direction;
-  }
-
-  return elapsed > 0 ? turned / elapsed : 0;
+export const armSwing = (
+  anchor: Sample,
+  latest: Sample,
+  reading: SwingReading,
+  viewportHeight: number,
+  config: ThrowConfig,
+): number => {
+  const drawnBack = (latest.y - anchor.y) / Math.max(1, viewportHeight);
+  const thrust = isThrow(reading, config) ? swingPower(reading, config) : 0;
+  return Math.min(0, Math.max(-1, READY_SWING - drawnBack / WIND_SPAN + thrust));
 };

@@ -6,7 +6,6 @@ import {
   fieldOutlines,
   isThrow,
   knifeById,
-  nearestStickingSpin,
   passTurn,
   resolveThrow,
   simulateFlight,
@@ -41,11 +40,8 @@ export type Attempt = {
   readonly outcome: ThrowOutcome | null;
   readonly playbackDuration: number;
   readonly seed: number;
-  /** What the hand did, kept so a miss can be explained in the hand's own terms. */
+  /** What the hand did, kept so the meter can show the throw that was made. */
   readonly reading: SwingReading;
-  readonly spin: number;
-  /** The tumble this throw came closest to needing. Null if none was reachable. */
-  readonly neededSpin: number | null;
 };
 
 export type Phase =
@@ -56,6 +52,9 @@ export type Phase =
 
 /**
  * The sandbox: a board, a knife, and a hand to throw it with.
+ *
+ * The player supplies a direction and a pace, nothing more; the wrist and the
+ * wobble belong to the core (`swingLaunch`).
  *
  * A throw is resolved the instant the hand lets go — flight, stick and cut are
  * all pure functions, so the whole outcome is known before a frame is drawn.
@@ -80,6 +79,7 @@ export const useSandbox = (initialPlayers = 4) => {
 
   // The chosen knife is part of the config, not a decoration on top of it, so
   // every derived quantity — tumble, forgiveness, bite — follows from the pick.
+  const knife = knifeById(knifeId);
   const config = useMemo<ThrowConfig>(
     () => ({ ...tuning, knife: knifeById(knifeId).spec }),
     [tuning, knifeId],
@@ -160,13 +160,6 @@ export const useSandbox = (initialPlayers = 4) => {
         playbackDuration: flight.impact.time / playbackScale,
         seed,
         reading,
-        spin: launch.spin,
-        neededSpin: nearestStickingSpin(
-          launch.spin,
-          flight.impact.time,
-          -flight.impact.descentAngle,
-          config,
-        ),
       };
 
       setLastAttempt(attempt);
@@ -221,6 +214,7 @@ export const useSandbox = (initialPlayers = 4) => {
     previewFlight,
     playerCount,
     config,
+    knife,
     tuning,
     setTuning,
     knifeId,

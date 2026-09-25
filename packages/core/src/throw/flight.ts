@@ -23,10 +23,10 @@ export const wrapAngle = (radians: number): number => {
  * floating point. A physics engine cannot promise that; this closed-form arc
  * can.
  *
- * The skill lives in the coupling between the two. Flight time is set by how
- * hard it was thrown, and the tumble runs at a fixed rate throughout — so how
- * far you throw decides where in its rotation the knife arrives. Distance bands
- * exist where it comes in blade-first, and finding them is the game.
+ * The two are coupled: flight time is set by how hard it was thrown and the
+ * tumble runs at a fixed rate throughout, so distance and tumble together decide
+ * where in its rotation the knife arrives. `wristSpin` solves that coupling for
+ * the player.
  */
 export const simulateFlight = (
   launch: Launch,

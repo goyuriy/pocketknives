@@ -12,40 +12,16 @@ const MISS_TEXT: Record<MissReason, string> = {
 };
 
 /**
- * Why a knife that never stuck never stuck — in terms of the hand that threw it.
+ * Why a knife that never stuck never stuck.
  *
- * The point of reading the hand is that a miss can now be blamed on something a
- * player can change. Under-rotation and over-rotation are opposite ends of the
- * same turn and want opposite corrections, so they are never merged into one
- * message.
+ * With the wrist automatic, a clean throw always sticks, so a failure is the
+ * hand wobbling — and the only lever a player has on that is how far they
+ * reach. Saying so turns bad luck into a choice they can make differently.
  */
-const notStuck = (attempt: Attempt): string => {
-  const { neededSpin, spin } = attempt;
-
-  /*
-   * The failure mode says what the knife did; only the needed tumble says which
-   * way to correct. Rotation is cyclic, so a handle-first landing is just as
-   * likely to be a wrist that carried on past the window as one that never
-   * reached it — naming the mode "under-rotated" was wrong half the time, and
-   * contradicted the advice sitting next to it.
-   */
-  const advice =
-    neededSpin === null
-      ? ''
-      : neededSpin > spin
-        ? ' Flick sharper.'
-        : ' Softer wrist — straighten the stroke.';
-
-  const reasons: Record<Exclude<StickOutcome, 'stuck'>, string> = {
-    handle_first: 'Landed handle-first.',
-    flat: 'Landed flat and skipped.',
-    too_slow: 'No pace left in it to bite.',
-  };
-  const outcome = attempt.verdict.outcome as Exclude<StickOutcome, 'stuck'>;
-  // Too slow is a fault of pace, not of the wrist, so the wrist advice is wrong.
-  return outcome === 'too_slow'
-    ? `${reasons.too_slow} Swing faster.`
-    : reasons[outcome] + advice;
+const NOT_STUCK: Record<Exclude<StickOutcome, 'stuck'>, string> = {
+  handle_first: 'Wobbled — landed handle-first. Far throws are the shaky ones.',
+  flat: 'Wobbled — landed flat and skipped. Far throws are the shaky ones.',
+  too_slow: 'No pace left in it to bite. Throw harder.',
 };
 
 /**
@@ -54,7 +30,7 @@ const notStuck = (attempt: Attempt): string => {
  * it as a bad throw sends the player off correcting the wrong thing.
  */
 const describe = (attempt: Attempt, arenaArea: number): string => {
-  if (!attempt.verdict.stuck) return notStuck(attempt);
+  if (!attempt.verdict.stuck) return NOT_STUCK[attempt.verdict.outcome as Exclude<StickOutcome, 'stuck'>];
   if (!attempt.outcome || attempt.outcome.kind === 'miss') {
     return `Stuck. ${attempt.outcome ? MISS_TEXT[attempt.outcome.reason] : ''}`.trim();
   }
@@ -87,13 +63,11 @@ export const SandboxHud = ({ game }: { game: SandboxState }) => {
       <SwingMeter
         reading={throwing ? game.swing : (attempt?.reading ?? null)}
         config={game.config}
-        spin={throwing ? null : (attempt?.spin ?? null)}
-        neededSpin={throwing ? null : (attempt?.neededSpin ?? null)}
         color={colorOf(game.currentPlayer)}
       />
 
       <div className="message">
-        {throwing ? 'Swing and let go.' : attempt ? describe(attempt, arenaArea) : 'Swing to throw.'}
+        {throwing ? 'Flick up and let go.' : attempt ? describe(attempt, arenaArea) : 'Pull back, then flick towards the circle.'}
       </div>
 
       <div className="standings">

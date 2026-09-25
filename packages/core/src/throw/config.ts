@@ -36,17 +36,28 @@ export type ThrowStyle = {
   /** How high above the ground the knife leaves the hand. */
   readonly releaseHeight: number;
   /**
-   * Angular impulse imparted at release.
+   * Angular impulse a relaxed wrist imparts at release.
    *
-   * Not a spin rate: the same flick of the wrist spins a light knife faster than
-   * a heavy one, so this is the input and the rate is derived through the
-   * knife's moment of inertia.
+   * Not a spin rate: the same wrist spins a light knife faster than a heavy one,
+   * so this is the input and the rate is derived through the knife's moment of
+   * inertia. Nobody sets the spin of a throw directly — the wrist picks the
+   * sticking tumble nearest this natural one — so this decides how many turns a
+   * knife makes on its way, and so how it looks in the air.
    */
   readonly spinImpulse: number;
   /** Where in its tumble the knife starts. Zero points along the throw. */
   readonly startingBladeAngle: number;
+  /** Launch speed of the gentlest and hardest throw, for a knife of `referenceMass`. */
   readonly minSpeed: number;
   readonly maxSpeed: number;
+  /** The weight the speed range above is for. */
+  readonly referenceMass: number;
+  /**
+   * How much a heavier knife holds the arm back: launch speed scales as
+   * `(referenceMass / mass) ^ weightPenalty`. Zero ignores weight altogether;
+   * one half would be an arm putting the same energy into everything.
+   */
+  readonly weightPenalty: number;
 };
 
 /**
@@ -93,16 +104,14 @@ export type StickTuning = {
  * How a hand's motion is read as a throw.
  *
  * These are the numbers that decide whether the gesture feels like throwing
- * something. They are in abstract units — screen-heights per second, radians per
- * second — so the mapping is the same on a phone and a desktop.
+ * something. They are in abstract units — screen-heights per second — so the
+ * mapping is the same on a phone and a desktop.
  */
 export type GestureTuning = {
   /** Hand speed that throws as hard as the arm can. */
   readonly fullPowerSwipe: number;
   /** Below this the hand was not throwing, it was resting. */
   readonly minSwipe: number;
-  /** Turn rate of the stroke that produces the knife's nominal tumble. */
-  readonly referenceCurl: number;
   /** How far the release direction swings the aim. */
   readonly aimGain: number;
 };
@@ -131,27 +140,31 @@ export const DEFAULT_CONFIG: ThrowConfig = {
   style: {
     pitch: 0.35,
     releaseHeight: 1.4,
-    /*
-     * Spin and starting angle place the sticking bands, and they do different
-     * jobs. Spin sets how far apart the bands are — the knife comes back
-     * blade-first once per turn, so a faster tumble packs more bands into the
-     * power range. The starting angle slides them all along it.
-     *
-     * Swept together: 30 rad/s spaces two bands across the range, and -0.8
-     * phases them so both land where they can take ground. See RULES.md.
-     */
+    // The knife's natural tumble; the wrist settles on the sticking rate nearest
+    // it, so this sets how many turns a throw makes rather than whether it sticks.
     spinImpulse: 0.475, // 30 rad/s with the knife above
     // Tip up, as the knife sits in the hand — the tumble carries it forward from
     // there, so the throw begins where the held knife was left.
     startingBladeAngle: 0.8,
     minSpeed: 7,
     maxSpeed: 26,
+    referenceMass: 0.2,
+    // Gentler than equal energy. Enough that a greatsword cannot reach the far
+    // side of the circle, which is the price of a blade that almost never misses.
+    weightPenalty: 0.25,
   },
+  /*
+   * The only thing between a clean throw and a stuck knife, now that the wrist
+   * is automatic. Measured with the Thrower: a short throw sticks all but
+   * always, a full-range one about three times in four. Aim is left exact —
+   * where the knife goes is the player's decision, and wobbling it would only
+   * take the decision away.
+   */
   scatter: {
-    spin: 0,
+    spin: 1.5,
     heading: 0,
-    power: 0,
-    startingBladeAngle: 0,
+    power: 0.03,
+    startingBladeAngle: 0.2,
   },
   stick: {
     /*
@@ -177,7 +190,6 @@ export const DEFAULT_CONFIG: ThrowConfig = {
   gesture: {
     fullPowerSwipe: 2.6,
     minSwipe: 0.25,
-    referenceCurl: 11,
     aimGain: 0.9,
   },
   flight: {
@@ -205,7 +217,21 @@ export const momentOfInertia = (knife: KnifeSpec): number => {
   return knife.mass * ((length * length) / 12 + offset * offset);
 };
 
-/** Tumble rate the knife actually leaves the hand with. */
+/** How much faster or slower than the reference knife this one leaves the hand. */
+export const weightFactor = (config: ThrowConfig): number =>
+  Math.pow(
+    config.style.referenceMass / Math.max(config.knife.mass, 1e-6),
+    config.style.weightPenalty,
+  );
+
+/** Launch speed for a throw of `power` (0 to 1), after the knife's weight has had its say. */
+export const launchSpeed = (config: ThrowConfig, power: number): number => {
+  const { minSpeed, maxSpeed } = config.style;
+  const clamped = Math.min(1, Math.max(0, power));
+  return (minSpeed + (maxSpeed - minSpeed) * clamped) * weightFactor(config);
+};
+
+/** The knife's natural tumble — what a relaxed wrist gives it. */
 export const spinRate = (config: ThrowConfig): number =>
   config.style.spinImpulse / momentOfInertia(config.knife);
 

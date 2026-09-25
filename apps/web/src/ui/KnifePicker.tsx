@@ -4,7 +4,7 @@ import { KNIVES } from '@pocketknives/core';
  * The one decision made before the match rather than during it.
  *
  * Each knife is a different way to play, not a better one: what changes is how
- * much wrist it takes to turn and how much the ground forgives when it arrives.
+ * far it reaches and how much of a shaky throw it forgives.
  * The character line is the whole pitch — a player should be able to choose
  * without reading a stat block, and find the stats bear it out.
  */

@@ -4,11 +4,13 @@ import type { SandboxState } from '../state/useSandbox.js';
 import { ARENA_RADIUS } from '../state/useSandbox.js';
 import { colorOf } from '../ui/theme.js';
 import { Arena, CutLine } from './Arena.js';
-import { AimPreview, HeldKnife } from './AimPreview.js';
+import { AimPreview } from './AimPreview.js';
 import { CameraRig } from './CameraRig.js';
 import { FallenKnife, FlyingKnife, StuckKnife } from './FlyingKnife.js';
 import { PLAYFIELD_TILT } from './coords.js';
-import { readSwing, type Sample } from './gesture.js';
+import { armSwing, readSwing, type Sample } from './gesture.js';
+import { ThrowingArm } from './hand/ThrowingArm.js';
+import { READY_SWING } from './hand/armPose.js';
 
 /** How much of the stroke to remember. Older than this cannot be part of a throw. */
 const STROKE_MEMORY = 400;
@@ -16,18 +18,20 @@ const STROKE_MEMORY = 400;
 export const Sandbox = ({ game }: { game: SandboxState }) => {
   const { phase, setSwing, release } = game;
   const stroke = useRef<Sample[]>([]);
+  // Where the finger first touched, which is what "drawn back" is measured from.
+  const anchor = useRef<Sample | null>(null);
+  const arm = useRef(READY_SWING);
   const [cutProgress, setCutProgress] = useState(0);
 
   const canThrow = phase.kind === 'ready';
 
   /**
-   * Throw by throwing.
+   * Throw by moving the hand.
    *
-   * The stroke is recorded as it happens and read at the moment the hand lets
-   * go — its pace becomes distance, and how sharply it was turning becomes
-   * tumble. Neither is a slider standing in for a hand; they are the two things
-   * a hand actually does, and they are independent, which is what lets a player
-   * reach any distance instead of the two the old power dial allowed.
+   * The stroke is recorded as it happens. While it goes on, the finger's
+   * position works the arm — down draws it back, up brings it through — and the
+   * moment the finger lets go, the pace and direction of the last few
+   * milliseconds become the throw. Nothing else is asked of the player.
    *
    * Samples are kept in a ref, not state. A whole flick can happen inside one
    * frame, and a throw assembled from state React has not re-rendered yet would
@@ -56,12 +60,19 @@ export const Sandbox = ({ game }: { game: SandboxState }) => {
     event.currentTarget.setPointerCapture?.(event.pointerId);
     stroke.current = [];
     track(event);
+    anchor.current = stroke.current[stroke.current.length - 1] ?? null;
   };
 
   const onPointerMove = (event: React.PointerEvent<HTMLDivElement>) => {
     if (!canThrow || stroke.current.length === 0) return;
     track(event);
-    setSwing(readSwing(stroke.current, viewportHeight(event.currentTarget)));
+    const height = viewportHeight(event.currentTarget);
+    const reading = readSwing(stroke.current, height);
+    setSwing(reading);
+    const latest = stroke.current[stroke.current.length - 1];
+    if (anchor.current && latest) {
+      arm.current = armSwing(anchor.current, latest, reading, height, game.config);
+    }
   };
 
   const onPointerUp = (event: React.PointerEvent<HTMLDivElement>) => {
@@ -69,6 +80,8 @@ export const Sandbox = ({ game }: { game: SandboxState }) => {
     track(event);
     const reading = readSwing(stroke.current, viewportHeight(event.currentTarget));
     stroke.current = [];
+    anchor.current = null;
+    arm.current = READY_SWING;
     release(reading);
   };
 
@@ -148,14 +161,21 @@ export const Sandbox = ({ game }: { game: SandboxState }) => {
             <AimPreview flight={game.previewFlight} color={colorOf(game.currentPlayer)} />
           )}
 
-          {phase.kind === 'ready' && !settled && (
-            <HeldKnife
-              at={[game.stand[0], game.stand[1], game.config.style.releaseHeight]}
-              heading={game.previewFlight?.impact.heading ?? game.restHeading}
-              bladeAngle={game.config.style.startingBladeAngle}
-              spec={game.config.knife}
-            />
-          )}
+          <ThrowingArm
+            setup={{
+              release: [game.stand[0], game.stand[1], game.config.style.releaseHeight],
+              heading:
+                phase.kind === 'ready'
+                  ? (game.previewFlight?.impact.heading ?? game.restHeading)
+                  : phase.attempt.flight.impact.heading,
+              releaseBladeAngle: game.config.style.startingBladeAngle,
+              spec: game.config.knife,
+              hands: game.knife.hands,
+            }}
+            swing={arm}
+            released={phase.kind !== 'ready'}
+            color={colorOf(game.currentPlayer)}
+          />
 
           {phase.kind === 'flying' && (
             <FlyingKnife
