@@ -7,5 +7,9 @@ export default defineConfig({
   // The rules package is workspace source, not a third-party dependency. Left in
   // the pre-bundler it gets frozen into a cached chunk that hot reloads do not
   // invalidate, so edits to the game logic silently fail to reach the page.
-  optimizeDeps: { exclude: ['@pocketknives/core'] },
+  //
+  // Havok is excluded for a different reason: the pre-bundler moves its script
+  // away from the WebAssembly binary it loads, and the physics then fails to
+  // start in development only.
+  optimizeDeps: { exclude: ['@pocketknives/core', '@babylonjs/havok'] },
 });

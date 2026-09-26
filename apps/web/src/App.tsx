@@ -1,4 +1,4 @@
-import { Sandbox } from './scene/Sandbox.js';
+import { Stage } from './stage/Stage.js';
 import { SandboxHud } from './ui/SandboxHud.js';
 import { TuningPanel } from './ui/TuningPanel.js';
 import { useSandbox } from './state/useSandbox.js';
@@ -8,7 +8,7 @@ export const App = () => {
 
   return (
     <div className="app">
-      <Sandbox game={game} />
+      <Stage game={game} />
       <TuningPanel config={game.config} onChange={game.setTuning} />
       <SandboxHud game={game} />
     </div>

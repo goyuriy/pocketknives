@@ -44,8 +44,8 @@ Two things are read from the last moments of the flick, and nothing else:
 A stroke going backwards is winding up, not throwing — letting go mid-wind-up
 throws nothing.
 
-> `readSwing`, `armSwing` — [gesture.ts](apps/web/src/scene/gesture.ts)
-> `armPose` — [armPose.ts](apps/web/src/scene/hand/armPose.ts)
+> `readSwing`, `armSwing` — [gesture.ts](apps/web/src/input/gesture.ts)
+> `armPose` — [armPose.ts](apps/web/src/stage/math/armPose.ts)
 > `swingLaunch` — [swing.ts](packages/core/src/throw/swing.ts)
 
 **The wrist is automatic.** Given the distance, the hand turns the knife by

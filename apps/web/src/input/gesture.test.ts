@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { DEFAULT_CONFIG } from '@pocketknives/core';
 import { armSwing, readSwing, type Sample } from './gesture.js';
-import { READY_SWING } from './hand/armPose.js';
+import { READY_SWING } from '../stage/math/armPose.js';
 
 /** A stroke that travels at `speed` px/s while turning at `curl` rad/s. */
 const stroke = (speed: number, curl: number, count: number, step = 16): Sample[] => {

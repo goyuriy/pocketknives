@@ -28,7 +28,7 @@ import { PLAYER_NAMES } from '../ui/theme.js';
 export const ARENA_RADIUS = 10;
 
 /** Seconds the cut takes to draw itself before land changes hands. */
-const CUT_DURATION = 0.55;
+export const CUT_DURATION = 0.55;
 /** Seconds the result stays up before the next player may throw. */
 const REST_DURATION = 0.7;
 

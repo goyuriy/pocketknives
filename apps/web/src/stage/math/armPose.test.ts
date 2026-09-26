@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { KNIVES, knifeById, type Vec3 } from '@pocketknives/core';
 import { armAngle, armPose, gripOffset, type ArmSetup } from './armPose.js';
-import { bladeDirection } from '../coords.js';
+import { bladeDirection } from './coords.js';
 
 const setup = (id: string, heading = Math.PI / 2): ArmSetup => {
   const knife = knifeById(id);

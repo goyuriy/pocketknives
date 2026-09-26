@@ -1,5 +1,5 @@
 import { isThrow, swingPower, type SwingReading, type ThrowConfig } from '@pocketknives/core';
-import { READY_SWING } from './hand/armPose.js';
+import { READY_SWING } from '../stage/math/armPose.js';
 
 export type Sample = {
   readonly x: number;

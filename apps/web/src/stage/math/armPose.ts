@@ -1,5 +1,5 @@
 import type { KnifeSpec, Vec3 } from '@pocketknives/core';
-import { bladeDirection } from '../coords.js';
+import { bladeDirection } from './coords.js';
 
 /**
  * Where the arm rests while waiting to throw: a little drawn back, so the first
