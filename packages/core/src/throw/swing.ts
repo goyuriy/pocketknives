@@ -12,12 +12,17 @@ import { scatterLaunch } from './launch.js';
  * downstream works the same whether they came from a mouse, a finger, or a
  * replay.
  *
- * Three decisions, each of them the player's, none of them a reflex:
- * where to point, how far back to draw, and how cleanly to push through.
+ * Four decisions, each of them the player's, none of them a reflex: where to
+ * point, how high, how far back to draw, and how cleanly to push through.
  */
 export type ThrowIntent = {
   /** Where the hand pointed, radians from straight ahead, positive to the right. */
   readonly aim: number;
+  /**
+   * How steeply it was thrown, radians above level — a flat throw or a lob.
+   * Kept within the gesture's range; see `launchPitch`.
+   */
+  readonly pitch: number;
   /** How far the arm was drawn back, 0 to 1. This is the distance. */
   readonly draw: number;
   /**
@@ -42,6 +47,10 @@ export const drawPower = (intent: ThrowIntent, config: ThrowConfig = DEFAULT_CON
 export const isThrow = (intent: ThrowIntent, config: ThrowConfig = DEFAULT_CONFIG): boolean =>
   intent.draw >= config.gesture.minDraw;
 
+/** The throw's launch angle, held within what an arm can do. */
+export const launchPitch = (intent: ThrowIntent, config: ThrowConfig = DEFAULT_CONFIG): number =>
+  Math.min(config.gesture.maxPitch, Math.max(config.gesture.minPitch, intent.pitch));
+
 /** The line the knife actually leaves on: the aim, pulled by however the push drifted. */
 export const thrownHeading = (
   restHeading: number,
@@ -52,8 +61,10 @@ export const thrownHeading = (
 /**
  * Turns a throw into a knife in the air.
  *
- * The draw sets the distance, and the wrist then turns the knife by exactly as
- * much as that distance needs to bring it in point-first. So a clean throw
+ * The draw sets how hard, the pitch how steeply, and the wrist then turns the
+ * knife by exactly as much as that flight needs to bring it in point-first. A
+ * lob stays up longer and comes down steeper; a flat throw is quick and
+ * skims in. So a clean throw
  * always sticks, wherever it was aimed — what decides the throw is *where* it
  * lands, which is the game the circle is actually about.
  *
@@ -74,7 +85,7 @@ export const swingLaunch = (
   const aimed: Launch = {
     origin: [from[0], from[1], style.releaseHeight] as Vec3,
     heading: thrownHeading(restHeading, intent, config),
-    pitch: style.pitch,
+    pitch: launchPitch(intent, config),
     speed: launchSpeed(config, drawPower(intent, config)),
     spin: 0,
     bladeAngle: style.startingBladeAngle,

@@ -20,6 +20,7 @@ const rest = Math.PI / 2;
 const swing = (changes: Partial<ThrowIntent> = {}): ThrowIntent => ({
   draw: 0.5,
   aim: 0,
+  pitch: DEFAULT_CONFIG.style.pitch,
   drift: 0,
   ...changes,
 });
@@ -59,6 +60,21 @@ describe('the player chooses where, how far, and how cleanly', () => {
     expect(straight - toTheRight).toBeCloseTo(0.3 * DEFAULT_CONFIG.gesture.driftGain, 9);
   });
 
+  it('throws a lob higher and longer in the air than a flat throw', () => {
+    const flat = simulateFlight(swingLaunch(stand, rest, swing({ pitch: 0.12 })));
+    const lob = simulateFlight(swingLaunch(stand, rest, swing({ pitch: 0.75 })));
+    const peak = (flight: typeof flat) => Math.max(...flight.samples.map((s) => s.position[2]));
+    expect(peak(lob)).toBeGreaterThan(peak(flat) * 2);
+    expect(lob.impact.time).toBeGreaterThan(flat.impact.time);
+    expect(lob.impact.descentAngle).toBeGreaterThan(flat.impact.descentAngle);
+  });
+
+  it('keeps the angle within what an arm can throw', () => {
+    const { minPitch, maxPitch } = DEFAULT_CONFIG.gesture;
+    expect(swingLaunch(stand, rest, swing({ pitch: 3 })).pitch).toBe(maxPitch);
+    expect(swingLaunch(stand, rest, swing({ pitch: -1 })).pitch).toBe(minPitch);
+  });
+
   it('reads draw as power from the least draw to a full one', () => {
     expect(drawPower(swing({ draw: DEFAULT_CONFIG.gesture.minDraw }))).toBe(0);
     expect(drawPower(swing({ draw: 1 }))).toBe(1);
@@ -71,12 +87,15 @@ describe('the player chooses where, how far, and how cleanly', () => {
 });
 
 describe('the wrist is automatic', () => {
-  it('sticks a clean throw at every pace the hand can manage, with every knife', () => {
+  it('sticks a clean throw at every draw and every angle, with every knife', () => {
+    const { minPitch, maxPitch } = DEFAULT_CONFIG.gesture;
     for (const knife of KNIVES) {
       const config = withKnife(knife.id);
-      for (let draw = 0.06; draw <= 1; draw += 0.02) {
-        const verdict = stickVerdict(landing(swing({ draw }), config), config);
-        expect(verdict.stuck, `${knife.id} at ${draw.toFixed(2)}`).toBe(true);
+      for (const pitch of [minPitch, (minPitch + maxPitch) / 2, maxPitch]) {
+        for (let draw = 0.06; draw <= 1; draw += 0.02) {
+          const verdict = stickVerdict(landing(swing({ draw, pitch }), config), config);
+          expect(verdict.stuck, `${knife.id} at draw ${draw.toFixed(2)}, pitch ${pitch}`).toBe(true);
+        }
       }
     }
   });

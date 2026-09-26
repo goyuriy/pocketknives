@@ -5,7 +5,7 @@ import { bladeDirection } from './coords.js';
 
 const setup = (id: string, heading = Math.PI / 2): BodySetup => {
   const knife = knifeById(id);
-  return { release: [0, -12, 1.4], heading, releaseBladeAngle: 0.8, spec: knife.spec, hands: knife.hands };
+  return { release: [0, -12, 1.4], heading, releaseBladeAngle: 0.8, spec: knife.spec, hands: knife.hands, loft: 0 };
 };
 
 const distance = (a: Vec3, b: Vec3) => Math.hypot(a[0] - b[0], a[1] - b[1], a[2] - b[2]);
@@ -35,15 +35,39 @@ describe('bodyPose', () => {
     }
   });
 
-  it('draws the knife back up past the eye, and brings it down in front after', () => {
-    const eye = eyeAt([0, -12, 1.4], Math.PI / 2);
+  it('draws the knife back and up by the ear, and brings it down in front after', () => {
+    const held = bodyPose(setup('thrower'), READY_SWING);
     const back = bodyPose(setup('thrower'), -1);
     const through = bodyPose(setup('thrower'), 1);
-    // Throwing north, so "behind" is south.
-    expect(back.throwingArm.end[1]).toBeLessThan(eye[1] + 0.01);
-    expect(back.throwingArm.end[2]).toBeGreaterThan(1.4);
-    expect(through.throwingArm.end[1]).toBeGreaterThan(eye[1]);
+    // Throwing north, so "back" is south.
+    expect(back.throwingArm.end[1]).toBeLessThan(held.throwingArm.end[1]);
+    expect(back.throwingArm.end[2]).toBeGreaterThan(held.throwingArm.end[2]);
     expect(through.throwingArm.end[2]).toBeLessThan(1);
+  });
+
+  it('keeps the tip of a drawn-back knife in front of the eyes, where it can be seen', () => {
+    for (const knife of KNIVES) {
+      const back = bodyPose(setup(knife.id), -1);
+      const eye = eyeAt([0, -12, 1.4], Math.PI / 2);
+      const along = bladeDirection(Math.PI / 2, back.bladeAngle);
+      const tipReach = (1 - knife.spec.balance) * (knife.spec.bladeLength + knife.spec.handleLength);
+      const tip = back.knifeAt[1] + along[1] * tipReach;
+      // Well ahead of the eye — a camera cannot see what is level with it.
+      expect(tip - eye[1], knife.id).toBeGreaterThan(0.6);
+    }
+  });
+
+  it('raises the hands and the pointing arm for a lob, and lowers them for a flat throw', () => {
+    const lob = bodyPose({ ...setup('thrower'), loft: 0.4 }, READY_SWING);
+    const flat = bodyPose({ ...setup('thrower'), loft: -0.25 }, READY_SWING);
+    expect(lob.throwingArm.end[2]).toBeGreaterThan(flat.throwingArm.end[2]);
+    expect(lob.pointTilt - flat.pointTilt).toBeCloseTo(0.65, 9);
+    expect(lob.otherArm.end[2]).toBeGreaterThan(flat.otherArm.end[2]);
+  });
+
+  it('leaves the release where the flight begins, however steep the throw', () => {
+    const lob = bodyPose({ ...setup('thrower'), loft: 0.45 }, 0);
+    expect(distance(lob.knifeAt, [0, -12, 1.4])).toBeLessThan(1e-9);
   });
 
   it('points the other hand out along the throw, angled in towards its line', () => {

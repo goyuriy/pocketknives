@@ -2,7 +2,14 @@ import { useEffect, useRef } from 'react';
 import type { SandboxState } from '../state/useSandbox.js';
 import { ARENA_RADIUS } from '../state/useSandbox.js';
 import { colorOf } from '../ui/theme.js';
-import { advanceStroke, aimFromPointer, gripStroke, type Sample, type Stroke } from '../input/throwStroke.js';
+import {
+  advanceStroke,
+  aimFromPointer,
+  gripStroke,
+  pitchFromPointer,
+  type Sample,
+  type Stroke,
+} from '../input/throwStroke.js';
 import { createStage } from './engine/createStage.js';
 import { createDirector } from './director.js';
 import type { HandInput, StageSnapshot } from './snapshot.js';
@@ -32,7 +39,7 @@ const snapshotOf = (game: SandboxState): StageSnapshot => ({
  * The pointer handlers are the player's hand:
  *
  * - **moving** points it — the pointer's place across the stage is where the
- *   hand aims, and there is no cursor, only the knife;
+ *   hand aims, and its height how steeply; there is no cursor, only the hands;
  * - **pressing** grips;
  * - **pulling back and pushing through** throws, read by `advanceStroke` —
  *   and the hand keeps turning with the pointer while drawn, so the line can be
@@ -44,11 +51,11 @@ const snapshotOf = (game: SandboxState): StageSnapshot => ({
  * once a frame anyway.
  */
 export const Stage = ({ game }: { game: SandboxState }) => {
-  const { phase, setDraw, release } = game;
+  const { phase, setDraw, setPitch, release } = game;
   const canvas = useRef<HTMLCanvasElement>(null);
   const snapshot = useRef(snapshotOf(game));
   const stroke = useRef<Stroke | null>(null);
-  const hand = useRef<HandInput>({ aim: 0, draw: null });
+  const hand = useRef<HandInput>({ aim: 0, pitch: game.config.style.pitch, draw: null });
 
   useEffect(() => {
     snapshot.current = snapshotOf(game);
@@ -87,6 +94,17 @@ export const Stage = ({ game }: { game: SandboxState }) => {
     return aimFromPointer(event.clientX, box.left, box.width, game.config);
   };
 
+  const pitchAt = (event: React.PointerEvent<HTMLElement>) => {
+    const box = event.currentTarget.getBoundingClientRect();
+    return pitchFromPointer(event.clientY, box.top, box.height, game.config);
+  };
+
+  /** Points the hand, and tells the HUD the angle — which only re-renders when it changes. */
+  const point = (aim: number, pitch: number, draw: number | null) => {
+    hand.current = { aim, pitch, draw };
+    setPitch(pitch);
+  };
+
   const letGo = () => {
     stroke.current = null;
     hand.current = { ...hand.current, draw: null };
@@ -98,15 +116,17 @@ export const Stage = ({ game }: { game: SandboxState }) => {
     event.currentTarget.setPointerCapture?.(event.pointerId);
     const box = event.currentTarget.getBoundingClientRect();
     const [at] = samplesOf(event).slice(-1);
-    stroke.current = gripStroke(at!, { left: box.left, width: box.width });
-    hand.current = { aim: aimAt(event), draw: 0 };
+    // The angle is whatever the hand was set to before gripping; it locks here.
+    const pitch = hand.current.pitch;
+    stroke.current = gripStroke(at!, { left: box.left, width: box.width }, pitch);
+    point(aimAt(event), pitch, 0);
     setDraw(0);
   };
 
   const onPointerMove = (event: React.PointerEvent<HTMLElement>) => {
     if (!stroke.current) {
-      // Not gripping: the hand simply follows the pointer across the stage.
-      hand.current = { aim: aimAt(event), draw: null };
+      // Not gripping: the hand follows the pointer — across to aim, up and down to set the angle.
+      point(aimAt(event), pitchAt(event), null);
       return;
     }
     const { stroke: next, reading } = advanceStroke(
@@ -121,7 +141,7 @@ export const Stage = ({ game }: { game: SandboxState }) => {
       return;
     }
     stroke.current = next;
-    hand.current = { aim: reading.aim, draw: reading.draw };
+    hand.current = { aim: reading.aim, pitch: next.pitch, draw: reading.draw };
     setDraw(Math.max(0, reading.draw));
   };
 

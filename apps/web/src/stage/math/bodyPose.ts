@@ -33,6 +33,13 @@ const TWO_HANDED_SPREAD = 0.3;
 const POINT_DISTANCE = 5;
 const POINT_HEIGHT = 1.9;
 const POINT_REACH = 0.76;
+/**
+ * How much a steeper or flatter throw lifts or lowers the throwing hand, in
+ * units per radian of loft. The pointing arm tilts by the loft itself, so it
+ * shows the angle outright; the throwing hand only has to agree with it.
+ */
+const HAND_LIFT = 0.3;
+const BLADE_LIFT = 0.8;
 
 /**
  * The throwing hand's path through a swing, as grip positions relative to the
@@ -40,13 +47,15 @@ const POINT_REACH = 0.76;
  *
  * Laid out for a first-person camera, which is the reason it is not anatomy:
  * held, the knife sits out in front and right of centre, tipped towards the
- * circle, where the player can see it against what they are aiming at; drawn back,
- * the hand goes up beside the head and out of view, the way a grenade arm does
- * in a shooter; at release it is out in front at eye level; after, it carries
- * down across the body. The release keyframe is not listed — it is wherever the
- * flight begins, worked out per throw.
+ * circle, where the player can see it against what they are aiming at; drawn
+ * back, it is cocked up by the ear the way a dart is, point still forward, so
+ * the tip stays in the top corner of the view — a knife drawn clean out of shot
+ * leaves the player nothing to read the draw from; at release it is out in
+ * front at eye level; after, it carries down across the body. The release
+ * keyframe is not listed — it is wherever the flight begins, worked out per
+ * throw.
  */
-const DRAWN: Keyframe = { at: [-0.05, 0.12, 0.42], bladeAngle: 2.3 };
+const DRAWN: Keyframe = { at: [0.32, 0.12, 0.32], bladeAngle: 0.35 };
 const HELD: Keyframe = { at: [0.62, -0.06, 0.04], bladeAngle: 0.3 };
 const FOLLOWED: Keyframe = { at: [0.45, -0.25, -0.55], bladeAngle: -1.0 };
 
@@ -61,6 +70,11 @@ export type BodySetup = {
   readonly releaseBladeAngle: number;
   readonly spec: KnifeSpec;
   readonly hands: 1 | 2;
+  /**
+   * How much steeper (positive) or flatter than the resting angle the hand is
+   * set to throw, radians. Raises the hands and the pointing arm to match.
+   */
+  readonly loft: number;
 };
 
 export type BodyPose = {
@@ -140,7 +154,7 @@ export const eyeAt = (release: Vec3, heading: number): Vec3 =>
  * @param swing -1 drawn back, `READY_SWING` held, 0 release, 1 followed through
  */
 export const bodyPose = (setup: BodySetup, swing: number): BodyPose => {
-  const { release, heading, releaseBladeAngle, spec, hands } = setup;
+  const { release, heading, releaseBladeAngle, spec, hands, loft } = setup;
   const frame = frameAt(release, heading);
   const throwingShoulder: Vec3 = [0, SHOULDER_HALF_WIDTH, SHOULDER_HEIGHT];
   const otherShoulder: Vec3 = [0, -SHOULDER_HALF_WIDTH, SHOULDER_HEIGHT];
@@ -156,7 +170,7 @@ export const bodyPose = (setup: BodySetup, swing: number): BodyPose => {
   );
   const released: Keyframe = { at: releaseGrip, bladeAngle: releaseBladeAngle };
 
-  const { at, bladeAngle } = keyframeAt(swing, released);
+  const { at, bladeAngle } = keyframeAt(swing, released, loft);
   const gripAt = fromShoulder(at);
   const along = bladeDirection(heading, bladeAngle);
   const knifeAt = add(gripAt, along, -grip);
@@ -184,16 +198,22 @@ export const bodyPose = (setup: BodySetup, swing: number): BodyPose => {
   // Points while aiming and drawing; pulls in to the chest through the throw.
   const tuck = Math.min(1, Math.max(0, swing));
   const shoulder = inFrame(frame, otherShoulder);
-  const spot: Vec3 = [
-    release[0] + frame.forward[0] * POINT_DISTANCE,
-    release[1] + frame.forward[1] * POINT_DISTANCE,
-    POINT_HEIGHT,
-  ];
-  const toSpot: Vec3 = [spot[0] - shoulder[0], spot[1] - shoulder[1], spot[2] - shoulder[2]];
-  const spotDistance = Math.hypot(...toSpot);
-  const pointAt = add(shoulder, toSpot, POINT_REACH / spotDistance);
-  const pointHeading = Math.atan2(toSpot[1], toSpot[0]);
-  const pointTilt = Math.asin(toSpot[2] / spotDistance);
+  const across = [
+    release[0] + frame.forward[0] * POINT_DISTANCE - shoulder[0],
+    release[1] + frame.forward[1] * POINT_DISTANCE - shoulder[1],
+  ] as const;
+  const level = Math.hypot(across[0], across[1]);
+  const pointHeading = Math.atan2(across[1], across[0]);
+  const pointTilt = Math.atan2(POINT_HEIGHT - shoulder[2], level) + loft;
+  const pointAt = add(
+    shoulder,
+    [
+      (across[0] / level) * Math.cos(pointTilt),
+      (across[1] / level) * Math.cos(pointTilt),
+      Math.sin(pointTilt),
+    ],
+    POINT_REACH,
+  );
   const chest = inFrame(frame, [0.28, -0.05, SHOULDER_HEIGHT - 0.3]);
 
   return {
@@ -207,14 +227,25 @@ export const bodyPose = (setup: BodySetup, swing: number): BodyPose => {
   };
 };
 
-/** The hand's place and the knife's tilt at `swing`, between the keyframes either side of it. */
-const keyframeAt = (swing: number, released: Keyframe): Keyframe => {
+/**
+ * The hand's place and the knife's tilt at `swing`, between the keyframes
+ * either side of it. Loft raises the held and drawn poses; the release pose is
+ * fixed by the flight and the follow-through does not need to show it.
+ */
+const keyframeAt = (swing: number, released: Keyframe, loft: number): Keyframe => {
+  const lifted = ({ at, bladeAngle }: Keyframe): Keyframe => ({
+    at: [at[0], at[1], at[2] + loft * HAND_LIFT],
+    bladeAngle: bladeAngle + loft * BLADE_LIFT,
+  });
   const between = (a: Keyframe, b: Keyframe, t: number): Keyframe => ({
     at: lerp3(a.at, b.at, t),
     bladeAngle: lerp(a.bladeAngle, b.bladeAngle, t),
   });
-  if (swing <= READY_SWING) return between(HELD, DRAWN, Math.min(1, (READY_SWING - swing) / (1 + READY_SWING)));
-  if (swing <= 0) return between(released, HELD, swing / READY_SWING);
+  const held = lifted(HELD);
+  if (swing <= READY_SWING) {
+    return between(held, lifted(DRAWN), Math.min(1, (READY_SWING - swing) / (1 + READY_SWING)));
+  }
+  if (swing <= 0) return between(released, held, swing / READY_SWING);
   return between(released, FOLLOWED, Math.min(1, swing));
 };
 

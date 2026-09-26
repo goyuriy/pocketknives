@@ -69,6 +69,14 @@ export const useSandbox = (initialPlayers = 4) => {
   // How far the arm is drawn while the button is down; null when it is not.
   // Only for the HUD — the scene reads the hand directly, far more often.
   const [draw, setDraw] = useState<number | null>(null);
+  // The angle the hand is set to throw at, for the HUD. Rounded to a whole
+  // degree on the way in, so sweeping the pointer re-renders only when the
+  // number shown would actually change.
+  const [pitch, setPitchExactly] = useState(DEFAULT_CONFIG.style.pitch);
+  const setPitch = useCallback(
+    (radians: number) => setPitchExactly(Math.round((radians * 180) / Math.PI) * (Math.PI / 180)),
+    [],
+  );
   const [lastAttempt, setLastAttempt] = useState<Attempt | null>(null);
   const [knifeId, setKnifeId] = useState('thrower');
   // How far along their own frontage the player stands, 0 to 1. A fraction, not
@@ -187,6 +195,8 @@ export const useSandbox = (initialPlayers = 4) => {
     phase,
     draw,
     setDraw,
+    pitch,
+    setPitch,
     lastAttempt,
     release,
     reset,

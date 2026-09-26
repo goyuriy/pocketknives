@@ -105,7 +105,7 @@ export const createDirector = (
     }
 
     const released = phase.kind !== 'ready';
-    const { aim, draw } = hand();
+    const { aim, pitch, draw } = hand();
     // The hand's own waver is drawn as well as thrown: what the player sees is
     // exactly the line the knife would leave on.
     const heading =
@@ -120,6 +120,7 @@ export const createDirector = (
         release,
         heading,
         releaseBladeAngle: state.config.style.startingBladeAngle,
+        loft: pitch - state.config.style.pitch,
         spec: state.knife,
         hands: state.hands,
       },

@@ -31,7 +31,10 @@ export type KnifeSpec = {
 
 /** How the player throws — fixed per player, not per throw. */
 export type ThrowStyle = {
-  /** Launch angle above the horizontal, radians. */
+  /**
+   * Launch angle above the horizontal, radians, when nobody chooses one — the
+   * hand's resting angle, and the angle raw `aimedLaunch` throws at.
+   */
   readonly pitch: number;
   /** How high above the ground the knife leaves the hand. */
   readonly releaseHeight: number;
@@ -117,6 +120,9 @@ export type GestureTuning = {
   readonly maxAim: number;
   /** How much of the push's sideways drift ends up in the knife's line. */
   readonly driftGain: number;
+  /** The flattest and steepest the hand can throw, radians above level. */
+  readonly minPitch: number;
+  readonly maxPitch: number;
 };
 
 export type ThrowConfig = {
@@ -204,6 +210,10 @@ export const DEFAULT_CONFIG: ThrowConfig = {
     // Half the drift: enough that a sloppy push visibly pulls the knife, not so
     // much that an ordinary one throws it at the wrong player.
     driftGain: 0.5,
+    // From a skimming 6° to a 46° lob. The style's own pitch sits in between
+    // and is where the hand rests before the player moves it.
+    minPitch: 0.1,
+    maxPitch: 0.8,
   },
   flight: {
     gravity: 24,

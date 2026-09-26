@@ -57,6 +57,8 @@ const DIALS: readonly Dial[] = [
   { group: 'gesture', key: 'minDraw', label: 'least draw', min: 0, max: 0.3, step: 0.01 },
   { group: 'gesture', key: 'minPushSpeed', label: 'push speed', min: 0.1, max: 3, step: 0.05, hint: 'slower than this eases off instead of throwing' },
   { group: 'gesture', key: 'maxAim', label: 'aim reach', min: 0.2, max: 1.5, step: 0.01, hint: 'radians either side, screen edge to edge' },
+  { group: 'gesture', key: 'minPitch', label: 'flattest', min: 0, max: 0.6, step: 0.01, hint: 'launch angle with the hand low, radians' },
+  { group: 'gesture', key: 'maxPitch', label: 'steepest', min: 0.3, max: 1.3, step: 0.01, hint: 'launch angle with the hand high, radians' },
   { group: 'gesture', key: 'driftGain', label: 'drift pull', min: 0, max: 1.5, step: 0.05, hint: 'how much a crooked push bends the throw' },
 
   { group: 'flight', key: 'gravity', label: 'gravity', min: 5, max: 60, step: 0.5 },

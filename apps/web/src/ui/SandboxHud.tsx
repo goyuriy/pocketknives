@@ -80,6 +80,7 @@ export const SandboxHud = ({ game }: { game: SandboxState }) => {
 
       <DrawMeter
         draw={throwing ? game.draw : (attempt?.intent.draw ?? null)}
+        pitch={game.pitch}
         config={game.config}
         color={colorOf(game.currentPlayer)}
       />
@@ -89,7 +90,7 @@ export const SandboxHud = ({ game }: { game: SandboxState }) => {
           ? 'Pull back for distance, push through to throw. Let go to call it off.'
           : attempt
             ? describe(attempt, arenaArea)
-            : 'Point with the mouse. Hold, pull back, push through.'}
+            : 'Point with the mouse — up to lob, down to throw flat. Hold, pull back, push through.'}
       </div>
 
       <div className="standings">

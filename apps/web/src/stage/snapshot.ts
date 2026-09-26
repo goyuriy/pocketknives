@@ -42,6 +42,8 @@ export type StageSnapshot = {
 export type HandInput = {
   /** Where the hand points, radians from straight ahead, positive right. */
   readonly aim: number;
+  /** How steeply it is set to throw, radians above level. */
+  readonly pitch: number;
   /** How far the arm is drawn, as a fraction of a full draw; null when not gripping. */
   readonly draw: number | null;
 };

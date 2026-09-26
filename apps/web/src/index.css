@@ -70,7 +70,7 @@ body {
 
 .swing-row {
   display: grid;
-  grid-template-columns: 52px 1fr;
+  grid-template-columns: 52px 1fr 36px;
   align-items: center;
   gap: 9px;
 }
@@ -96,7 +96,15 @@ body {
   transition: width 90ms linear;
 }
 
-/* The tumble this throw actually wanted. */
+/* The launch angle, beside the draw it goes with. */
+.swing-angle {
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  color: var(--ink);
+}
+
+/* The least draw that throws at all. */
 .swing-mark {
   position: absolute;
   top: -2px;

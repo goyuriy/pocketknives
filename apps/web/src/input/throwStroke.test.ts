@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { DEFAULT_CONFIG } from '@pocketknives/core';
-import { advanceStroke, aimFromPointer, gripStroke, type Sample } from './throwStroke.js';
+import { advanceStroke, aimFromPointer, gripStroke, pitchFromPointer, type Sample } from './throwStroke.js';
 import { handSway } from './handSway.js';
 
 const HEIGHT = 800;
@@ -24,7 +24,7 @@ const swing = (drawn: number, pushMs: number, sideways = 0, drawMs = 300) => {
   const back = path(grip, bottom, 10, drawMs / 10);
   const last = back[back.length - 1]!;
   const through = path(last, { x: 400 + sideways, y: 380 }, 6, pushMs / 6);
-  return advanceStroke(gripStroke(grip, reach), [...back, ...through], HEIGHT, DEFAULT_CONFIG);
+  return advanceStroke(gripStroke(grip, reach, 0.4), [...back, ...through], HEIGHT, DEFAULT_CONFIG);
 };
 
 describe('advanceStroke', () => {
@@ -50,7 +50,7 @@ describe('advanceStroke', () => {
     const back = path(grip, bottom, 10, 30);
     const held = Array.from({ length: 10 }, (_, i) => ({ ...bottom, t: 1300 + (i + 1) * 100 }));
     const push = path(held[held.length - 1]!, { x: 400, y: 380 }, 6, 15);
-    const { reading } = advanceStroke(gripStroke(grip, reach), [...back, ...held, ...push], HEIGHT, DEFAULT_CONFIG);
+    const { reading } = advanceStroke(gripStroke(grip, reach, 0.4), [...back, ...held, ...push], HEIGHT, DEFAULT_CONFIG);
     expect(reading.thrown).not.toBeNull();
   });
 
@@ -76,7 +76,7 @@ describe('advanceStroke', () => {
     const back = path(grip, bottom, 10, 30);
     const slide = path(bottom, { x: 600, y: bottom.y }, 10, 30);
     const push = path(slide.at(-1)!, { x: 600, y: 380 }, 6, 15);
-    const thrown = advanceStroke(gripStroke(grip, reach), [...back, ...slide, ...push], HEIGHT, DEFAULT_CONFIG)
+    const thrown = advanceStroke(gripStroke(grip, reach, 0.4), [...back, ...slide, ...push], HEIGHT, DEFAULT_CONFIG)
       .reading.thrown!;
 
     expect(thrown.aim - handSway(push.at(-1)!.t / 1000)).toBeCloseTo(
@@ -88,13 +88,17 @@ describe('advanceStroke', () => {
 
   it('shows the hand following the pointer sideways while drawn', () => {
     const drawn = path(grip, { x: 700, y: 400 + 0.5 * fullDraw }, 5, 20);
-    const { reading } = advanceStroke(gripStroke(grip, reach), drawn, HEIGHT, DEFAULT_CONFIG);
+    const { reading } = advanceStroke(gripStroke(grip, reach, 0.4), drawn, HEIGHT, DEFAULT_CONFIG);
     expect(reading.aim).toBeCloseTo(aimFromPointer(700, 0, 800, DEFAULT_CONFIG), 9);
+  });
+
+  it('throws at the angle set before gripping, whatever the draw does up and down', () => {
+    expect(swing(0.6, 90).reading.thrown!.pitch).toBe(0.4);
   });
 
   it('reports the draw as it happens, for the arm and the meter', () => {
     const halfway = path(grip, { x: 400, y: 400 + 0.5 * fullDraw }, 5, 20);
-    const { reading } = advanceStroke(gripStroke(grip, reach), halfway, HEIGHT, DEFAULT_CONFIG);
+    const { reading } = advanceStroke(gripStroke(grip, reach, 0.4), halfway, HEIGHT, DEFAULT_CONFIG);
     expect(reading.draw).toBeCloseTo(0.5, 6);
     expect(reading.thrown).toBeNull();
   });
@@ -115,5 +119,19 @@ describe('aimFromPointer', () => {
     expect(aimFromPointer(400, 0, 800, DEFAULT_CONFIG)).toBeCloseTo(0, 9);
     expect(aimFromPointer(800, 0, 800, DEFAULT_CONFIG)).toBeCloseTo(maxAim, 9);
     expect(aimFromPointer(2000, 0, 800, DEFAULT_CONFIG)).toBeCloseTo(maxAim, 9);
+  });
+});
+
+describe('pitchFromPointer', () => {
+  const { minPitch, maxPitch } = DEFAULT_CONFIG.gesture;
+
+  it('lobs with the hand high and throws flat with it low', () => {
+    expect(pitchFromPointer(0, 0, 1000, DEFAULT_CONFIG)).toBeCloseTo(maxPitch, 9);
+    expect(pitchFromPointer(700, 0, 1000, DEFAULT_CONFIG)).toBeCloseTo(minPitch, 9);
+    expect(pitchFromPointer(350, 0, 1000, DEFAULT_CONFIG)).toBeCloseTo((minPitch + maxPitch) / 2, 9);
+  });
+
+  it('holds at the flattest below the band', () => {
+    expect(pitchFromPointer(990, 0, 1000, DEFAULT_CONFIG)).toBeCloseTo(minPitch, 9);
   });
 });

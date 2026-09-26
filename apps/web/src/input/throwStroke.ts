@@ -14,11 +14,22 @@ export type Reach = {
   readonly width: number;
 };
 
+/**
+ * How much of the stage, from the top, the hand's height is read across. The
+ * HUD covers the rest, and the pointer never reaches the stage beneath it.
+ */
+const PITCH_BAND = 0.7;
+
 /** A throw in progress: the button is down, the arm is working. */
 export type Stroke = {
   /** Where the grip began. Drawing back is measured from here, and pushing through it throws. */
   readonly anchor: Sample;
   readonly reach: Reach;
+  /**
+   * How steeply to throw. Chosen by the hand's height before gripping and
+   * locked by the grip — from then on, up and down is the draw.
+   */
+  readonly pitch: number;
   readonly samples: readonly Sample[];
 };
 
@@ -51,10 +62,27 @@ export const aimFromPointer = (x: number, left: number, width: number, config: T
   return across * config.gesture.maxAim;
 };
 
+/**
+ * How steeply the hand is set to throw, from how high the pointer is.
+ *
+ * Raise the hand to lob, lower it to throw flat. Top of the stage is the
+ * steepest throw, the bottom of the band above the HUD the flattest.
+ */
+export const pitchFromPointer = (y: number, top: number, height: number, config: ThrowConfig): number => {
+  const { minPitch, maxPitch } = config.gesture;
+  const down = Math.min(1, Math.max(0, (y - top) / Math.max(1, height * PITCH_BAND)));
+  return maxPitch + (minPitch - maxPitch) * down;
+};
+
 const aimOf = (sample: Sample, reach: Reach, config: ThrowConfig): number =>
   aimFromPointer(sample.x, reach.left, reach.width, config);
 
-export const gripStroke = (at: Sample, reach: Reach): Stroke => ({ anchor: at, reach, samples: [at] });
+export const gripStroke = (at: Sample, reach: Reach, pitch: number): Stroke => ({
+  anchor: at,
+  reach,
+  pitch,
+  samples: [at],
+});
 
 /**
  * Feeds new pointer samples into a stroke, and says whether they threw.
@@ -131,6 +159,7 @@ const throwFrom = (
 
   const intent: ThrowIntent = {
     aim: aimOf(bottom, stroke.reach, config) + handSway(release.t / 1000),
+    pitch: stroke.pitch,
     draw: Math.min(1, drawOf(bottom)),
     drift: Math.atan2(release.x - bottom.x, bottom.y - release.y),
   };

@@ -42,8 +42,22 @@ pointing. Three decisions make a throw, and none of them is a reflex:
    view follows a beat behind, the way a body-worn camera trails the arm. The
    hand wavers very slightly on its own; a patient player waits for it to
    settle.
-2. **Draw.** Hold the button and pull back towards you. How far back is how far
-   the knife will fly — a position, not a speed, so it means the same on a
+
+   Up and down sets **how steeply** to throw, from a skimming 6° with the hand
+   low to a 46° lob with it high — the free arm lifts to show it, and the HUD
+   gives the number. The angle locks when you grip, because from then on up
+   and down is the draw. It is a real choice, not a style: a flat throw is
+   quick and dependable but cannot reach the far side; a lob reaches anywhere
+   but stays up long enough for the hand's wobble to tell.
+
+   | Angle | Full draw reaches | Sticks at full draw |
+   | --- | --- | --- |
+   | 6° (flat) | 12 | 98% |
+   | 20° (resting) | 21 | 77% |
+   | 46° (lob) | 29 | 59% |
+2. **Draw.** Hold the button and pull back towards you. The knife cocks up by
+   your ear, point still forward, like a dart. How far back is how hard it is
+   thrown — a position, not a speed, so it means the same on a
    mouse, a trackpad and a thumb. The hand keeps turning with the mouse while
    the arm is back, so the line can be settled at full draw.
 3. **Push through.** Push forward past the point where you gripped. Crossing
@@ -294,7 +308,7 @@ dials — press **Tune** — with the derived numbers shown above the sliders, a
 | Group | Fields | What it decides |
 | --- | --- | --- |
 | `knife` | `bladeLength`, `handleLength`, `mass`, `balance`, `edgeWidth` | The object itself |
-| `gesture` | `fullDraw`, `minDraw`, `minPushSpeed`, `maxAim`, `driftGain` | How the hand's motion is read |
+| `gesture` | `fullDraw`, `minDraw`, `minPushSpeed`, `maxAim`, `driftGain`, `minPitch`, `maxPitch` | How the hand's motion is read |
 | `style` | `pitch`, `spinImpulse`, `startingBladeAngle`, `releaseHeight`, `minSpeed`, `maxSpeed`, `referenceMass`, `weightPenalty` | How the arm throws |
 | `scatter` | `spin`, `power`, `startingBladeAngle`, `heading` | How much the hand wobbles (seeded) |
 | `stick` | `baseMisalignment`, `minEntryAngle`, `minMomentum`, `soilResistance` | What the ground accepts |
@@ -314,7 +328,7 @@ the player's decision, and wobbling the aim would only take it away.
 
 ### Scatter is seeded, always
 
-A throw is recorded as an aim, a draw, a drift and a **seed**. Feed the same four
+A throw is recorded as an aim, a pitch, a draw, a drift and a **seed**. Feed the same five
 back in anywhere — another machine, a server checking a client, a replay months
 later — and the knife lands in exactly the same place. Nothing reaches for a
 global random source, because randomness that cannot be replayed would make a
