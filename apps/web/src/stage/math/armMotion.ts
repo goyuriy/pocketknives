@@ -1,4 +1,4 @@
-import { READY_SWING } from './armPose.js';
+import { READY_SWING } from './bodyPose.js';
 
 /** How briskly the arm answers the finger, and how briskly it follows through. */
 const TRACKING_RATE = 20;

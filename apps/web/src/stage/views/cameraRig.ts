@@ -21,8 +21,10 @@ export const createCameraRig = (scene: Scene): CameraRig => {
   const camera = new FreeCamera('eye', new Vector3(0, 20, 34), scene);
   // Driven by the director alone; keyboard and mouse must not nudge it.
   camera.inputs.clear();
-  camera.fov = (50 * Math.PI) / 180;
-  camera.minZ = 0.1;
+  // A first-person field of view: wide enough to see your own hands and the
+  // circle beyond them at once.
+  camera.fov = (62 * Math.PI) / 180;
+  camera.minZ = 0.05;
   camera.maxZ = 200;
   scene.activeCamera = camera;
 

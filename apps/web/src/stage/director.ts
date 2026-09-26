@@ -1,14 +1,14 @@
-import type { KnifeSpec } from '@pocketknives/core';
+import type { KnifeSpec, Vec3 } from '@pocketknives/core';
 import { CUT_DURATION } from '../state/useSandbox.js';
 import type { Stage } from './engine/createStage.js';
 import type { HandInput, StageSnapshot } from './snapshot.js';
 import { handSway } from '../input/handSway.js';
-import { READY_SWING, swingForDraw } from './math/armPose.js';
+import { bodyPose, READY_SWING, swingForDraw } from './math/bodyPose.js';
 import { RESTING_ARM, stepArm } from './math/armMotion.js';
 import { cameraEaseRate, cameraPose, easeHeading, LOOK_FOLLOW_RATE } from './math/cameraPose.js';
 import { fallenPlacement, flyingPlacement, stuckPlacement } from './math/knifePlacement.js';
 import { createArenaView } from './views/arenaView.js';
-import { createArmView } from './views/armView.js';
+import { createBodyView } from './views/bodyView.js';
 import { createCameraRig } from './views/cameraRig.js';
 import { createKnifeModel, place, type KnifeModel } from './views/knifeModel.js';
 
@@ -40,7 +40,7 @@ export const createDirector = (
   const first = read();
 
   const arena = createArenaView(scene, playfield, first.arenaRadius);
-  const arm = createArmView(scene, playfield, shadows);
+  const body = createBodyView(scene, playfield, shadows);
   const camera = createCameraRig(scene);
 
   let knives: { spec: KnifeSpec; flying: KnifeModel; landed: KnifeModel } | null = null;
@@ -114,21 +114,21 @@ export const createDirector = (
         : phase.attempt.flight.impact.heading;
 
     motion = stepArm(motion, draw === null ? READY_SWING : swingForDraw(draw), released, seconds);
-    arm.pose(
+    const release: Vec3 = [state.stand[0], state.stand[1], state.config.style.releaseHeight];
+    const pose = bodyPose(
       {
-        release: [state.stand[0], state.stand[1], state.config.style.releaseHeight],
+        release,
         heading,
         releaseBladeAngle: state.config.style.startingBladeAngle,
         spec: state.knife,
         hands: state.hands,
       },
       motion.shown,
-      !released,
-      state.playerColor,
     );
+    body.show(pose, { spec: state.knife, hands: state.hands, heading, sleeve: state.playerColor }, !released);
 
     look = look === null ? heading : easeHeading(look, heading, LOOK_FOLLOW_RATE, seconds);
-    camera.follow(cameraPose(state.stand, landed, state.arenaRadius, look), cameraEaseRate(landed), seconds);
+    camera.follow(cameraPose(release, landed, state.arenaRadius, look), cameraEaseRate(landed), seconds);
   };
 
   const observer = scene.onBeforeRenderObservable.add(frame);
@@ -137,7 +137,7 @@ export const createDirector = (
     dispose: () => {
       scene.onBeforeRenderObservable.remove(observer);
       arena.dispose();
-      arm.dispose();
+      body.dispose();
       camera.dispose();
       knives?.flying.dispose();
       knives?.landed.dispose();

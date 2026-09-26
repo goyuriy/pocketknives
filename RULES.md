@@ -35,10 +35,13 @@ Eliminated players are skipped.
 crosshair and no preview of where it will land — only the knife in your fist,
 pointing. Three decisions make a throw, and none of them is a reflex:
 
-1. **Point.** Move the mouse across the screen and the hand turns with it, edge
-   to edge being the arm's whole reach. The view follows the hand a beat
-   behind, the way a body-worn camera trails the arm. The hand wavers very
-   slightly on its own; a patient player waits for it to settle.
+1. **Point.** You see through the thrower's eyes, your own two arms in front of
+   you. Move the mouse across the screen and you turn with it, edge to edge
+   being the arm's whole reach, and your free hand points out along the line
+   you are aiming — the way a javelin thrower sights down their free arm. The
+   view follows a beat behind, the way a body-worn camera trails the arm. The
+   hand wavers very slightly on its own; a patient player waits for it to
+   settle.
 2. **Draw.** Hold the button and pull back towards you. How far back is how far
    the knife will fly — a position, not a speed, so it means the same on a
    mouse, a trackpad and a thumb. The hand keeps turning with the mouse while
@@ -59,6 +62,7 @@ fought a mouse: a desktop pointer's speed says more about the mouse's
 sensitivity setting than about the player's intent.
 
 > `advanceStroke`, `aimFromPointer` — [throwStroke.ts](apps/web/src/input/throwStroke.ts)
+> `bodyPose`, `twoBoneIk` — [bodyPose.ts](apps/web/src/stage/math/bodyPose.ts), [twoBoneIk.ts](apps/web/src/stage/math/twoBoneIk.ts)
 > `handSway` — [handSway.ts](apps/web/src/input/handSway.ts)
 > `ThrowIntent`, `swingLaunch` — [swing.ts](packages/core/src/throw/swing.ts)
 
