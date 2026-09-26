@@ -2,15 +2,23 @@ import type { Scene } from '@babylonjs/core/scene';
 import { FreeCamera } from '@babylonjs/core/Cameras/freeCamera';
 import { Vector3 } from '@babylonjs/core/Maths/math.vector';
 import type { Vec3 } from '@pocketknives/core';
-import type { CameraPose } from '../math/cameraPose.js';
+import { Camera } from '@babylonjs/core/Cameras/camera';
+import { fieldOfView, type CameraPose } from '../math/cameraPose.js';
 import { toWorld } from '../math/coords.js';
 
 export type CameraRig = {
   /**
-   * Eases towards `pose` over `seconds` at `rate`, then knocks it by `shake`
+   * Eases towards `pose` over `seconds` at `rate` — or locks straight on when
+   * `lockOn` says so for the remaining distance — then knocks it by `shake`
    * (game units) for this frame only. The first call places it outright.
    */
-  readonly follow: (pose: CameraPose, rate: number, seconds: number, shake?: Vec3) => void;
+  readonly follow: (
+    pose: CameraPose,
+    rate: number,
+    seconds: number,
+    lockOn: (distance: number) => boolean,
+    shake?: Vec3,
+  ) => void;
   readonly dispose: () => void;
 };
 
@@ -25,9 +33,6 @@ export const createCameraRig = (scene: Scene): CameraRig => {
   const camera = new FreeCamera('eye', new Vector3(0, 20, 34), scene);
   // Driven by the director alone; keyboard and mouse must not nudge it.
   camera.inputs.clear();
-  // A first-person field of view: wide enough to see your own hands and the
-  // circle beyond them at once.
-  camera.fov = (62 * Math.PI) / 180;
   camera.minZ = 0.05;
   camera.maxZ = 200;
   scene.activeCamera = camera;
@@ -41,10 +46,16 @@ export const createCameraRig = (scene: Scene): CameraRig => {
   const knock = new Vector3();
 
   return {
-    follow: (pose, rate, seconds, shake = [0, 0, 0]) => {
+    follow: (pose, rate, seconds, lockOn, shake = [0, 0, 0]) => {
+      // Wide enough to see your own hands and the circle beyond them at once,
+      // whichever way up the screen is.
+      const view = fieldOfView(scene.getEngine().getAspectRatio(camera));
+      camera.fovMode = view.held === 'vertical' ? Camera.FOVMODE_VERTICAL_FIXED : Camera.FOVMODE_HORIZONTAL_FIXED;
+      camera.fov = view.radians;
+
       eye.set(...toWorld(pose.eye));
       focus.set(...toWorld(pose.focus));
-      if (placed) {
+      if (placed && !lockOn(Vector3.Distance(steady, eye))) {
         Vector3.LerpToRef(steady, eye, 1 - Math.exp(-seconds * rate), steady);
       } else {
         steady.copyFrom(eye);

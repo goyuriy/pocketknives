@@ -12,7 +12,7 @@ import { handSway } from '../input/handSway.js';
 import { bodyPose, READY_SWING, releasePointFor, swingForDraw } from './math/bodyPose.js';
 import { easeToward, RESTING_ARM, stepArm } from './math/armMotion.js';
 import { flightTimeAt, rateAt, RELEASE_SLOW_MOTION } from '../playback/releaseTimeline.js';
-import { cameraEaseRate, cameraPose, easeHeading, LOOK_FOLLOW_RATE } from './math/cameraPose.js';
+import { cameraEaseRate, cameraPose, easeHeading, eyeDip, eyeLocks, LOOK_FOLLOW_RATE } from './math/cameraPose.js';
 import { flyingPlacement } from './math/knifePlacement.js';
 import { createArenaView } from './views/arenaView.js';
 import { createBodyView } from './views/bodyView.js';
@@ -234,7 +234,13 @@ export const createDirector = (stage: Stage, { read, hand, walk, stance, sound }
           shakeDuration(impact.feel.weight),
         )
       : undefined;
-    camera.follow(cameraPose(feet, overhead, state.arenaRadius, look), cameraEaseRate(overhead), seconds, jolt);
+    camera.follow(
+      cameraPose(feet, overhead, state.arenaRadius, look, eyeDip(engine.getRenderWidth() / Math.max(1, engine.getRenderHeight()))),
+      cameraEaseRate(overhead),
+      seconds,
+      (distance) => eyeLocks(overhead, distance),
+      jolt,
+    );
   };
 
   const observer = scene.onBeforeRenderObservable.add(frame);

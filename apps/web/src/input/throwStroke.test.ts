@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { DEFAULT_CONFIG } from '@pocketknives/core';
 import {
   advanceStroke,
+  liftStroke,
   aimFromPointer,
   gripStroke,
   lookReach,
@@ -161,5 +162,40 @@ describe('pitchFromPointer', () => {
 
   it('holds at the flattest below the band', () => {
     expect(pitchFromPointer(990, 0, 1000, DEFAULT_CONFIG)).toBeCloseTo(minPitch, 9);
+  });
+});
+
+describe('liftStroke', () => {
+  /** Grip, draw back, then push up part of the way — `back` of the way home — and stop there. */
+  const partWay = (back: number, pushMs: number) => {
+    const bottom: Sample = { x: 400, y: 400 + 0.6 * fullDraw, t: 1300 };
+    const draw = path(grip, bottom, 10, 30);
+    const push = path(bottom, { x: 400, y: bottom.y - back * (bottom.y - grip.y) }, 5, pushMs / 5);
+    const { stroke } = advanceStroke(gripStroke(grip, reach, 0.4), [...draw, ...push], HEIGHT, DEFAULT_CONFIG);
+    return { stroke, lift: push.at(-1)! };
+  };
+
+  it('throws when the thumb lifts during a fast push, before reaching the grip point', () => {
+    // The phone flick: pull back, flick up, and the thumb is off the glass halfway.
+    const { stroke, lift } = partWay(0.6, 60);
+    const thrown = liftStroke(stroke, lift, HEIGHT, DEFAULT_CONFIG);
+    expect(thrown).not.toBeNull();
+    expect(thrown!.draw).toBeCloseTo(0.6, 2);
+  });
+
+  it('calls it off when the thumb lifts without pushing', () => {
+    const bottom: Sample = { x: 400, y: 400 + 0.6 * fullDraw, t: 1300 };
+    const { stroke } = advanceStroke(gripStroke(grip, reach, 0.4), path(grip, bottom, 10, 30), HEIGHT, DEFAULT_CONFIG);
+    expect(liftStroke(stroke, { ...bottom, t: 1320 }, HEIGHT, DEFAULT_CONFIG)).toBeNull();
+  });
+
+  it('calls it off when the push is only a thumb rolling off the glass', () => {
+    const { stroke, lift } = partWay(0.1, 20);
+    expect(liftStroke(stroke, lift, HEIGHT, DEFAULT_CONFIG)).toBeNull();
+  });
+
+  it('calls it off when the hand was easing back up slowly', () => {
+    const { stroke, lift } = partWay(0.6, 1500);
+    expect(liftStroke(stroke, lift, HEIGHT, DEFAULT_CONFIG)).toBeNull();
   });
 });

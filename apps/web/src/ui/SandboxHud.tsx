@@ -87,7 +87,7 @@ export const SandboxHud = ({ game }: { game: SandboxState }) => {
 
       <div className="message">
         {throwing
-          ? 'Pull back for distance, push through to throw. Let go to call it off.'
+          ? 'Pull back for distance, then push forward and let go. Let go still to call it off.'
           : attempt
             ? describe(attempt, arenaArea)
             : 'Walk your own ground. Look to aim — up to lob, down for flat. Hold, pull back, push through.'}

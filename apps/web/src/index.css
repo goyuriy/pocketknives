@@ -389,3 +389,101 @@ button:active {
   pointer-events: none;
   white-space: nowrap;
 }
+
+/* --- Touch and small screens ------------------------------------------- */
+
+/*
+ * A game is not a document: no double-tap zoom, no text selection magnifier,
+ * no long-press menu over the field. `manipulation` keeps taps and pinch-zoom
+ * for accessibility on the HUD while dropping the double-tap delay.
+ */
+html,
+body {
+  touch-action: manipulation;
+}
+
+.stage {
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
+
+.turn {
+  white-space: nowrap;
+}
+
+/*
+ * Phones. The HUD moves out from over the field and sits below it, so a thumb
+ * drawing a throw back is on the field the whole way, and the camera frames
+ * only what can be seen. Rows that would spill off the side scroll instead.
+ */
+@media (max-width: 640px) {
+  .app {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .stage {
+    position: relative;
+    inset: auto;
+    flex: 1;
+    min-height: 0;
+  }
+
+  .stage canvas {
+    position: absolute;
+    inset: 0;
+  }
+
+  .hud {
+    position: relative;
+    padding: 8px 12px calc(8px + env(safe-area-inset-bottom));
+    gap: 7px;
+    /* Let rows shrink to the screen: a row that scrolls must not size the column. */
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .turn {
+    font-size: 15px;
+    gap: 8px;
+  }
+
+  .knives,
+  .standings {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .knives::-webkit-scrollbar,
+  .standings::-webkit-scrollbar {
+    display: none;
+  }
+
+  .knife,
+  .standing {
+    flex: none;
+  }
+
+  .message {
+    font-size: 12px;
+    line-height: 1.35;
+  }
+
+  .standing {
+    font-size: 12px;
+    padding: 3px 8px;
+  }
+
+  .controls {
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+
+  .controls button,
+  .controls select {
+    font-size: 13px;
+    padding: 5px 10px;
+  }
+}

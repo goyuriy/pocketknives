@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { cameraPose, easeHeading } from './cameraPose.js';
+import { cameraPose, easeHeading, EYE_LOCK_DISTANCE, eyeDip, eyeLocks, fieldOfView } from './cameraPose.js';
 import { EYE_HEIGHT } from './bodyPose.js';
 
 describe('cameraPose', () => {
@@ -26,5 +26,36 @@ describe('easeHeading', () => {
 
   it('arrives in the end', () => {
     expect(easeHeading(0, 1, 5, 10)).toBeCloseTo(1, 6);
+  });
+});
+
+describe('eyeLocks', () => {
+  it('locks the eye to the head at eye level, so walking never leaves the hands behind', () => {
+    expect(eyeLocks(false, 0.05)).toBe(true);
+  });
+
+  it('eases the big moves — overhead, and on the way back down', () => {
+    expect(eyeLocks(true, 0.05)).toBe(false);
+    expect(eyeLocks(false, EYE_LOCK_DISTANCE * 5)).toBe(false);
+  });
+});
+
+describe('fieldOfView', () => {
+  it('holds the angle up the screen on a wide screen', () => {
+    expect(fieldOfView(16 / 9).held).toBe('vertical');
+    expect(fieldOfView(1).held).toBe('vertical');
+  });
+
+  it('holds the angle across on a phone held upright, so both hands and the circle fit', () => {
+    const phone = fieldOfView(375 / 700);
+    expect(phone.held).toBe('horizontal');
+    expect((phone.radians * 180) / Math.PI).toBeCloseTo(56, 6);
+  });
+});
+
+describe('eyeDip', () => {
+  it('looks further down on a tall screen, so the extra height is ground, not sky', () => {
+    expect(eyeDip(375 / 650)).toBeGreaterThan(eyeDip(16 / 9));
+    expect(eyeDip(16 / 9)).toBe(eyeDip(1));
   });
 });

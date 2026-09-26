@@ -71,6 +71,11 @@ export type StrokeReading = {
 
 /** How long a stroke remembers. A draw held longer than this is still a draw; only its path is forgotten. */
 const MEMORY = 3000;
+/**
+ * How much of the way back from the bottom of the draw towards the grip point a
+ * push must come before letting go counts as throwing.
+ */
+const LIFT_RETURN = 0.3;
 /** One display frame, in milliseconds — the most a push can have been under way before it was first seen. */
 const FRAME = 1000 / 60;
 /** How close to the bottom of the draw counts as "still at the bottom", in screen-heights. */
@@ -161,6 +166,30 @@ export const advanceStroke = (
   };
 };
 
+/**
+ * Letting go mid-swing: a throw if the hand was pushing forward, fast, when it
+ * let go — or null, and the throw is called off.
+ *
+ * On a phone the natural motion is to pull back and flick, and the thumb comes
+ * off the glass during the flick, rarely after it has travelled all the way back
+ * to where it first touched. So a push that is under way when the pointer lifts
+ * throws, exactly as if it had carried on through the grip point: the same draw,
+ * the same drift, the same speed test. Lifting while still, or while pulling
+ * back, calls it off as before.
+ */
+export const liftStroke = (
+  stroke: Stroke,
+  lift: Sample,
+  viewportHeight: number,
+  config: ThrowConfig,
+): ThrowIntent | null => {
+  const height = Math.max(1, viewportHeight);
+  const samples = [...stroke.samples, lift];
+  if (lift.y <= stroke.anchor.y) return null; // already through the grip: `advanceStroke` threw or refused it
+  const drawOf = (sample: Sample) => (sample.y - stroke.anchor.y) / height / config.gesture.fullDraw;
+  return throwFrom(samples, stroke, lift, height, config, drawOf);
+};
+
 /** Reads the push that just went through the grip, or null if it was too soft to be a throw. */
 const throwFrom = (
   samples: readonly Sample[],
@@ -173,6 +202,7 @@ const throwFrom = (
   // Everything since the pointer last sat at or above the grip is this draw.
   let start = samples.length - 2;
   while (start > 0 && samples[start - 1]!.y > stroke.anchor.y) start--;
+  if (start > 0 && samples[start]!.y <= stroke.anchor.y) start++;
   const draw = samples.slice(start, -1);
   if (draw.length === 0) return null;
 
@@ -188,6 +218,9 @@ const throwFrom = (
    */
   const firstMove = draw[bottomIndex + 1] ?? release;
   const pushStart = Math.max(bottom.t, firstMove.t - FRAME);
+
+  // Came back far enough to be a push at all, not a thumb rolling off the glass.
+  if (bottom.y - release.y < LIFT_RETURN * (bottom.y - stroke.anchor.y)) return null;
 
   const seconds = (release.t - pushStart) / 1000;
   const pushSpeed = seconds > 0 ? (bottom.y - release.y) / height / seconds : Infinity;

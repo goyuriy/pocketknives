@@ -67,8 +67,14 @@ pointing. Three decisions make a throw, and none of them is a reflex:
    a golf swing coming across the ball. The aim freezes where the push begins:
    sideways movement before that is re-aiming, after it is drift.
 
-Drift back up slowly instead of pushing, or let go of the button, and the throw
-is called off — the arm just eases back to rest.
+**Letting go mid-push throws too.** On a phone the natural motion is to pull back
+and flick, and the thumb leaves the glass during the flick — rarely after it has
+come all the way back to where it touched. So a push that is under way, fast,
+and has come back at least a third of the way when the finger (or button) lets
+go throws exactly as if it had carried on through the grip point.
+
+Drift back up slowly instead of pushing, or let go while still or pulling back,
+and the throw is called off — the arm just eases back to rest.
 
 This is the golf "swing stick" (pull back to load, push forward to strike)
 fitted to a knife, with Bodycam's rule that you aim with the object, not with a

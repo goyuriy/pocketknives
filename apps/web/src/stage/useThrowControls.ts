@@ -1,9 +1,11 @@
 import { useEffect, useRef, useState, type MutableRefObject } from 'react';
+import type { ThrowIntent } from '@pocketknives/core';
 import type { SandboxState, Stance } from '../state/useSandbox.js';
 import {
   advanceStroke,
   aimFromPointer,
   gripStroke,
+  liftStroke,
   lookReach,
   pitchFromPointer,
   screenReach,
@@ -80,7 +82,15 @@ export const useThrowControls = ({
   const look = useRef({ x: 0, y: 0 });
   // The facing the grip began from; the hand's aim is measured from it.
   const gripFacing = useRef(0);
+  // Whether the grip's aim should become the body's facing when it ends: yes
+  // for mouse-look and touch, where the hand turned the player; no for a free
+  // mouse cursor, whose aim is simply wherever the cursor rests.
+  const turnsBody = useRef(false);
   const stickId = useRef<number | null>(null);
+  // Where the stick's thumb landed. Kept in a ref as well as in state: a move
+  // can arrive before React has re-rendered with the new stick, and must not be
+  // lost for want of it.
+  const stickOrigin = useRef<readonly [number, number]>([0, 0]);
   const [stick, setStick] = useState<StickView | null>(null);
   const [looking, setLooking] = useState(false);
   const canThrow = phase.kind === 'ready';
@@ -90,9 +100,12 @@ export const useThrowControls = ({
     setPitch(pitch);
   };
 
-  /** Ends a grip without throwing, or after one; the turn made while gripping is kept. */
+  /**
+   * Ends a grip without throwing, or after one; the turn made while gripping is
+   * kept, so the player goes on facing — and walking — the way they last aimed.
+   */
   const letGo = () => {
-    if (stroke.current && document.pointerLockElement) {
+    if (stroke.current && turnsBody.current) {
       stance.current = { ...stance.current, facing: gripFacing.current - hand.current.aim };
       hand.current = { ...hand.current, aim: 0 };
     }
@@ -151,6 +164,7 @@ export const useThrowControls = ({
       stickId.current = event.pointerId;
       capture(event);
       const origin = [event.clientX - area.left, event.clientY - area.top] as const;
+      stickOrigin.current = origin;
       setStick({ origin, knob: origin });
       return;
     }
@@ -174,6 +188,7 @@ export const useThrowControls = ({
     const reach = captured ? lookReach(at.x, LOOK_RATE) : screenReach(area.left, area.width, game.config);
 
     gripFacing.current = stance.current.facing;
+    turnsBody.current = captured || event.pointerType === 'touch';
     stroke.current = gripStroke(at, reach, pitch);
     point(captured ? 0 : aimFromPointer(event.clientX, area.left, area.width, game.config), pitch, 0);
     setDraw(0);
@@ -181,13 +196,12 @@ export const useThrowControls = ({
 
   const onPointerMove = (event: React.PointerEvent<HTMLElement>) => {
     if (stickId.current === event.pointerId) {
-      if (!stick) return;
+      const origin = stickOrigin.current;
       const area = box(event);
-      const knob = [event.clientX - area.left, event.clientY - area.top] as const;
-      const [dx, dy] = [knob[0] - stick.origin[0], knob[1] - stick.origin[1]];
+      const [dx, dy] = [event.clientX - area.left - origin[0], event.clientY - area.top - origin[1]];
       touchWalk.current = walkFromStick(dx / STICK_REACH, dy / STICK_REACH);
       const travel = Math.min(1, STICK_REACH / Math.max(1, Math.hypot(dx, dy)));
-      setStick({ origin: stick.origin, knob: [stick.origin[0] + dx * travel, stick.origin[1] + dy * travel] });
+      setStick({ origin, knob: [origin[0] + dx * travel, origin[1] + dy * travel] });
       return;
     }
 
@@ -219,30 +233,44 @@ export const useThrowControls = ({
       event.currentTarget.clientHeight,
       game.config,
     );
-    if (reading.thrown) {
-      const throwFrom: Stance = { feet: stance.current.feet, facing: gripFacing.current };
-      hand.current = { ...hand.current, aim: reading.thrown.aim };
-      letGo();
-      release(reading.thrown, throwFrom);
-      return;
-    }
+    if (reading.thrown) return throwIt(reading.thrown);
     stroke.current = next;
     hand.current = { aim: reading.aim, pitch: next.pitch, draw: reading.draw };
     setDraw(Math.max(0, reading.draw));
   };
 
-  const onPointerUp = (event: React.PointerEvent<HTMLElement>) => {
-    if (stickId.current === event.pointerId) {
-      stickId.current = null;
-      touchWalk.current = STANDING_STILL;
-      setStick(null);
-      return;
-    }
+  const endStick = () => {
+    stickId.current = null;
+    touchWalk.current = STANDING_STILL;
+    setStick(null);
+  };
+
+  /** The system took the touch — a scroll, a gesture, a notification. Nothing throws; everything lets go. */
+  const onPointerCancel = (event: React.PointerEvent<HTMLElement>) => {
+    if (stickId.current === event.pointerId) return endStick();
     letGo();
   };
 
+  const onPointerUp = (event: React.PointerEvent<HTMLElement>) => {
+    if (stickId.current === event.pointerId) return endStick();
+    // Letting go in the middle of a push throws — the phone flick.
+    const lift = stroke.current ? samplesOf(event).at(-1) : undefined;
+    const thrown =
+      stroke.current && lift ? liftStroke(stroke.current, lift, event.currentTarget.clientHeight, game.config) : null;
+    if (thrown) return throwIt(thrown);
+    letGo();
+  };
+
+  /** A throw leaves the hand: from where the thrower stands, facing the way they gripped. */
+  const throwIt = (thrown: ThrowIntent) => {
+    const from: Stance = { feet: stance.current.feet, facing: gripFacing.current };
+    hand.current = { ...hand.current, aim: thrown.aim };
+    letGo();
+    release(thrown, from);
+  };
+
   return {
-    handlers: { onPointerDown, onPointerMove, onPointerUp, onPointerCancel: onPointerUp },
+    handlers: { onPointerDown, onPointerMove, onPointerUp, onPointerCancel },
     stick,
     looking,
   };
