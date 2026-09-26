@@ -1,10 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import type { Vec2 } from '../types.js';
+import type { Board, Vec2 } from '../types.js';
 import { area } from '../geometry/ring.js';
 import { clusterRings, ringsOf } from '../geometry/cluster.js';
 import { createBoard, territoriesOf } from './board.js';
 import { DEFAULT_RULES, resolveThrow } from './cut.js';
 import { createMatch, isAlive, playTurn, winner } from './turn.js';
+import { seededRandom } from '../throw/random.js';
 
 const RADIUS = 10;
 const players = ['a', 'b'] as const;
@@ -110,13 +111,19 @@ describe('resolveThrow', () => {
       expect(territoriesOf(first.board, 'a')).toHaveLength(2);
     });
 
-    it('hands the marooned foothold to whoever surrounds it', () => {
+    it('takes the foothold along with the corner, as one side of a single field', () => {
+      // a's wedge and foothold are one field, and the foothold lies on b's side
+      // of the line, joined to the corner the blade cut off. So b's cut takes
+      // both: 18 for the corner, 8 for the foothold. (Before cuts ran across
+      // whole fields, the foothold was left stranded and handed over by the
+      // no-islands rule instead — same ground, arrived at by accident.)
       const second = afterCounterCut();
-
-      // 18 for the piece the blade cut off, 8 for a's stranded foothold.
       expect(second.gainedArea).toBeCloseTo(26, 6);
-      expect(second.absorbedRings).toHaveLength(1);
-      expect(area(second.absorbedRings[0]!)).toBeCloseTo(8, 6);
+      expect(second.claimedRings.map(area).sort((x, y) => x - y)).toEqual([
+        expect.closeTo(8, 6),
+        expect.closeTo(18, 6),
+      ]);
+      expect(second.absorbedRings).toHaveLength(0);
     });
 
     it('leaves no player holding an island', () => {
@@ -131,7 +138,7 @@ describe('resolveThrow', () => {
       }
     });
 
-    it('still conserves the circle when ground is absorbed', () => {
+    it('still conserves the circle when a cut crosses a field of several pieces', () => {
       expect(totalArea(afterCounterCut().board.territories)).toBeCloseTo(
         area(openingPosition.arena),
         4,
@@ -149,6 +156,79 @@ describe('resolveThrow', () => {
     if (outcome.kind !== 'miss') return;
     expect(outcome.reason).toBe('no_connection');
     expect(outcome.cut).not.toBeNull();
+  });
+
+  describe('a field won over several turns', () => {
+    // The shape from the bug report: a field made of two pieces that cannot be
+    // merged, only one of which touches the thrower.
+    //
+    //   a  — the cap of the circle above y = 6
+    //   b  — its lower half (y < 0), plus a post up the middle (-2 < x < 2,
+    //        0 < y < 6) that reaches a's border. Half and post are one field on
+    //        screen, but together they are not convex, so they stay two polygons
+    //        with an invisible seam along y = 0.
+    //   c, d — either side of the post
+    //
+    // 'a' throws straight down into b's half — the piece that does not touch 'a'.
+    const arena = createBoard(['x', 'y'], RADIUS).arena;
+    const within = (...keep: ((p: Vec2) => boolean)[]) =>
+      keep.reduce<readonly Vec2[]>((ring, inside) => clipRing(ring, inside), arena);
+    const field: Board = {
+      arena,
+      radius: RADIUS,
+      nextTerritoryId: 5,
+      territories: [
+        { id: 't0', ownerId: 'a', ring: within((p) => p[1] >= 6) },
+        { id: 't1', ownerId: 'b', ring: within((p) => p[1] <= 0) },
+        { id: 't2', ownerId: 'b', ring: within((p) => p[1] >= 0, (p) => p[1] <= 6, (p) => p[0] >= -2, (p) => p[0] <= 2) },
+        { id: 't3', ownerId: 'c', ring: within((p) => p[1] >= 0, (p) => p[1] <= 6, (p) => p[0] <= -2) },
+        { id: 't4', ownerId: 'd', ring: within((p) => p[1] >= 0, (p) => p[1] <= 6, (p) => p[0] >= 2) },
+      ],
+    };
+    const deepThrow = { point: [1, -4] as Vec2, direction: [0, -1] as Vec2 };
+
+    it('is a board that tiles the circle, with b in two pieces', () => {
+      expect(totalArea(field.territories)).toBeCloseTo(area(arena), 6);
+      expect(territoriesOf(field, 'b')).toHaveLength(2);
+    });
+
+    it('cuts through the seams between a field’s own pieces, not just the piece it landed in', () => {
+      // The bug: the line stopped at the seam at y = 0, cut only the half, which
+      // does not touch 'a', and the throw was refused as not reaching a's land.
+      const outcome = resolveThrow(field, 'a', deepThrow);
+      if (outcome.kind !== 'claimed') throw new Error(`expected a claim, got ${outcome.reason}`);
+
+      const [start, end] = outcome.cut;
+      expect(Math.max(start[1], end[1])).toBeCloseTo(6, 6); // on up to a's real border
+      expect(start[0]).toBeCloseTo(1, 6);
+      expect(end[0]).toBeCloseTo(1, 6);
+    });
+
+    it('takes everything of that field on the thrower’s side of the line', () => {
+      const outcome = resolveThrow(field, 'a', deepThrow);
+      if (outcome.kind !== 'claimed') throw new Error(`expected a claim, got ${outcome.reason}`);
+
+      // a's cap is centred on x = 0, left of the line x = 1: so the left of
+      // b's whole field — half and post alike — changes hands.
+      const bField = totalArea(territoriesOf(field, 'b'));
+      expect(outcome.gainedArea).toBeGreaterThan(bField * 0.5);
+      expect(outcome.gainedArea).toBeLessThan(bField * 0.65);
+      expect(outcome.claimedRings).toHaveLength(2);
+      expect(totalArea(outcome.board.territories)).toBeCloseTo(area(arena), 6);
+    });
+
+    it('leaves both players holding one connected field', () => {
+      const outcome = resolveThrow(field, 'a', deepThrow);
+      if (outcome.kind !== 'claimed') throw new Error(`expected a claim, got ${outcome.reason}`);
+      for (const playerId of ['a', 'b']) {
+        const fields = clusterRings(
+          ringsOf(territoriesOf(outcome.board, playerId)),
+          DEFAULT_RULES.minSharedBorder,
+          RADIUS * 1e-6,
+        );
+        expect(fields, playerId).toHaveLength(1);
+      }
+    });
   });
 
   it('stops the line at the first border it meets, not at the arena rim', () => {
@@ -196,8 +276,10 @@ describe('resolveThrow', () => {
       DEFAULT_RULES.minSharedBorder,
       RADIUS * 1e-6,
     );
-    expect(territoriesOf(current, 'a').length).toBeGreaterThan(1);
     expect(fields).toHaveLength(1);
+    // Half and strips together are still convex, so they are joined back into a
+    // single piece rather than left as a stack of slivers.
+    expect(territoriesOf(current, 'a')).toHaveLength(1);
   });
 
   it('keeps a player standing while their pieces add up to solid ground', () => {
@@ -260,3 +342,73 @@ describe('playTurn', () => {
     expect(next.history).toHaveLength(1);
   });
 });
+
+describe('invariants over many random throws', () => {
+  // Hundreds of seeded random throws, checking after every one the promises
+  // the rules make (RULES.md, "Invariants"). Cuts that cross whole fields are
+  // the newest and least obvious part of the geometry, and this is where a
+  // subtle mistake in them would show.
+  const isConvex = (ring: readonly Vec2[]): boolean => {
+    let sign = 0;
+    for (let i = 0; i < ring.length; i++) {
+      const [a, b, c] = [ring[i]!, ring[(i + 1) % ring.length]!, ring[(i + 2) % ring.length]!];
+      const turn = (b[0] - a[0]) * (c[1] - b[1]) - (b[1] - a[1]) * (c[0] - b[0]);
+      if (Math.abs(turn) < 1e-9) continue;
+      if (sign === 0) sign = Math.sign(turn);
+      else if (Math.sign(turn) !== sign) return false;
+    }
+    return true;
+  };
+
+  it('conserves area, keeps every field whole and every piece convex', () => {
+    const next = seededRandom(20260926);
+    let match = createMatch(createBoard(['a', 'b', 'c', 'd'], RADIUS), ['a', 'b', 'c', 'd']);
+    let claims = 0;
+    for (let turn = 0; turn < 300 && !winner(match); turn++) {
+      const angle = next() * 2 * Math.PI;
+      const distance = Math.sqrt(next()) * RADIUS * 0.98;
+      const point: Vec2 = [Math.cos(angle) * distance, Math.sin(angle) * distance];
+      const heading = next() * 2 * Math.PI;
+      const played = playTurn(match, { point, direction: [Math.cos(heading), Math.sin(heading)] });
+      if (played.outcome.kind === 'claimed') claims++;
+      match = played.match;
+
+      const board = match.board;
+      expect(totalArea(board.territories), `turn ${turn}`).toBeCloseTo(area(board.arena), 4);
+      for (const t of board.territories) expect(isConvex(t.ring), `turn ${turn}, ${t.id}`).toBe(true);
+      for (const playerId of match.players) {
+        const fields = clusterRings(
+          ringsOf(territoriesOf(board, playerId)),
+          DEFAULT_RULES.minSharedBorder,
+          RADIUS * 1e-6,
+        );
+        expect(fields.length, `turn ${turn}: ${playerId}`).toBeLessThanOrEqual(1);
+      }
+    }
+    // Make sure the run actually exercised the rules rather than missing every throw.
+    expect(claims).toBeGreaterThan(20);
+  });
+});
+
+/** Keeps the part of a convex ring where `inside` holds (Sutherland–Hodgman, one straight edge at a time). */
+function clipRing(ring: readonly Vec2[], inside: (p: Vec2) => boolean): Vec2[] {
+  // `inside` is a half-plane test of the form f(p) >= 0; find the crossing by bisection.
+  const crossing = (a: Vec2, b: Vec2): Vec2 => {
+    let [lo, hi] = [0, 1];
+    for (let i = 0; i < 60; i++) {
+      const mid = (lo + hi) / 2;
+      const p: Vec2 = [a[0] + (b[0] - a[0]) * mid, a[1] + (b[1] - a[1]) * mid];
+      if (inside(p) === inside(a)) lo = mid;
+      else hi = mid;
+    }
+    const t = (lo + hi) / 2;
+    return [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t];
+  };
+  const out: Vec2[] = [];
+  ring.forEach((current, i) => {
+    const next = ring[(i + 1) % ring.length]!;
+    if (inside(current)) out.push(current);
+    if (inside(current) !== inside(next)) out.push(crossing(current, next));
+  });
+  return out;
+}

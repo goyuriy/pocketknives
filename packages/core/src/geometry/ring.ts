@@ -111,6 +111,14 @@ export const sharedBorderUpTo = (
   tolerance: number,
 ): number => measureSharedBorder(ring, other, tolerance, stopAt);
 
+/**
+ * Measured from both sides, and the longer taken.
+ *
+ * Sampling only one outline's edges is lopsided: a long edge touched along a
+ * short stretch by a small neighbour can have every sample miss that stretch,
+ * and two pieces that plainly touch read as apart. From the small neighbour's
+ * side the same stretch is its whole edge, and cannot be missed.
+ */
 const measureSharedBorder = (
   ring: Ring,
   other: Ring,
@@ -118,7 +126,12 @@ const measureSharedBorder = (
   stopAt: number,
 ): number => {
   if (!boundsOverlap(ring, other, tolerance)) return 0;
+  const one = measureAlong(ring, other, tolerance, stopAt);
+  return one >= stopAt ? one : Math.max(one, measureAlong(other, ring, tolerance, stopAt));
+};
 
+/** How much of `ring`'s outline runs along `other`'s, sampled along `ring`'s edges. */
+const measureAlong = (ring: Ring, other: Ring, tolerance: number, stopAt: number): number => {
   const SAMPLES = 8;
   let shared = 0;
   for (const [a, b] of edges(ring)) {

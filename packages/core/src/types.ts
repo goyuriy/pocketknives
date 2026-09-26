@@ -103,8 +103,12 @@ export type ThrowOutcome =
       readonly victimId: PlayerId;
       /** Everything the thrower gained: the cut piece plus any land it stranded. */
       readonly gainedArea: number;
-      /** The piece the blade cut off, for highlighting and animation. */
-      readonly claimedRing: Ring;
+      /**
+       * The ground the blade cut off, for highlighting and animation. Usually
+       * two or more pieces: a field won over several turns is stored as several
+       * polygons, and the cut takes its share of each one it crosses.
+       */
+      readonly claimedRings: readonly Ring[];
       /**
        * Ground that fell to the thrower because the cut left it landlocked,
        * with no route back to its owner's remaining land.

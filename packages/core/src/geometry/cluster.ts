@@ -1,5 +1,12 @@
 import type { Board, PlayerId, Ring, Territory, Vec2 } from '../types.js';
-import { bounds, containsPoint, distanceToBoundary, largestInscribedRadius, edges } from './ring.js';
+import {
+  bounds,
+  containsPoint,
+  distanceToBoundary,
+  largestInscribedRadius,
+  edges,
+  sharedBorderUpTo,
+} from './ring.js';
 import { distanceToSegment, lerp } from './vector.js';
 
 export type Segment = readonly [Vec2, Vec2];
@@ -52,17 +59,8 @@ const connectedGroups = <T>(
   return [...groups.values()];
 };
 
-const sharesBorder = (a: Ring, b: Ring, minSharedBorder: number, tolerance: number): boolean => {
-  let shared = 0;
-  for (const segment of subdivide(a, 4)) {
-    const mid = lerp(segment[0], segment[1], 0.5);
-    if (distanceToBoundary(b, mid) <= tolerance) {
-      shared += segmentLength(segment);
-      if (shared >= minSharedBorder) return true;
-    }
-  }
-  return false;
-};
+const sharesBorder = (a: Ring, b: Ring, minSharedBorder: number, tolerance: number): boolean =>
+  sharedBorderUpTo(a, b, minSharedBorder, tolerance) >= minSharedBorder;
 
 const segmentLength = ([a, b]: Segment): number => Math.hypot(b[0] - a[0], b[1] - a[1]);
 

@@ -192,13 +192,24 @@ and where you aim *is* the line.
 reaches first, which may be a neighbour's border or the edge of the circle. This
 is what keeps a cut local to the ground it was thrown into.
 
+**A border is where someone else's ground begins** — not a seam inside the
+victim's own field. Ground won over several turns is stored as several pieces,
+but on the ground it is one field, drawn as one, and the line runs straight
+across the joins between its pieces. Every piece it crosses is split.
+
+This was once a bug worth remembering: the line stopped at the first edge of
+whichever *piece* the knife hit, including the invisible seams. A player whose
+centre had been taken could never win it back, because the piece the knife
+landed in was not the piece touching them.
+
+> `cutField` — [fieldCut.ts](packages/core/src/rules/fieldCut.ts)
 > `firstBoundaryHit` — [raycast.ts](packages/core/src/geometry/raycast.ts)
 > `splitRingByChord` — [split.ts](packages/core/src/geometry/split.ts)
 
 ## Claiming
 
-The cut divides the victim's ground in two. Which half you take is decided by
-two rules, in order:
+The cut divides the victim's field in two sides. Which side you take is decided
+by two rules, in order:
 
 ### 1. Your side of the line
 
@@ -211,28 +222,39 @@ you.
 
 ### 2. It has to connect
 
-That half must share a real stretch of border with ground you already hold. A
+That side must share a real stretch of border with ground you already hold. A
 throw to the far side of the circle wins nothing, however well it lands.
 
-If the half on your side does not connect to you, the throw takes nothing.
+If the side facing you does not connect to you, the throw takes nothing.
 
 > `pickClaimablePiece` — [cut.ts](packages/core/src/rules/cut.ts)
+
+## Tidying up
+
+After every claim, neighbouring pieces of the same player are joined back into
+one wherever the join is still convex. Without it a cut that crosses a field of
+many pieces splits every one of them, and over a match the board fragments into
+hundreds of slivers — a random 67-turn match reached 284 pieces, and the worst
+turns took nearly half a second to resolve. With it the same matches stay
+under about 20 pieces and every turn resolves in a few tens of milliseconds.
+
+> `mergeConvexNeighbours` — [tidy.ts](packages/core/src/rules/tidy.ts)
 
 ## No islands
 
 **A player's holdings are one connected field, or they are not theirs.**
 
-A cut can sever that field: take the stretch of border that was joining two of
-someone's pieces and the far piece is left landlocked, with no route home.
-Ground you cannot walk to from your own land is ground you have lost.
+A cut divides the victim's field into two sides, and each side is everything
+joined to it through the victim's own ground. So whatever you take, what the
+victim keeps is still in one piece — a cut cannot leave them an island, and
+cutting across an opponent's supply line takes everything that line was
+feeding, on your side of it, in one throw.
 
-Stranded ground goes to the neighbour holding the **longest border** with it.
-That is usually the thrower, whose cut did the stranding — but a pocket wedged
-mainly against a third player goes to them instead.
+If ground were ever stranded all the same, it goes to the neighbour holding the
+**longest border** with it. Since cuts started crossing whole fields this is a
+safety net rather than a rule anyone meets in play.
 
-This makes cutting an opponent's supply line a real move: a throw can be worth
-far more than the piece the blade actually carved off.
-
+> `cutField` — [fieldCut.ts](packages/core/src/rules/fieldCut.ts)
 > `absorbOrphans` — [orphans.ts](packages/core/src/rules/orphans.ts)
 
 ## Elimination and winning
@@ -283,7 +305,7 @@ they kill whole classes of bug before they appear.
 2. **One field per player.** Every player holds exactly one connected field, or
    nothing. Guaranteed by the connection rule (your gains stay attached) plus the
    no-islands rule (your losses can't strand you).
-3. **Territories stay convex.** Wedges of a disc are convex, and a chord cut of a
+3. **Territories stay convex.** (Checked after every turn of a long run of seeded random throws, alongside 1 and 2.) Wedges of a disc are convex, and a chord cut of a
    convex shape yields two convex shapes. Several bits of geometry rely on this —
    notably that a piece lies wholly on one side of the cut line, which is what
    makes the side-of-line test exact rather than approximate.
