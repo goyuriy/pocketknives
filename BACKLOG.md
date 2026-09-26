@@ -26,7 +26,7 @@ Status: ✅ done · 🔨 in progress · 📋 ready · 💡 idea
 |            | **Acquisition** | **Engagement** | **Retention** | **Monetization** |
 | ---------- | --------------- | -------------- | ------------- | ---------------- |
 | **Core**   | C1 Slow-motion release ✅ · C2 Impact juice ✅ · C4 Throw replay · C9 Physics comedy · C7 First three throws | C1 · C2 · C3 Cut reveal · C5 Reach rule · C6 Match flow · C8 Bots · C9 · C10 Grounds · C11 Wind | C6 · C7 · C8 · C10 | — |
-| **Meta**   | M3 Daily board | M1 Knife collection · M4 Mastery | M1 · M2 Progression · M3 · M4 · M6 Season pass | M5 Cosmetics · M6 · M7 Character & hands |
+| **Meta**   | M3 Daily board | M1 Knife collection · M2 Grips · M4 Mastery | M1 · M2 Progression tree (grips, knives, looks) · M3 · M4 · M6 Season pass | M5 Cosmetics · M6 · M7 Character & hands |
 | **Social** | S1 Link rooms · S3 Reactions · S4 Clip share · S5 Party mode | S1 · S3 · S5 · S8 Tournaments | S2 Leaderboards · S6 Friends & rivals · S7 Crews · S8 | S9 Supporter pack |
 
 ---
@@ -116,12 +116,27 @@ throws. Makes the angle choice matter even more.
 
 ### M1 · Knife collection — 📋 · E, R
 The five knives exist; make choosing one a moment. A rack to pick from,
-each knife's reach and forgiveness shown as it was measured (see RULES.md),
-new knives unlocked by playing.
+each knife's reach and forgiveness shown as it was measured (see RULES.md).
+Which knives are open, and when, is the progression tree's knife branch (M2).
 
-### M2 · Progression — 💡 · R
-Experience per match, levels, titles ("Yard Menace"). Unlocks knives and
-cosmetics, never power.
+### M2 · Progression tree — 💡 · R, E
+What a player unlocks over time: three branches side by side — **grips**,
+**knives**, **looks**. Designed in [docs/progression-tree.md](docs/progression-tree.md).
+Rules: sidegrades not upgrades, unlock by doing (trials) not by grinding,
+real throwing first, nothing sold changes where a knife lands.
+- 💡 **Grips** — how the knife is held, each a real throwing technique with its
+  own trade-off, unlocked by a trial that practises it:
+  - Hammer (start) — the baseline throw.
+  - Blade grip (half-spin) — forgives short throws, loses reach.
+  - Pinch — steadier hand and straighter push, a little less power.
+  - Two-handed — heavy knives only; halves the weight penalty on reach.
+  - No-spin — the knife barely turns: most reach, flattest flight, least stable.
+    The mastery grip.
+- 💡 **Knives** — the five that exist, met in order: Thrower, Kitchen, Cleaver,
+  Needle; the Greatsword earned by a trial.
+- 💡 **Grip mastery** — three ranks per grip, for sticks thrown with it; looks
+  only.
+- 💡 **Looks** — experience levels unlock cosmetics; the branch M6 extends.
 
 ### M3 · Daily board — 💡 · R, A
 One fixed starting board, stand and wind per day, same for everyone —
