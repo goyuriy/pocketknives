@@ -136,6 +136,8 @@ export const gripStroke = (at: Sample, reach: Reach, pitch: number): Stroke => (
  *   letting go.
  * - **How cleanly** comes from the push's direction. Straight up is clean; a
  *   push that wanders sideways pulls the knife off line.
+ * - **How hard it spins** comes from the push's speed — a gentle push turns it
+ *   lazily, a sharp whip sends it whirling.
  *
  * Pure: the stroke goes in, a new stroke and a reading come out.
  */
@@ -190,6 +192,15 @@ export const liftStroke = (
   return throwFrom(samples, stroke, lift, height, config, drawOf);
 };
 
+/**
+ * How hard the push was whipped, 0 to 1: from the slowest push that throws at
+ * all to a sharp flick. This is the spin — see `ThrowIntent.whip`.
+ */
+const whipOf = (pushSpeed: number, config: ThrowConfig): number => {
+  const { minPushSpeed, fullWhip } = config.gesture;
+  return Math.min(1, Math.max(0, (pushSpeed - minPushSpeed) / Math.max(1e-6, fullWhip - minPushSpeed)));
+};
+
 /** Reads the push that just went through the grip, or null if it was too soft to be a throw. */
 const throwFrom = (
   samples: readonly Sample[],
@@ -231,6 +242,7 @@ const throwFrom = (
     pitch: stroke.pitch,
     draw: Math.min(1, drawOf(bottom)),
     drift: Math.atan2(release.x - bottom.x, bottom.y - release.y),
+    whip: whipOf(pushSpeed, config),
   };
   return isThrow(intent, config) ? intent : null;
 };

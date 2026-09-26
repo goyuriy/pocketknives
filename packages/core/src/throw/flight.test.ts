@@ -33,12 +33,14 @@ describe('simulateFlight', () => {
     expect(reach(0.5)).toBeGreaterThan(reach(0));
   });
 
-  it('reaches the far side of the circle at full power, and not much beyond', () => {
-    // Stood two units outside a circle of radius ten, so the far rim is 22 away.
-    const full = simulateFlight(aimedLaunch(standingPoint(-Math.PI / 2, 10), Math.PI / 2, 1));
-    const reach = full.impact.point[1] + 12;
-    expect(reach).toBeGreaterThan(20);
-    expect(reach).toBeLessThan(24);
+  it('crosses the circle only with a full-power lob, from a player’s own ground', () => {
+    // Thrown from about five units out, as from the middle of a quarter of the
+    // circle: the far rim is about fifteen away.
+    const reach = (pitch: number) =>
+      simulateFlight({ ...aimedLaunch([0, -5], Math.PI / 2, 1), pitch }).impact.point[1] + 5;
+    expect(reach(0.8)).toBeGreaterThan(15);
+    expect(reach(0.8)).toBeLessThan(20);
+    expect(reach(0.35)).toBeLessThan(15);
   });
 
   it('tumbles forward — tip over the top — not backwards', () => {

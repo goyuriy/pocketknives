@@ -165,6 +165,20 @@ describe('pitchFromPointer', () => {
   });
 });
 
+describe('whip', () => {
+  it('reads a sharper push as a harder whip', () => {
+    const gentle = swing(0.6, 250).reading.thrown!;
+    const sharp = swing(0.6, 40).reading.thrown!;
+    expect(sharp.whip!).toBeGreaterThan(gentle.whip!);
+    expect(sharp.whip!).toBeLessThanOrEqual(1);
+    expect(gentle.whip!).toBeGreaterThanOrEqual(0);
+  });
+
+  it('leaves the draw alone — power and spin are separate', () => {
+    expect(swing(0.6, 250).reading.thrown!.draw).toBeCloseTo(swing(0.6, 40).reading.thrown!.draw, 9);
+  });
+});
+
 describe('liftStroke', () => {
   /** Grip, draw back, then push up part of the way — `back` of the way home — and stop there. */
   const partWay = (back: number, pushMs: number) => {

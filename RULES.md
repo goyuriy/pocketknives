@@ -53,9 +53,13 @@ pointing. Three decisions make a throw, and none of them is a reflex:
 
    | Angle | Full draw reaches | Sticks at full draw |
    | --- | --- | --- |
-   | 6° (flat) | 12 | 98% |
-   | 20° (resting) | 21 | 77% |
-   | 46° (lob) | 29 | 59% |
+   | 6° (flat) | 8.7 | 99% |
+   | 20° (resting) | 13.7 | 90% |
+   | 46° (lob) | 17.9 | 72% |
+
+   Reach is measured from where the knife leaves the hand. From the middle of
+   a quarter of the circle the far rim is about fifteen away: only a lob gets
+   there.
 2. **Draw.** Hold the button and pull back towards you. The knife cocks up by
    your ear, point still forward, like a dart. How far back is how hard it is
    thrown — a position, not a speed, so it means the same on a
@@ -66,6 +70,21 @@ pointing. Three decisions make a throw, and none of them is a reflex:
    pointed; push crooked and it pulls off line the way the push wandered, like
    a golf swing coming across the ball. The aim freezes where the push begins:
    sideways movement before that is re-aiming, after it is drift.
+
+   **How fast you push is how hard it spins.** A gentle push turns the knife
+   lazily; a sharp whip sends it whirling — from about half its natural tumble
+   to over twice it. The wrist still picks a spin that sticks, the nearest one
+   to what the push asked for, so a clean throw sticks either way. But the
+   faster a knife spins, the more a wobble in pace turns into a wrong angle on
+   landing, so the whip is a risk as well as a flourish:
+
+   | Push | Thrower turns | Sticks | Needle turns | Sticks |
+   | --- | --- | --- | --- | --- |
+   | gentle | 1.2 | 91% | 3.2 | 78% |
+   | middling | 4.2 | 89% | 12.2 | 71% |
+   | full whip | 7.2 | 86% | 20.2 | 55% |
+
+   (Full draw at the resting angle.)
 
 **Letting go mid-push throws too.** On a phone the natural motion is to pull back
 and flick, and the thumb leaves the glass during the flick — rarely after it has
@@ -106,10 +125,10 @@ not a free choice. With the Thrower:
 
 | Throw | Reach | Sticks |
 | --- | --- | --- |
-| gentle | 6 | 99% |
-| medium | 10 | 95% |
-| hard | 15 | 87% |
-| full | 21 | 77% |
+| quarter draw | 4.1 | 100% |
+| half draw | 6.7 | 99% |
+| three-quarters | 9.9 | 96% |
+| full draw | 13.7 | 90% |
 
 The knife still **tumbles forward**, tip over the top and down, the way a thrown
 knife does. Sticking asks three separate questions:
@@ -200,11 +219,11 @@ your execution. Each trades **reach** against **forgiveness**.
 
 | Knife | Hands | Full reach | Sticks at full reach | Character |
 | --- | --- | --- | --- | --- |
-| Kitchen | 1 | 24 | 82% | Long in the blade and forgiving of a shaky hand. |
-| Thrower | 1 | 21 | 77% | Weighted forward and even-tempered. |
-| Cleaver | 1 | 16 | 91% | Heavy and slow to turn, buries itself to the handle. |
-| Needle | 1 | 27 | 59% | Light and whirling. Flies furthest, forgives nothing. |
-| Greatsword | 2 | 11 | 100% | Barely turns, drops point-first from anywhere — but only reaches the middle. |
+| Kitchen | 1 | 15.1 | 94% | Long in the blade and forgiving of a shaky hand. |
+| Thrower | 1 | 13.7 | 90% | Weighted forward and even-tempered. |
+| Cleaver | 1 | 10.2 | 97% | Heavy and slow to turn, buries itself to the handle. |
+| Needle | 1 | 17.0 | 73% | Light and whirling. Flies furthest, forgives nothing. |
+| Greatsword | 2 | 7.6 | 100% | Barely turns, drops point-first from anywhere — but only reaches so far. |
 
 Every difference is physical:
 
@@ -379,7 +398,7 @@ dials — press **Tune** — with the derived numbers shown above the sliders, a
 | Group | Fields | What it decides |
 | --- | --- | --- |
 | `knife` | `bladeLength`, `handleLength`, `mass`, `balance`, `edgeWidth` | The object itself |
-| `gesture` | `fullDraw`, `minDraw`, `minPushSpeed`, `maxAim`, `driftGain`, `minPitch`, `maxPitch` | How the hand's motion is read |
+| `gesture` | `fullDraw`, `minDraw`, `minPushSpeed`, `fullWhip`, `maxAim`, `driftGain`, `minPitch`, `maxPitch` | How the hand's motion is read |
 | `style` | `pitch`, `spinImpulse`, `startingBladeAngle`, `releaseHeight`, `minSpeed`, `maxSpeed`, `referenceMass`, `weightPenalty` | How the arm throws |
 | `scatter` | `spin`, `power`, `startingBladeAngle`, `heading` | How much the hand wobbles (seeded) |
 | `stick` | `baseMisalignment`, `minEntryAngle`, `minMomentum`, `soilResistance` | What the ground accepts |

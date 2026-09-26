@@ -116,6 +116,8 @@ export type GestureTuning = {
   readonly minDraw: number;
   /** Slowest push, screen-heights per second, that still throws rather than eases off. */
   readonly minPushSpeed: number;
+  /** Push speed, screen-heights per second, that whips the knife round as hard as it goes. */
+  readonly fullWhip: number;
   /** How far either side the hand can point, radians, from edge of the screen to edge. */
   readonly maxAim: number;
   /** How much of the push's sideways drift ends up in the knife's line. */
@@ -155,8 +157,13 @@ export const DEFAULT_CONFIG: ThrowConfig = {
     // Tip up, as the knife sits in the hand — the tumble carries it forward from
     // there, so the throw begins where the held knife was left.
     startingBladeAngle: 0.8,
-    minSpeed: 7,
-    maxSpeed: 26,
+    // Tuned for throwing from inside your own ground, about five units from the
+    // centre: the least draw tosses just over your own border, a full draw at
+    // the resting angle falls just short of the far rim, and only a full lob
+    // crosses the circle. Not lower at the bottom: the lightest knife needs
+    // some pace to bury itself, and a gentler least throw would not stick.
+    minSpeed: 6,
+    maxSpeed: 20,
     referenceMass: 0.2,
     // Gentler than equal energy. Enough that a greatsword cannot reach the far
     // side of the circle, which is the price of a blade that almost never misses.
@@ -197,13 +204,15 @@ export const DEFAULT_CONFIG: ThrowConfig = {
     soilResistance: 14,
   },
   gesture: {
-    // A quarter of the screen: a comfortable pull on a mouse, and a thumb's
-    // length on a phone.
-    fullDraw: 0.25,
+    // A third of the screen: long enough that power is a thing a player sets
+    // with care, still a thumb's length on a phone.
+    fullDraw: 0.33,
     minDraw: 0.06,
     // Slower than this across the grip point and the player is easing the arm
     // back to rest, not throwing — which is how a throw is called off.
     minPushSpeed: 0.7,
+    // A sharp flick; an ordinary push lands around the middle of the range.
+    fullWhip: 4,
     // From a stand just outside the rim, the far edges of the circle are a
     // little under 60° either side.
     maxAim: 0.95,

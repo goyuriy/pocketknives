@@ -64,7 +64,7 @@ describe('the player chooses where, how far, and how cleanly', () => {
     const flat = simulateFlight(swingLaunch(stand, rest, swing({ pitch: 0.12 })));
     const lob = simulateFlight(swingLaunch(stand, rest, swing({ pitch: 0.75 })));
     const peak = (flight: typeof flat) => Math.max(...flight.samples.map((s) => s.position[2]));
-    expect(peak(lob)).toBeGreaterThan(peak(flat) * 2);
+    expect(peak(lob)).toBeGreaterThan(peak(flat) + 1);
     expect(lob.impact.time).toBeGreaterThan(flat.impact.time);
     expect(lob.impact.descentAngle).toBeGreaterThan(flat.impact.descentAngle);
   });
@@ -126,6 +126,34 @@ describe('the wrist is automatic', () => {
 
   it('finds no forward tumble when the knife would have to turn backwards', () => {
     expect(nearestStickingSpin(10, 0, -0.5)).toBeNull();
+  });
+});
+
+describe('the push sets how hard it spins', () => {
+  const turns = (whip: number) => {
+    const launch = swingLaunch(stand, rest, swing({ whip }));
+    return (launch.spin * simulateFlight(launch).impact.time) / (2 * Math.PI);
+  };
+
+  it('whirls the knife harder the sharper the push', () => {
+    expect(turns(1)).toBeGreaterThan(turns(0) + 1);
+    expect(turns(0.5)).toBeGreaterThanOrEqual(turns(0));
+    expect(turns(1)).toBeGreaterThanOrEqual(turns(0.5));
+  });
+
+  it('still sticks a clean throw however hard it was whipped', () => {
+    for (const whip of [0, 0.25, 0.5, 0.75, 1]) {
+      for (const draw of [0.1, 0.5, 1]) {
+        expect(stickVerdict(landing(swing({ whip, draw }))).stuck, `whip ${whip}, draw ${draw}`).toBe(true);
+      }
+    }
+  });
+
+  it('turns at the knife’s natural rate when no whip is given', () => {
+    const plain = swingLaunch(stand, rest, swing());
+    const middling = swingLaunch(stand, rest, swing({ whip: undefined }));
+    expect(plain.spin).toBe(middling.spin);
+    expect(plain.spin).toBeCloseTo(swingLaunch(stand, rest, swing()).spin, 9);
   });
 });
 

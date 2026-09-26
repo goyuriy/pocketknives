@@ -33,6 +33,13 @@ export type ThrowIntent = {
    * the player made, can see, and can stop making, not a roll of the dice.
    */
   readonly drift: number;
+  /**
+   * How hard the push forward was whipped, 0 to 1 — how intensely the knife
+   * spins. A gentle push turns it lazily, a sharp one sends it whirling; the
+   * wrist still picks a spin that sticks, the nearest one to what was asked
+   * for. Absent means a middling push: the knife's own natural turn.
+   */
+  readonly whip?: number;
 };
 
 const clamp01 = (value: number): number => Math.min(1, Math.max(0, value));
@@ -90,7 +97,7 @@ export const swingLaunch = (
     spin: 0,
     bladeAngle: style.startingBladeAngle,
   };
-  const thrown: Launch = { ...aimed, spin: wristSpin(aimed, config) };
+  const thrown: Launch = { ...aimed, spin: wristSpin(aimed, config, whippedSpin(intent, config)) };
 
   return seed === undefined ? thrown : scatterLaunch(thrown, config, seed);
 };
@@ -100,17 +107,36 @@ export const swingLaunch = (
  *
  * The knife sticks whenever its total turn lands it inside the sticking range,
  * and there is one such tumble rate per whole rotation. Of those, the wrist
- * picks the one nearest the knife's natural tumble — so a heavy knife still
- * turns lazily and a light one still whirls, and the knife keeps its character
- * even though nobody is choosing its spin.
+ * picks the one nearest the tumble it was asked for — by default the knife's
+ * natural tumble, so a heavy knife still turns lazily and a light one still
+ * whirls; with a whip, as hard as the push asked (see `whippedSpin`).
  */
-export const wristSpin = (launch: Launch, config: ThrowConfig = DEFAULT_CONFIG): number => {
-  const natural = spinRate(config);
+export const wristSpin = (
+  launch: Launch,
+  config: ThrowConfig = DEFAULT_CONFIG,
+  wanted: number = spinRate(config),
+): number => {
   // Spin does not bend the arc, so any value finds when and how steeply it lands.
   const { impact } = simulateFlight({ ...launch, spin: 0 }, config.flight);
   const target = sweetSpotAngle(impact.descentAngle, config);
-  return nearestStickingSpin(natural, impact.time, target, launch.bladeAngle) ?? natural;
+  return nearestStickingSpin(wanted, impact.time, target, launch.bladeAngle) ?? wanted;
 };
+
+/** The gentlest and wildest a whip can turn the knife, as multiples of its natural tumble. */
+const LAZIEST_WHIP = 0.4;
+const WILDEST_WHIP = 2.2;
+
+/**
+ * The tumble the push asked for: the knife's natural turn, scaled by how hard
+ * the push was whipped. A middling push asks for the natural turn exactly.
+ */
+export const whippedSpin = (intent: ThrowIntent, config: ThrowConfig = DEFAULT_CONFIG): number => {
+  const whip = Math.min(1, Math.max(0, intent.whip ?? MIDDLING_WHIP));
+  return spinRate(config) * (LAZIEST_WHIP + (WILDEST_WHIP - LAZIEST_WHIP) * whip);
+};
+
+/** The whip that asks for exactly the knife's natural tumble. */
+const MIDDLING_WHIP = (1 - LAZIEST_WHIP) / (WILDEST_WHIP - LAZIEST_WHIP);
 
 /**
  * Where in its turn the knife should arrive to stick most surely, radians.
