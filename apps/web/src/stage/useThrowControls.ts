@@ -16,6 +16,16 @@ import { STANDING_STILL, walkFromStick, type WalkInput } from '../input/walk.js'
 import type { ImpactSound } from '../audio/impactSound.js';
 import type { HandInput } from './snapshot.js';
 
+/**
+ * Whether the mouse is captured for mouse-look right now.
+ *
+ * Never compare `document.pointerLockElement` with `null`: Safari on iPhone has
+ * no Pointer Lock at all and reports it as `undefined`, which is `!== null` —
+ * every touch then reads as a captured mouse, measured against a pointer that
+ * does not exist, and no throw can ever be made.
+ */
+const mouseCaptured = (): boolean => Boolean(document.pointerLockElement);
+
 /** Radians the body turns per pixel of mouse travel, with the mouse captured. */
 const LOOK_RATE = 0.0035;
 /** Radians of launch angle per pixel of vertical mouse travel, with the mouse captured. */
@@ -135,7 +145,7 @@ export const useThrowControls = ({
   const samplesOf = (event: React.PointerEvent<HTMLElement>): Sample[] => {
     const now = event.timeStamp || performance.now();
     return updatesOf(event).map((update) => {
-      if (!document.pointerLockElement) return { x: update.clientX, y: update.clientY, t: update.timeStamp || now };
+      if (!mouseCaptured()) return { x: update.clientX, y: update.clientY, t: update.timeStamp || now };
       look.current = { x: look.current.x + update.movementX, y: look.current.y + update.movementY };
       return { ...look.current, t: update.timeStamp || now };
     });
@@ -169,13 +179,14 @@ export const useThrowControls = ({
       return;
     }
     if (!canThrow || event.button > 0) return;
-    if (event.pointerType === 'mouse' && !document.pointerLockElement) {
-      // The first click takes the mouse; it does not also throw.
-      void canvas.current?.requestPointerLock();
+    // The first click takes the mouse; it does not also throw. Where there is no
+    // Pointer Lock (an iPad with a trackpad), the cursor aims as it is.
+    if (event.pointerType === 'mouse' && !mouseCaptured() && typeof canvas.current?.requestPointerLock === 'function') {
+      void canvas.current.requestPointerLock();
       return;
     }
 
-    const captured = document.pointerLockElement !== null;
+    const captured = mouseCaptured();
     if (!captured) capture(event);
     const at: Sample = captured
       ? { ...look.current, t: event.timeStamp }
@@ -206,7 +217,7 @@ export const useThrowControls = ({
     }
 
     if (!stroke.current) {
-      if (document.pointerLockElement) {
+      if (mouseCaptured()) {
         // Looking about: across turns the body, up and down sets the angle.
         const moved = updatesOf(event).reduce<[number, number]>(
           (sum, u) => [sum[0] + u.movementX, sum[1] + u.movementY],

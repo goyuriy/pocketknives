@@ -234,8 +234,10 @@ button:active {
 
 /* --- Tuning workbench ---------------------------------------------------- */
 
-.tuning-toggle {
+.tuning-toggle,
+.debug-toggle {
   position: absolute;
+  z-index: 10;
   top: calc(10px + env(safe-area-inset-top));
   right: 10px;
   font-size: 13px;
@@ -245,6 +247,9 @@ button:active {
 
 .tuning {
   position: absolute;
+  /* Above everything, the HUD included — on a phone the HUD sits in the page
+     below the field and would otherwise paint over the panel's last rows. */
+  z-index: 20;
   top: 0;
   right: 0;
   bottom: 0;
@@ -485,5 +490,25 @@ body {
   .controls select {
     font-size: 13px;
     padding: 5px 10px;
+  }
+}
+
+/* With debug hidden, the way back is a quiet corner button. */
+.debug-toggle {
+  opacity: 0.55;
+  font-size: 12px;
+  padding: 4px 9px;
+}
+
+@media (max-width: 640px) {
+  /* The tuning panel takes the whole screen: a phone has no room beside it. */
+  .tuning {
+    width: 100%;
+    border-left: none;
+    padding: calc(10px + env(safe-area-inset-top)) 12px calc(16px + env(safe-area-inset-bottom));
+  }
+
+  .dial {
+    grid-template-columns: 86px minmax(0, 1fr) 48px;
   }
 }

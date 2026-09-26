@@ -56,7 +56,20 @@ const driftNote = (drift: number): string =>
 const describe = (attempt: Attempt, arenaArea: number): string =>
   result(attempt, arenaArea) + driftNote(attempt.intent.drift);
 
-export const SandboxHud = ({ game }: { game: SandboxState }) => {
+/**
+ * @param debug       whether to show the sandbox controls — reset, player count,
+ *                    stay, slow motion — alongside the game's own HUD
+ * @param onHideDebug hides them, and the tuning panel with them
+ */
+export const SandboxHud = ({
+  game,
+  debug,
+  onHideDebug,
+}: {
+  game: SandboxState;
+  debug: boolean;
+  onHideDebug: () => void;
+}) => {
   const arenaArea = area(game.match.board.arena);
   const attempt = game.phase.kind === 'ready' ? game.lastAttempt : game.phase.attempt;
   const throwing = game.draw !== null;
@@ -107,41 +120,46 @@ export const SandboxHud = ({ game }: { game: SandboxState }) => {
         ))}
       </div>
 
-      <div className="controls">
-        <button type="button" onClick={() => game.reset(game.playerCount)}>
-          Reset
-        </button>
-        <select
-          value={game.playerCount}
-          onChange={(event) => game.reset(Number(event.target.value))}
-          aria-label="Number of players"
-        >
-          {[2, 3, 4].map((n) => (
-            <option key={n} value={n}>
-              {n} players
-            </option>
-          ))}
-        </select>
-        <label className="toggle">
-          <input
-            type="checkbox"
-            checked={game.stayOnPlayer}
-            onChange={(event) => game.setStayOnPlayer(event.target.checked)}
-          />
-          stay
-        </label>
-        <label className="toggle">
-          slow
-          <input
-            type="range"
-            min={0.25}
-            max={1}
-            step={0.05}
-            value={game.playbackScale}
-            onChange={(event) => game.setPlaybackScale(Number(event.target.value))}
-          />
-        </label>
-      </div>
+      {debug && (
+        <div className="controls">
+          <button type="button" onClick={() => game.reset(game.playerCount)}>
+            Reset
+          </button>
+          <select
+            value={game.playerCount}
+            onChange={(event) => game.reset(Number(event.target.value))}
+            aria-label="Number of players"
+          >
+            {[2, 3, 4].map((n) => (
+              <option key={n} value={n}>
+                {n} players
+              </option>
+            ))}
+          </select>
+          <label className="toggle">
+            <input
+              type="checkbox"
+              checked={game.stayOnPlayer}
+              onChange={(event) => game.setStayOnPlayer(event.target.checked)}
+            />
+            stay
+          </label>
+          <label className="toggle">
+            slow
+            <input
+              type="range"
+              min={0.25}
+              max={1}
+              step={0.05}
+              value={game.playbackScale}
+              onChange={(event) => game.setPlaybackScale(Number(event.target.value))}
+            />
+          </label>
+          <button type="button" onClick={onHideDebug}>
+            Hide debug
+          </button>
+        </div>
+      )}
     </div>
   );
 };
