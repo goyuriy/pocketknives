@@ -41,11 +41,13 @@ pointing. Three decisions make a throw, and none of them is a reflex:
    slightly on its own; a patient player waits for it to settle.
 2. **Draw.** Hold the button and pull back towards you. How far back is how far
    the knife will fly — a position, not a speed, so it means the same on a
-   mouse, a trackpad and a thumb.
+   mouse, a trackpad and a thumb. The hand keeps turning with the mouse while
+   the arm is back, so the line can be settled at full draw.
 3. **Push through.** Push forward past the point where you gripped. Crossing
    that point is the release. Push straight and the knife goes where it
    pointed; push crooked and it pulls off line the way the push wandered, like
-   a golf swing coming across the ball.
+   a golf swing coming across the ball. The aim freezes where the push begins:
+   sideways movement before that is re-aiming, after it is drift.
 
 Drift back up slowly instead of pushing, or let go of the button, and the throw
 is called off — the arm just eases back to rest.

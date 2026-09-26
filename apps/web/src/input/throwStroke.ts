@@ -8,12 +8,17 @@ export type Sample = {
   readonly t: number;
 };
 
+/** The stretch of screen the hand's reach is spread across, in the pointer's own coordinates. */
+export type Reach = {
+  readonly left: number;
+  readonly width: number;
+};
+
 /** A throw in progress: the button is down, the arm is working. */
 export type Stroke = {
   /** Where the grip began. Drawing back is measured from here, and pushing through it throws. */
   readonly anchor: Sample;
-  /** Where the hand was pointing when it gripped. Locked, so the push cannot re-aim it. */
-  readonly aim: number;
+  readonly reach: Reach;
   readonly samples: readonly Sample[];
 };
 
@@ -23,6 +28,8 @@ export type StrokeReading = {
    * once the pointer has come back up past the grip without throwing.
    */
   readonly draw: number;
+  /** Where the hand points right now — it keeps following the pointer sideways while drawn. */
+  readonly aim: number;
   /** The throw, if this step pushed through the grip hard enough to make one. */
   readonly thrown: ThrowIntent | null;
 };
@@ -44,7 +51,10 @@ export const aimFromPointer = (x: number, left: number, width: number, config: T
   return across * config.gesture.maxAim;
 };
 
-export const gripStroke = (at: Sample, aim: number): Stroke => ({ anchor: at, aim, samples: [at] });
+const aimOf = (sample: Sample, reach: Reach, config: ThrowConfig): number =>
+  aimFromPointer(sample.x, reach.left, reach.width, config);
+
+export const gripStroke = (at: Sample, reach: Reach): Stroke => ({ anchor: at, reach, samples: [at] });
 
 /**
  * Feeds new pointer samples into a stroke, and says whether they threw.
@@ -53,6 +63,10 @@ export const gripStroke = (at: Sample, aim: number): Stroke => ({ anchor: at, ai
  * towards you to draw the arm, then push it forward through the point where you
  * gripped. Crossing that point is the release.
  *
+ * - **Where** keeps following the pointer sideways all through the draw, so a
+ *   player can hold the arm back and still settle the line. It freezes where
+ *   the push begins: from there on, sideways motion is the push going crooked,
+ *   not the player re-aiming.
  * - **How far** comes from the bottom of the draw — a position, not a speed. A
  *   mouse and a trackpad and a thumb all move at wildly different speeds, but
  *   "pulled back a quarter of the screen" means the same thing on each.
@@ -87,7 +101,7 @@ export const advanceStroke = (
   const latest = samples[samples.length - 1]!;
   return {
     stroke: { ...stroke, samples: samples.filter((s) => latest.t - s.t <= MEMORY) },
-    reading: { draw: drawOf(latest), thrown },
+    reading: { draw: drawOf(latest), aim: aimOf(latest, stroke.reach, config), thrown },
   };
 };
 
@@ -116,7 +130,7 @@ const throwFrom = (
   if (pushSpeed < config.gesture.minPushSpeed) return null;
 
   const intent: ThrowIntent = {
-    aim: stroke.aim + handSway(release.t / 1000),
+    aim: aimOf(bottom, stroke.reach, config) + handSway(release.t / 1000),
     draw: Math.min(1, drawOf(bottom)),
     drift: Math.atan2(release.x - bottom.x, bottom.y - release.y),
   };

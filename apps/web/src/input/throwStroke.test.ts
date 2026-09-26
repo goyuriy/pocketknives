@@ -15,6 +15,8 @@ const path = (from: Sample, to: { x: number; y: number }, steps: number, ms: num
   }));
 
 const grip: Sample = { x: 400, y: 400, t: 1000 };
+/** An 800-wide stage, so the grip point at x=400 is straight ahead. */
+const reach = { left: 0, width: 800 };
 
 /** Grip, draw back by `drawn` of a full draw over `drawMs`, then push to `overshoot` above the grip. */
 const swing = (drawn: number, pushMs: number, sideways = 0, drawMs = 300) => {
@@ -22,7 +24,7 @@ const swing = (drawn: number, pushMs: number, sideways = 0, drawMs = 300) => {
   const back = path(grip, bottom, 10, drawMs / 10);
   const last = back[back.length - 1]!;
   const through = path(last, { x: 400 + sideways, y: 380 }, 6, pushMs / 6);
-  return advanceStroke(gripStroke(grip, 0.2), [...back, ...through], HEIGHT, DEFAULT_CONFIG);
+  return advanceStroke(gripStroke(grip, reach), [...back, ...through], HEIGHT, DEFAULT_CONFIG);
 };
 
 describe('advanceStroke', () => {
@@ -48,7 +50,7 @@ describe('advanceStroke', () => {
     const back = path(grip, bottom, 10, 30);
     const held = Array.from({ length: 10 }, (_, i) => ({ ...bottom, t: 1300 + (i + 1) * 100 }));
     const push = path(held[held.length - 1]!, { x: 400, y: 380 }, 6, 15);
-    const { reading } = advanceStroke(gripStroke(grip, 0), [...back, ...held, ...push], HEIGHT, DEFAULT_CONFIG);
+    const { reading } = advanceStroke(gripStroke(grip, reach), [...back, ...held, ...push], HEIGHT, DEFAULT_CONFIG);
     expect(reading.thrown).not.toBeNull();
   });
 
@@ -63,14 +65,36 @@ describe('advanceStroke', () => {
     expect(wandering.drift).toBeGreaterThan(0.2);
   });
 
-  it('keeps the aim it gripped with, plus the hand’s sway at the moment of release', () => {
+  it('aims where the hand was when the push began, plus its sway at the moment of release', () => {
     const { reading } = swing(0.6, 90);
-    expect(reading.thrown!.aim).toBeCloseTo(0.2 + handSway((1000 + 300 + 90) / 1000), 6);
+    expect(reading.thrown!.aim).toBeCloseTo(0 + handSway((1000 + 300 + 90) / 1000), 6);
+  });
+
+  it('lets the player re-aim while the arm is drawn back, without counting it as drift', () => {
+    // Draw straight back, then slide right while holding the draw, then push straight.
+    const bottom: Sample = { x: 400, y: 400 + 0.6 * fullDraw, t: 1300 };
+    const back = path(grip, bottom, 10, 30);
+    const slide = path(bottom, { x: 600, y: bottom.y }, 10, 30);
+    const push = path(slide.at(-1)!, { x: 600, y: 380 }, 6, 15);
+    const thrown = advanceStroke(gripStroke(grip, reach), [...back, ...slide, ...push], HEIGHT, DEFAULT_CONFIG)
+      .reading.thrown!;
+
+    expect(thrown.aim - handSway(push.at(-1)!.t / 1000)).toBeCloseTo(
+      aimFromPointer(600, 0, 800, DEFAULT_CONFIG),
+      6,
+    );
+    expect(Math.abs(thrown.drift)).toBeLessThan(1e-9);
+  });
+
+  it('shows the hand following the pointer sideways while drawn', () => {
+    const drawn = path(grip, { x: 700, y: 400 + 0.5 * fullDraw }, 5, 20);
+    const { reading } = advanceStroke(gripStroke(grip, reach), drawn, HEIGHT, DEFAULT_CONFIG);
+    expect(reading.aim).toBeCloseTo(aimFromPointer(700, 0, 800, DEFAULT_CONFIG), 9);
   });
 
   it('reports the draw as it happens, for the arm and the meter', () => {
     const halfway = path(grip, { x: 400, y: 400 + 0.5 * fullDraw }, 5, 20);
-    const { reading } = advanceStroke(gripStroke(grip, 0), halfway, HEIGHT, DEFAULT_CONFIG);
+    const { reading } = advanceStroke(gripStroke(grip, reach), halfway, HEIGHT, DEFAULT_CONFIG);
     expect(reading.draw).toBeCloseTo(0.5, 6);
     expect(reading.thrown).toBeNull();
   });

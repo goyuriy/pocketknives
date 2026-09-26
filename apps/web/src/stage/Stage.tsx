@@ -34,7 +34,9 @@ const snapshotOf = (game: SandboxState): StageSnapshot => ({
  * - **moving** points it — the pointer's place across the stage is where the
  *   hand aims, and there is no cursor, only the knife;
  * - **pressing** grips;
- * - **pulling back and pushing through** throws, read by `advanceStroke`;
+ * - **pulling back and pushing through** throws, read by `advanceStroke` —
+ *   and the hand keeps turning with the pointer while drawn, so the line can be
+ *   settled with the arm already back;
  * - **letting go** before pushing through calls the throw off.
  *
  * The hand and the stroke live in refs, not state. They change on every pointer
@@ -94,10 +96,10 @@ export const Stage = ({ game }: { game: SandboxState }) => {
   const onPointerDown = (event: React.PointerEvent<HTMLElement>) => {
     if (!canThrow || event.button > 0) return;
     event.currentTarget.setPointerCapture?.(event.pointerId);
-    const aim = aimAt(event);
+    const box = event.currentTarget.getBoundingClientRect();
     const [at] = samplesOf(event).slice(-1);
-    stroke.current = gripStroke(at!, aim);
-    hand.current = { aim, draw: 0 };
+    stroke.current = gripStroke(at!, { left: box.left, width: box.width });
+    hand.current = { aim: aimAt(event), draw: 0 };
     setDraw(0);
   };
 
@@ -119,7 +121,7 @@ export const Stage = ({ game }: { game: SandboxState }) => {
       return;
     }
     stroke.current = next;
-    hand.current = { aim: next.aim, draw: reading.draw };
+    hand.current = { aim: reading.aim, draw: reading.draw };
     setDraw(Math.max(0, reading.draw));
   };
 
