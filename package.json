@@ -5,6 +5,7 @@
   "scripts": {
     "dev": "pnpm --filter @pocketknives/web dev",
     "build": "pnpm -r build",
+    "start": "pnpm build && pnpm --filter @pocketknives/web preview",
     "test": "pnpm -r test",
     "typecheck": "pnpm -r typecheck"
   },

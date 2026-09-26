@@ -4,8 +4,20 @@
     {
       "name": "web",
       "runtimeExecutable": "pnpm",
-      "runtimeArgs": ["--filter", "@pocketknives/web", "dev"],
+      "runtimeArgs": [
+        "--filter",
+        "@pocketknives/web",
+        "dev"
+      ],
       "port": 5173
+    },
+    {
+      "name": "web-build",
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": [
+        "start"
+      ],
+      "port": 4173
     }
   ]
 }
