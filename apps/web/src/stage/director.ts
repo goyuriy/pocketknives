@@ -5,6 +5,7 @@ import type { HandInput, StageSnapshot } from './snapshot.js';
 import { handSway } from '../input/handSway.js';
 import { bodyPose, READY_SWING, swingForDraw } from './math/bodyPose.js';
 import { easeToward, RESTING_ARM, stepArm } from './math/armMotion.js';
+import { flightTimeAt, rateAt, RELEASE_SLOW_MOTION } from '../playback/releaseTimeline.js';
 import { cameraEaseRate, cameraPose, easeHeading, LOOK_FOLLOW_RATE } from './math/cameraPose.js';
 import { fallenPlacement, flyingPlacement, stuckPlacement } from './math/knifePlacement.js';
 import { createArenaView } from './views/arenaView.js';
@@ -61,6 +62,8 @@ export const createDirector = (
 
   let motion = RESTING_ARM;
   let raised = 0;
+  // Where the arm was when the hand let go: the hand-off swings it from here.
+  let swingAtRelease = 0;
   let look: number | null = null;
   let phaseSeen = first.phase;
   let phaseStartedAt = performance.now();
@@ -74,8 +77,13 @@ export const createDirector = (
     if (phase !== phaseSeen) {
       phaseSeen = phase;
       phaseStartedAt = now;
+      if (phase.kind === 'flying') swingAtRelease = motion.shown;
     }
     const intoPhase = (now - phaseStartedAt) / 1000;
+    const { handOff } = RELEASE_SLOW_MOTION;
+    // Still in the fist: the arm is swinging through to let go.
+    const handingOff = phase.kind === 'flying' && intoPhase < handOff;
+    const intoFlight = Math.max(0, intoPhase - handOff);
 
     const landed = phase.kind === 'cutting' || phase.kind === 'resting';
     // The knife and its cut stay put after the animation ends, so the throw can
@@ -93,10 +101,12 @@ export const createDirector = (
     );
 
     const { flying, landed: resting } = knivesFor(state.knife);
-    flying.root.setEnabled(phase.kind === 'flying');
-    if (phase.kind === 'flying') {
-      // Slower than real time on purpose: the knife's turn is worth watching.
-      place(flying.root, flyingPlacement(phase.attempt.flight, intoPhase * state.playbackScale));
+    flying.root.setEnabled(phase.kind === 'flying' && !handingOff);
+    if (phase.kind === 'flying' && !handingOff) {
+      // Off the fingers at a crawl, then up to the cruising pace — which is
+      // itself slower than real time, because the knife's turn is worth watching.
+      const flightTime = flightTimeAt(intoFlight, state.playbackScale);
+      place(flying.root, flyingPlacement(phase.attempt.flight, flightTime));
     }
     resting.root.setEnabled(settled !== null);
     if (settled) {
@@ -117,7 +127,18 @@ export const createDirector = (
         ? state.restHeading - (aim + handSway(now / 1000))
         : phase.attempt.flight.impact.heading;
 
-    motion = stepArm(motion, draw === null ? READY_SWING : swingForDraw(draw), released, seconds);
+    if (handingOff) {
+      // A fixed swing, not an eased one: the flight starts on a schedule, and
+      // the hand must arrive at the release exactly when it does.
+      const t = intoPhase / handOff;
+      motion = { shown: swingAtRelease + (0 - swingAtRelease) * t * t, recovering: true };
+    } else {
+      // Through the follow-through the arm lives on the world's clock, so it
+      // moves in slow motion with the knife it just let go of.
+      const worldSeconds =
+        phase.kind === 'flying' ? seconds * rateAt(intoFlight, state.playbackScale) : seconds;
+      motion = stepArm(motion, draw === null ? READY_SWING : swingForDraw(draw), released, worldSeconds);
+    }
     // The free arm comes up to point only while the button is held.
     raised = easeToward(raised, draw !== null && !released ? 1 : 0, FREE_ARM_RATE, seconds);
     const release: Vec3 = [state.stand[0], state.stand[1], state.config.style.releaseHeight];
@@ -133,7 +154,11 @@ export const createDirector = (
       },
       motion.shown,
     );
-    body.show(pose, { spec: state.knife, hands: state.hands, heading, sleeve: state.playerColor }, !released);
+    body.show(
+      pose,
+      { spec: state.knife, hands: state.hands, heading, sleeve: state.playerColor },
+      !released || handingOff,
+    );
 
     look = look === null ? heading : easeHeading(look, heading, LOOK_FOLLOW_RATE, seconds);
     camera.follow(cameraPose(release, landed, state.arenaRadius, look), cameraEaseRate(landed), seconds);

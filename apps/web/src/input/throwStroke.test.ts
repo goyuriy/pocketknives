@@ -54,6 +54,17 @@ describe('advanceStroke', () => {
     expect(reading.thrown).not.toBeNull();
   });
 
+  it('still throws when the pointer held perfectly still at the bottom, sending nothing', () => {
+    // A real mouse at rest emits no events: the draw ends, a second of silence,
+    // then the push. The push must be timed from when it began, not from the
+    // last sample before the silence.
+    const bottom: Sample = { x: 400, y: 400 + 0.6 * fullDraw, t: 1300 };
+    const back = path(grip, bottom, 10, 30);
+    const push = path({ ...bottom, t: 2300 }, { x: 400, y: 380 }, 6, 12);
+    const { reading } = advanceStroke(gripStroke(grip, reach, 0.4), [...back, ...push], HEIGHT, DEFAULT_CONFIG);
+    expect(reading.thrown).not.toBeNull();
+  });
+
   it('ignores a draw too shallow to be a throw', () => {
     expect(swing(0.02, 60).reading.thrown).toBeNull();
   });

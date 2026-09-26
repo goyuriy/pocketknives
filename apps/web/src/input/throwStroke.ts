@@ -47,6 +47,8 @@ export type StrokeReading = {
 
 /** How long a stroke remembers. A draw held longer than this is still a draw; only its path is forgotten. */
 const MEMORY = 3000;
+/** One display frame, in milliseconds — the most a push can have been under way before it was first seen. */
+const FRAME = 1000 / 60;
 /** How close to the bottom of the draw counts as "still at the bottom", in screen-heights. */
 const BOTTOM_TOLERANCE = 0.01;
 
@@ -151,9 +153,17 @@ const throwFrom = (
   // The push begins where the draw was deepest — the *last* moment there, so a
   // player who pauses at the bottom is not measured as pushing slowly.
   const deepest = Math.max(...draw.map((s) => s.y));
-  const bottom = [...draw].reverse().find((s) => s.y >= deepest - BOTTOM_TOLERANCE * height)!;
+  const bottomIndex = draw.map((s) => s.y >= deepest - BOTTOM_TOLERANCE * height).lastIndexOf(true);
+  const bottom = draw[bottomIndex]!;
+  /*
+   * A pointer held still sends nothing at all, so the last sample at the bottom
+   * can be long before the push began. The push cannot have started more than a
+   * frame before the first sample that moved away, so it is timed from there.
+   */
+  const firstMove = draw[bottomIndex + 1] ?? release;
+  const pushStart = Math.max(bottom.t, firstMove.t - FRAME);
 
-  const seconds = (release.t - bottom.t) / 1000;
+  const seconds = (release.t - pushStart) / 1000;
   const pushSpeed = seconds > 0 ? (bottom.y - release.y) / height / seconds : Infinity;
   if (pushSpeed < config.gesture.minPushSpeed) return null;
 

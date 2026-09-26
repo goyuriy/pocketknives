@@ -24,6 +24,7 @@ import {
   type ThrowOutcome,
 } from '@pocketknives/core';
 import { PLAYER_NAMES } from '../ui/theme.js';
+import { playbackDuration } from '../playback/releaseTimeline.js';
 
 export const ARENA_RADIUS = 10;
 
@@ -151,7 +152,7 @@ export const useSandbox = (initialPlayers = 4) => {
         flight,
         verdict,
         outcome,
-        playbackDuration: flight.impact.time / playbackScale,
+        playbackDuration: playbackDuration(flight.impact.time, playbackScale),
         seed,
         intent,
       };
