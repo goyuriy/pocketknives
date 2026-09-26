@@ -40,3 +40,7 @@ export const stepArm = (
     recovering,
   };
 };
+
+/** Moves a value a frame's worth towards a target, frame-rate independently. */
+export const easeToward = (value: number, target: number, rate: number, seconds: number): number =>
+  value + (target - value) * (1 - Math.exp(-rate * seconds));

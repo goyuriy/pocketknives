@@ -5,7 +5,7 @@ import { bladeDirection } from './coords.js';
 
 const setup = (id: string, heading = Math.PI / 2): BodySetup => {
   const knife = knifeById(id);
-  return { release: [0, -12, 1.4], heading, releaseBladeAngle: 0.8, spec: knife.spec, hands: knife.hands, loft: 0 };
+  return { release: [0, -12, 1.4], heading, releaseBladeAngle: 0.8, spec: knife.spec, hands: knife.hands, loft: 0, raised: 1 };
 };
 
 const distance = (a: Vec3, b: Vec3) => Math.hypot(a[0] - b[0], a[1] - b[1], a[2] - b[2]);
@@ -82,6 +82,16 @@ describe('bodyPose', () => {
     expect(reach).toBeGreaterThan(heading - 0.2);
     expect(aiming.pointHeading).toBeCloseTo(reach, 6);
     expect(aiming.pointing).toBe(true);
+  });
+
+  it('lets the free arm hang at the side until the button is held', () => {
+    const idle = bodyPose({ ...setup('thrower'), raised: 0 }, READY_SWING);
+    const gripped = bodyPose({ ...setup('thrower'), raised: 1 }, READY_SWING);
+    expect(idle.pointing).toBe(false);
+    expect(gripped.pointing).toBe(true);
+    // Down by the hip, well under the shoulder; raised, it is up at shoulder height.
+    expect(idle.otherArm.end[2]).toBeLessThan(idle.otherArm.root[2] - 0.6);
+    expect(gripped.otherArm.end[2]).toBeGreaterThan(gripped.otherArm.root[2]);
   });
 
   it('tucks the pointing hand in once the throw follows through', () => {

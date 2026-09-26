@@ -4,13 +4,16 @@ import type { Stage } from './engine/createStage.js';
 import type { HandInput, StageSnapshot } from './snapshot.js';
 import { handSway } from '../input/handSway.js';
 import { bodyPose, READY_SWING, swingForDraw } from './math/bodyPose.js';
-import { RESTING_ARM, stepArm } from './math/armMotion.js';
+import { easeToward, RESTING_ARM, stepArm } from './math/armMotion.js';
 import { cameraEaseRate, cameraPose, easeHeading, LOOK_FOLLOW_RATE } from './math/cameraPose.js';
 import { fallenPlacement, flyingPlacement, stuckPlacement } from './math/knifePlacement.js';
 import { createArenaView } from './views/arenaView.js';
 import { createBodyView } from './views/bodyView.js';
 import { createCameraRig } from './views/cameraRig.js';
 import { createKnifeModel, place, type KnifeModel } from './views/knifeModel.js';
+
+/** How briskly the free arm rises to point, and drops again, per second. */
+const FREE_ARM_RATE = 9;
 
 /** The longest step a frame may take. A tab left in the background must not wake up to a leap. */
 const LONGEST_FRAME = 0.1;
@@ -57,6 +60,7 @@ export const createDirector = (
   };
 
   let motion = RESTING_ARM;
+  let raised = 0;
   let look: number | null = null;
   let phaseSeen = first.phase;
   let phaseStartedAt = performance.now();
@@ -114,6 +118,8 @@ export const createDirector = (
         : phase.attempt.flight.impact.heading;
 
     motion = stepArm(motion, draw === null ? READY_SWING : swingForDraw(draw), released, seconds);
+    // The free arm comes up to point only while the button is held.
+    raised = easeToward(raised, draw !== null && !released ? 1 : 0, FREE_ARM_RATE, seconds);
     const release: Vec3 = [state.stand[0], state.stand[1], state.config.style.releaseHeight];
     const pose = bodyPose(
       {
@@ -121,6 +127,7 @@ export const createDirector = (
         heading,
         releaseBladeAngle: state.config.style.startingBladeAngle,
         loft: pitch - state.config.style.pitch,
+        raised,
         spec: state.knife,
         hands: state.hands,
       },

@@ -33,6 +33,11 @@ const TWO_HANDED_SPREAD = 0.3;
 const POINT_DISTANCE = 5;
 const POINT_HEIGHT = 1.9;
 const POINT_REACH = 0.76;
+/** How far below the shoulder the free hand hangs at rest — down at the hip, out of view. */
+const HANG_DROP = 0.78;
+/** Which way a hanging hand's knuckles face: down. */
+const HANGING_TILT = -1.4;
+
 /**
  * How much a steeper or flatter throw lifts or lowers the throwing hand, in
  * units per radian of loft. The pointing arm tilts by the loft itself, so it
@@ -75,6 +80,11 @@ export type BodySetup = {
    * set to throw, radians. Raises the hands and the pointing arm to match.
    */
   readonly loft: number;
+  /**
+   * How far the free arm is raised to point, 0 hanging at the side, 1 pointing
+   * at the target. Eased by the caller, so the arm lifts rather than snaps.
+   */
+  readonly raised: number;
 };
 
 export type BodyPose = {
@@ -147,14 +157,15 @@ export const eyeAt = (release: Vec3, heading: number): Vec3 =>
  * exactly where the flight begins and at exactly the angle it begins at — so it
  * leaves the hand without a visible jump.
  *
- * The other hand points along the throw while aiming and drawing, the way a
- * javelin thrower sights down their free arm, and tucks in as the throw
- * follows through. On a two-handed weapon it holds the grip instead.
+ * The other hand hangs at the side until the player commits — gripping raises
+ * it to point along the throw, the way a javelin thrower sights down their free
+ * arm before letting go — and it tucks in as the throw follows through. On a
+ * two-handed weapon it holds the grip instead.
  *
  * @param swing -1 drawn back, `READY_SWING` held, 0 release, 1 followed through
  */
 export const bodyPose = (setup: BodySetup, swing: number): BodyPose => {
-  const { release, heading, releaseBladeAngle, spec, hands, loft } = setup;
+  const { release, heading, releaseBladeAngle, spec, hands, loft, raised } = setup;
   const frame = frameAt(release, heading);
   const throwingShoulder: Vec3 = [0, SHOULDER_HALF_WIDTH, SHOULDER_HEIGHT];
   const otherShoulder: Vec3 = [0, -SHOULDER_HALF_WIDTH, SHOULDER_HEIGHT];
@@ -195,7 +206,8 @@ export const bodyPose = (setup: BodySetup, swing: number): BodyPose => {
     };
   }
 
-  // Points while aiming and drawing; pulls in to the chest through the throw.
+  // Hangs until gripped, points while drawing, pulls in to the chest through the throw.
+  const lift = Math.min(1, Math.max(0, raised));
   const tuck = Math.min(1, Math.max(0, swing));
   const shoulder = inFrame(frame, otherShoulder);
   const across = [
@@ -215,15 +227,17 @@ export const bodyPose = (setup: BodySetup, swing: number): BodyPose => {
     POINT_REACH,
   );
   const chest = inFrame(frame, [0.28, -0.05, SHOULDER_HEIGHT - 0.3]);
+  const hanging = inFrame(frame, [0.14, -SHOULDER_HALF_WIDTH - 0.06, SHOULDER_HEIGHT - HANG_DROP]);
+  const reaching = lerp3(hanging, pointAt, lift);
 
   return {
     knifeAt,
     bladeAngle,
     throwingArm: twoBoneIk(inFrame(frame, throwingShoulder), gripAt, UPPER_ARM, FOREARM, throwingPole),
-    otherArm: twoBoneIk(shoulder, lerp3(pointAt, chest, tuck), UPPER_ARM, FOREARM, otherPole),
-    pointing: tuck < 0.5,
+    otherArm: twoBoneIk(shoulder, lerp3(reaching, chest, tuck), UPPER_ARM, FOREARM, otherPole),
+    pointing: lift > 0.5 && tuck < 0.5,
     pointHeading,
-    pointTilt: lerp(pointTilt, -1.2, tuck),
+    pointTilt: lerp(lerp(HANGING_TILT, pointTilt, lift), -1.2, tuck),
   };
 };
 

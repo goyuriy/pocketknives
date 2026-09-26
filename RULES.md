@@ -37,8 +37,9 @@ pointing. Three decisions make a throw, and none of them is a reflex:
 
 1. **Point.** You see through the thrower's eyes, your own two arms in front of
    you. Move the mouse across the screen and you turn with it, edge to edge
-   being the arm's whole reach, and your free hand points out along the line
-   you are aiming — the way a javelin thrower sights down their free arm. The
+   being the arm's whole reach. Your free hand hangs at your side until you
+   hold the button; then it comes up and points out along the line you are
+   aiming — the way a javelin thrower sights down their free arm. The
    view follows a beat behind, the way a body-worn camera trails the arm. The
    hand wavers very slightly on its own; a patient player waits for it to
    settle.
