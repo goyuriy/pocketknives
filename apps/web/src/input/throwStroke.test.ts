@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { DEFAULT_CONFIG } from '@pocketknives/core';
 import {
   advanceStroke,
+  dragReach,
   liftStroke,
   aimFromPointer,
   gripStroke,
@@ -129,6 +130,20 @@ describe('advanceStroke', () => {
     const push = path(again.at(-1)!, { x: 400, y: 380 }, 5, 15);
     const { reading } = advanceStroke(first.stroke, [...again, ...push], HEIGHT, DEFAULT_CONFIG);
     expect(reading.thrown?.draw).toBeCloseTo(0.4, 2);
+  });
+});
+
+describe('dragReach', () => {
+  it('aims straight ahead wherever the finger lands, until it drags sideways', () => {
+    // A finger landing far over on the right, then pulling straight back.
+    const landed: Sample = { x: 700, y: 400, t: 1000 };
+    const back = path(landed, { x: 700, y: 400 + 0.5 * fullDraw }, 6, 20);
+    const straight = advanceStroke(gripStroke(landed, dragReach(700, 800, DEFAULT_CONFIG), 0.4), back, HEIGHT, DEFAULT_CONFIG);
+    expect(straight.reading.aim).toBe(0);
+
+    const sideways = path(landed, { x: 540, y: 400 + 0.5 * fullDraw }, 6, 20);
+    const turned = advanceStroke(gripStroke(landed, dragReach(700, 800, DEFAULT_CONFIG), 0.4), sideways, HEIGHT, DEFAULT_CONFIG);
+    expect(turned.reading.aim).toBeLessThan(0); // dragged left, aims left
   });
 });
 

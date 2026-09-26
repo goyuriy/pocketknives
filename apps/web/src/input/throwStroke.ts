@@ -31,6 +31,20 @@ export const screenReach = (left: number, width: number, config: ThrowConfig): R
   limit: config.gesture.maxAim,
 });
 
+/**
+ * A finger: aim turns with how far it drags sideways from where it came down,
+ * half the stage's width being the arm's whole reach.
+ *
+ * Where on the glass the finger lands says nothing — a thumb on a phone lands
+ * wherever it is comfortable, and reading its landing place as aim turned the
+ * player a little further every time they tapped on the right.
+ */
+export const dragReach = (landedAt: number, width: number, config: ThrowConfig): Reach => ({
+  centre: landedAt,
+  radiansPerPixel: config.gesture.maxAim / Math.max(1, width / 2),
+  limit: config.gesture.maxAim,
+});
+
 /** Mouse-look: aim turns with the mouse from where it gripped, as far as it goes. */
 export const lookReach = (centre: number, radiansPerPixel: number): Reach => ({
   centre,

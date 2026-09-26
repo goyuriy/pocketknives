@@ -176,7 +176,7 @@ circle. If the ground under your feet is taken, you are put back home.
 | --- | --- | --- | --- | --- |
 | Mouse and keys | WASD or arrow keys | Mouse across (click to capture the mouse, Esc to release) | Mouse up and down | Hold, pull back, push through — across still turns while drawn |
 | Gamepad | Left stick | Right stick across | Right stick up and down | Hold the right trigger (or bumper): the right stick becomes a swing stick — pull back, push up past the grip point. Across still turns. |
-| Touch | A floating stick: put a thumb down on the left of the screen | Drag on the right | Where the finger comes down | The same drag: pull back, push through |
+| Touch | A floating stick: put a thumb down on the left of the screen | Drag sideways from wherever the finger lands on the right — never where it lands | Where the finger comes down | The same drag: pull back, flick forward and let go |
 
 These follow what players already know from games that do it well. Mouse-look
 with a captured pointer is the standard in every first-person browser game — a

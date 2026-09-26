@@ -4,6 +4,7 @@ import type { SandboxState, Stance } from '../state/useSandbox.js';
 import {
   advanceStroke,
   aimFromPointer,
+  dragReach,
   gripStroke,
   liftStroke,
   lookReach,
@@ -15,6 +16,7 @@ import {
 import { STANDING_STILL, walkFromStick, type WalkInput } from '../input/walk.js';
 import type { ImpactSound } from '../audio/impactSound.js';
 import type { HandInput } from './snapshot.js';
+import { handSway } from '../input/handSway.js';
 
 /**
  * Whether the mouse is captured for mouse-look right now.
@@ -64,7 +66,8 @@ export type ThrowControls = {
  *   Escape gives the mouse back.
  * - **Touch:** Brawl Stars' split. A thumb landing on the left of the stage
  *   becomes a walking stick, floating wherever it landed; anywhere else aims and
- *   throws with the drag gesture.
+ *   throws with the drag gesture — aiming by how far it drags sideways, never
+ *   by where it happened to land.
  * - **Keys and gamepad** walk too; they are read by the stage each frame.
  *
  * The stroke, the stance and the hand live in refs: they change on every
@@ -196,12 +199,19 @@ export const useThrowControls = ({
       event.pointerType === 'touch'
         ? pitchFromPointer(event.clientY, area.top, area.height, game.config)
         : hand.current.pitch;
-    const reach = captured ? lookReach(at.x, LOOK_RATE) : screenReach(area.left, area.width, game.config);
+    const touch = event.pointerType === 'touch';
+    // Mouse-look turns with motion; a finger aims by dragging sideways from
+    // where it landed; a free mouse cursor aims wherever it rests.
+    const reach = captured
+      ? lookReach(at.x, LOOK_RATE)
+      : touch
+        ? dragReach(at.x, area.width, game.config)
+        : screenReach(area.left, area.width, game.config);
 
     gripFacing.current = stance.current.facing;
-    turnsBody.current = captured || event.pointerType === 'touch';
+    turnsBody.current = captured || touch;
     stroke.current = gripStroke(at, reach, pitch);
-    point(captured ? 0 : aimFromPointer(event.clientX, area.left, area.width, game.config), pitch, 0);
+    point(captured || touch ? 0 : aimFromPointer(event.clientX, area.left, area.width, game.config), pitch, 0);
     setDraw(0);
   };
 
@@ -244,7 +254,7 @@ export const useThrowControls = ({
       event.currentTarget.clientHeight,
       game.config,
     );
-    if (reading.thrown) return throwIt(reading.thrown);
+    if (reading.thrown) return throwIt(reading.thrown, next.samples.at(-1)!.t);
     stroke.current = next;
     hand.current = { aim: reading.aim, pitch: next.pitch, draw: reading.draw };
     setDraw(Math.max(0, reading.draw));
@@ -268,14 +278,18 @@ export const useThrowControls = ({
     const lift = stroke.current ? samplesOf(event).at(-1) : undefined;
     const thrown =
       stroke.current && lift ? liftStroke(stroke.current, lift, event.currentTarget.clientHeight, game.config) : null;
-    if (thrown) return throwIt(thrown);
+    if (thrown) return throwIt(thrown, lift!.t);
     letGo();
   };
 
-  /** A throw leaves the hand: from where the thrower stands, facing the way they gripped. */
-  const throwIt = (thrown: ThrowIntent) => {
+  /**
+   * A throw leaves the hand: from where the thrower stands, facing the way they
+   * gripped. The aim they chose becomes their facing afterwards — the hand's own
+   * waver, thrown with it, does not, or every throw would turn them a hair.
+   */
+  const throwIt = (thrown: ThrowIntent, at: number) => {
     const from: Stance = { feet: stance.current.feet, facing: gripFacing.current };
-    hand.current = { ...hand.current, aim: thrown.aim };
+    hand.current = { ...hand.current, aim: thrown.aim - handSway(at / 1000) };
     letGo();
     release(thrown, from);
   };
