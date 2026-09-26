@@ -1,7 +1,6 @@
 import type {
   Board,
   FieldOutline,
-  Flight,
   KnifeSpec,
   PlayerId,
   ThrowConfig,
@@ -26,7 +25,6 @@ export type StageSnapshot = {
   readonly lastAttempt: Attempt | null;
   /** True while the finger is down and the hand is moving. */
   readonly swinging: boolean;
-  readonly previewFlight: Flight | null;
   readonly stand: Vec2;
   readonly restHeading: number;
   readonly config: ThrowConfig;
@@ -35,4 +33,15 @@ export type StageSnapshot = {
   readonly playerColor: string;
   readonly playbackScale: number;
   readonly arenaRadius: number;
+};
+
+/**
+ * The player's hand as the pointer has it right now — read every frame, and
+ * changed far more often than React renders, so it travels by ref instead.
+ */
+export type HandInput = {
+  /** Where the hand points, radians from straight ahead, positive right. */
+  readonly aim: number;
+  /** How far the arm is drawn, as a fraction of a full draw; null when not gripping. */
+  readonly draw: number | null;
 };

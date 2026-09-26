@@ -31,22 +31,34 @@ Eliminated players are skipped.
 
 ## The throw
 
-**You move your hand; your hand throws the knife.** The finger never touches the
-knife. It works the arm on screen — pull down to draw the arm back, flick up to
-bring it through — and the moment the finger lets go, the arm releases.
+**You move your hand; your hand throws the knife.** There is no cursor, no
+crosshair and no preview of where it will land — only the knife in your fist,
+pointing. Three decisions make a throw, and none of them is a reflex:
 
-Two things are read from the last moments of the flick, and nothing else:
+1. **Point.** Move the mouse across the screen and the hand turns with it, edge
+   to edge being the arm's whole reach. The view follows the hand a beat
+   behind, the way a body-worn camera trails the arm. The hand wavers very
+   slightly on its own; a patient player waits for it to settle.
+2. **Draw.** Hold the button and pull back towards you. How far back is how far
+   the knife will fly — a position, not a speed, so it means the same on a
+   mouse, a trackpad and a thumb.
+3. **Push through.** Push forward past the point where you gripped. Crossing
+   that point is the release. Push straight and the knife goes where it
+   pointed; push crooked and it pulls off line the way the push wandered, like
+   a golf swing coming across the ball.
 
-- **Which way it was going** becomes the direction of the throw. The knife
-  follows through: a flick to the right sends it right.
-- **How fast it was going** becomes how far the knife flies.
+Drift back up slowly instead of pushing, or let go of the button, and the throw
+is called off — the arm just eases back to rest.
 
-A stroke going backwards is winding up, not throwing — letting go mid-wind-up
-throws nothing.
+This is the golf "swing stick" (pull back to load, push forward to strike)
+fitted to a knife, with Bodycam's rule that you aim with the object, not with a
+marker. The earlier control read the pace of a flick, which suited a phone and
+fought a mouse: a desktop pointer's speed says more about the mouse's
+sensitivity setting than about the player's intent.
 
-> `readSwing`, `armSwing` — [gesture.ts](apps/web/src/input/gesture.ts)
-> `armPose` — [armPose.ts](apps/web/src/stage/math/armPose.ts)
-> `swingLaunch` — [swing.ts](packages/core/src/throw/swing.ts)
+> `advanceStroke`, `aimFromPointer` — [throwStroke.ts](apps/web/src/input/throwStroke.ts)
+> `handSway` — [handSway.ts](apps/web/src/input/handSway.ts)
+> `ThrowIntent`, `swingLaunch` — [swing.ts](packages/core/src/throw/swing.ts)
 
 **The wrist is automatic.** Given the distance, the hand turns the knife by
 exactly as much as that distance needs to bring it in point-first — aiming for
@@ -276,7 +288,7 @@ dials — press **Tune** — with the derived numbers shown above the sliders, a
 | Group | Fields | What it decides |
 | --- | --- | --- |
 | `knife` | `bladeLength`, `handleLength`, `mass`, `balance`, `edgeWidth` | The object itself |
-| `gesture` | `fullPowerSwipe`, `minSwipe`, `aimGain` | How a flick is read |
+| `gesture` | `fullDraw`, `minDraw`, `minPushSpeed`, `maxAim`, `driftGain` | How the hand's motion is read |
 | `style` | `pitch`, `spinImpulse`, `startingBladeAngle`, `releaseHeight`, `minSpeed`, `maxSpeed`, `referenceMass`, `weightPenalty` | How the arm throws |
 | `scatter` | `spin`, `power`, `startingBladeAngle`, `heading` | How much the hand wobbles (seeded) |
 | `stick` | `baseMisalignment`, `minEntryAngle`, `minMomentum`, `soilResistance` | What the ground accepts |
@@ -296,14 +308,13 @@ the player's decision, and wobbling the aim would only take it away.
 
 ### Scatter is seeded, always
 
-A throw is recorded as a direction, a pace and a **seed**. Feed the same three
+A throw is recorded as an aim, a draw, a drift and a **seed**. Feed the same four
 back in anywhere — another machine, a server checking a client, a replay months
 later — and the knife lands in exactly the same place. Nothing reaches for a
 global random source, because randomness that cannot be replayed would make a
 throw impossible to verify and the game impossible to referee.
 
-The aiming preview is drawn without the wobble. It shows what the player is
-aiming at, not the error their hand is about to make.
+There is no aiming preview. The knife in the hand is the aim.
 
 ## Not settled yet
 
@@ -315,4 +326,4 @@ aiming at, not the error their hand is about to make.
 - **Roll.** The knife currently tumbles strictly within its flight plane, so the
   cut always runs along the throw. Letting a player put a twist on it would free
   the line from the aim — more control, and a third thing to learn. Deliberately
-  left out until the direction-and-pace version has been played.
+  left out until the point-draw-push version has been played.

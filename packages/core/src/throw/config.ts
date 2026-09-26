@@ -103,17 +103,20 @@ export type StickTuning = {
 /**
  * How a hand's motion is read as a throw.
  *
- * These are the numbers that decide whether the gesture feels like throwing
- * something. They are in abstract units — screen-heights per second — so the
- * mapping is the same on a phone and a desktop.
+ * In screen-heights and radians rather than pixels, so the same motion of the
+ * same hand reads the same on a laptop, a monitor and a phone.
  */
 export type GestureTuning = {
-  /** Hand speed that throws as hard as the arm can. */
-  readonly fullPowerSwipe: number;
-  /** Below this the hand was not throwing, it was resting. */
-  readonly minSwipe: number;
-  /** How far the release direction swings the aim. */
-  readonly aimGain: number;
+  /** How far the pointer is pulled back, in screen-heights, to draw the arm all the way. */
+  readonly fullDraw: number;
+  /** Least draw that counts as a throw — below it the push is just letting go. */
+  readonly minDraw: number;
+  /** Slowest push, screen-heights per second, that still throws rather than eases off. */
+  readonly minPushSpeed: number;
+  /** How far either side the hand can point, radians, from edge of the screen to edge. */
+  readonly maxAim: number;
+  /** How much of the push's sideways drift ends up in the knife's line. */
+  readonly driftGain: number;
 };
 
 export type ThrowConfig = {
@@ -188,9 +191,19 @@ export const DEFAULT_CONFIG: ThrowConfig = {
     soilResistance: 14,
   },
   gesture: {
-    fullPowerSwipe: 2.6,
-    minSwipe: 0.25,
-    aimGain: 0.9,
+    // A quarter of the screen: a comfortable pull on a mouse, and a thumb's
+    // length on a phone.
+    fullDraw: 0.25,
+    minDraw: 0.06,
+    // Slower than this across the grip point and the player is easing the arm
+    // back to rest, not throwing — which is how a throw is called off.
+    minPushSpeed: 0.7,
+    // From a stand just outside the rim, the far edges of the circle are a
+    // little under 60° either side.
+    maxAim: 0.95,
+    // Half the drift: enough that a sloppy push visibly pulls the knife, not so
+    // much that an ordinary one throws it at the wrong player.
+    driftGain: 0.5,
   },
   flight: {
     gravity: 24,

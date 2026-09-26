@@ -5,65 +5,68 @@ import { stickVerdict } from './stick.js';
 import { standingPoint } from './launch.js';
 import { KNIVES, knifeById } from './knives.js';
 import {
+  drawPower,
   isThrow,
   nearestStickingSpin,
   swingLaunch,
-  swingPower,
   sweetSpotAngle,
-  type SwingReading,
+  thrownHeading,
+  type ThrowIntent,
 } from './swing.js';
 
 const stand = standingPoint(-Math.PI / 2, 10);
 const rest = Math.PI / 2;
 
-const swing = (changes: Partial<SwingReading> = {}): SwingReading => ({
-  speed: 1.4,
-  aimOffset: 0,
+const swing = (changes: Partial<ThrowIntent> = {}): ThrowIntent => ({
+  draw: 0.5,
+  aim: 0,
+  drift: 0,
   ...changes,
 });
 
 const withKnife = (id: string): ThrowConfig => ({ ...DEFAULT_CONFIG, knife: knifeById(id).spec });
 
-const landing = (reading: SwingReading, config: ThrowConfig = DEFAULT_CONFIG, seed?: number) =>
+const landing = (reading: ThrowIntent, config: ThrowConfig = DEFAULT_CONFIG, seed?: number) =>
   simulateFlight(swingLaunch(stand, rest, reading, config, seed), config.flight).impact;
 
 /** How often a throw sticks across many hands, at one pace. */
-const stickRate = (speed: number, config: ThrowConfig = DEFAULT_CONFIG): number => {
+const stickRate = (draw: number, config: ThrowConfig = DEFAULT_CONFIG): number => {
   let stuck = 0;
   for (let seed = 1; seed <= 400; seed++) {
-    if (stickVerdict(landing(swing({ speed }), config, seed), config).stuck) stuck++;
+    if (stickVerdict(landing(swing({ draw }), config, seed), config).stuck) stuck++;
   }
   return stuck / 400;
 };
 
-describe('the player chooses only direction and pace', () => {
-  it('throws further the faster the hand moves', () => {
-    const reach = (speed: number) => landing(swing({ speed })).point[1] + 12;
-    expect(reach(2.6)).toBeGreaterThan(reach(1.4));
-    expect(reach(1.4)).toBeGreaterThan(reach(0.5));
+describe('the player chooses where, how far, and how cleanly', () => {
+  it('throws further the further the arm is drawn back', () => {
+    const reach = (draw: number) => landing(swing({ draw })).point[1] + 12;
+    expect(reach(1)).toBeGreaterThan(reach(0.5));
+    expect(reach(0.5)).toBeGreaterThan(reach(0.1));
   });
 
-  it('follows through — a stroke to the right sends it right', () => {
-    const right = swingLaunch(stand, rest, swing({ aimOffset: 0.4 })).heading;
-    const left = swingLaunch(stand, rest, swing({ aimOffset: -0.4 })).heading;
+  it('points where the hand points — right is right', () => {
+    const right = swingLaunch(stand, rest, swing({ aim: 0.4 })).heading;
+    const left = swingLaunch(stand, rest, swing({ aim: -0.4 })).heading;
     expect(right).toBeLessThan(rest);
     expect(left).toBeGreaterThan(rest);
   });
 
-  it('reads pace as power from the least swing to the full one', () => {
-    const { minSwipe, fullPowerSwipe } = DEFAULT_CONFIG.gesture;
-    expect(swingPower(swing({ speed: minSwipe }))).toBe(0);
-    expect(swingPower(swing({ speed: fullPowerSwipe * 2 }))).toBe(1);
+  it('pulls a crooked push off line, the way it wandered', () => {
+    const straight = thrownHeading(rest, swing());
+    const toTheRight = thrownHeading(rest, swing({ drift: 0.3 }));
+    expect(toTheRight).toBeLessThan(straight);
+    expect(straight - toTheRight).toBeCloseTo(0.3 * DEFAULT_CONFIG.gesture.driftGain, 9);
   });
 
-  it('ignores a hand that was resting rather than throwing', () => {
-    expect(isThrow(swing({ speed: 0.05 }))).toBe(false);
-    expect(isThrow(swing({ speed: 1.4 }))).toBe(true);
+  it('reads draw as power from the least draw to a full one', () => {
+    expect(drawPower(swing({ draw: DEFAULT_CONFIG.gesture.minDraw }))).toBe(0);
+    expect(drawPower(swing({ draw: 1 }))).toBe(1);
   });
 
-  it('ignores a hand drawn back to wind up, however fast', () => {
-    expect(isThrow(swing({ speed: 2, aimOffset: Math.PI }))).toBe(false);
-    expect(isThrow(swing({ speed: 2, aimOffset: -2.2 }))).toBe(false);
+  it('ignores an arm that was hardly drawn back', () => {
+    expect(isThrow(swing({ draw: 0.01 }))).toBe(false);
+    expect(isThrow(swing({ draw: 0.5 }))).toBe(true);
   });
 });
 
@@ -71,9 +74,9 @@ describe('the wrist is automatic', () => {
   it('sticks a clean throw at every pace the hand can manage, with every knife', () => {
     for (const knife of KNIVES) {
       const config = withKnife(knife.id);
-      for (let speed = 0.3; speed <= 3; speed += 0.05) {
-        const verdict = stickVerdict(landing(swing({ speed }), config), config);
-        expect(verdict.stuck, `${knife.id} at ${speed.toFixed(2)}`).toBe(true);
+      for (let draw = 0.06; draw <= 1; draw += 0.02) {
+        const verdict = stickVerdict(landing(swing({ draw }), config), config);
+        expect(verdict.stuck, `${knife.id} at ${draw.toFixed(2)}`).toBe(true);
       }
     }
   });
@@ -109,19 +112,19 @@ describe('the wrist is automatic', () => {
 
 describe('what still goes wrong is the hand', () => {
   it('sticks a short throw all but always', () => {
-    expect(stickRate(0.8)).toBeGreaterThan(0.95);
+    expect(stickRate(0.25)).toBeGreaterThan(0.95);
   });
 
   it('makes reaching far a risk', () => {
-    const far = stickRate(2.6);
-    expect(far).toBeLessThan(stickRate(0.8) - 0.1);
+    const far = stickRate(1);
+    expect(far).toBeLessThan(stickRate(0.25) - 0.1);
     expect(far).toBeGreaterThan(0.6);
   });
 
   it('never wobbles the aim — where it goes is the player’s decision', () => {
     for (let seed = 1; seed <= 50; seed++) {
-      const launch = swingLaunch(stand, rest, swing({ aimOffset: 0.3 }), DEFAULT_CONFIG, seed);
-      expect(launch.heading).toBeCloseTo(swingLaunch(stand, rest, swing({ aimOffset: 0.3 })).heading, 9);
+      const launch = swingLaunch(stand, rest, swing({ aim: 0.3 }), DEFAULT_CONFIG, seed);
+      expect(launch.heading).toBeCloseTo(swingLaunch(stand, rest, swing({ aim: 0.3 })).heading, 9);
     }
   });
 });
@@ -133,12 +136,12 @@ describe('the knives on offer', () => {
   });
 
   it('trade reach against forgiveness', () => {
-    const reach = (id: string) => landing(swing({ speed: 2.6 }), withKnife(id)).point[1] + 12;
+    const reach = (id: string) => landing(swing({ draw: 1 }), withKnife(id)).point[1] + 12;
     expect(reach('needle')).toBeGreaterThan(reach('thrower'));
     expect(reach('greatsword')).toBeLessThan(reach('thrower') * 0.6);
 
-    expect(stickRate(2.6, withKnife('greatsword'))).toBeGreaterThan(stickRate(2.6));
-    expect(stickRate(2.6, withKnife('needle'))).toBeLessThan(stickRate(2.6));
+    expect(stickRate(1, withKnife('greatsword'))).toBeGreaterThan(stickRate(1));
+    expect(stickRate(1, withKnife('needle'))).toBeLessThan(stickRate(1));
   });
 
   it('holds the arm back more the heavier the knife', () => {

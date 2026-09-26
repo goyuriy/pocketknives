@@ -98,3 +98,18 @@ export const armPose = (setup: ArmSetup, swing: number): ArmPose => {
     shoulders: [add(pivot, right, -SHOULDER_HALF_WIDTH), add(pivot, right, SHOULDER_HALF_WIDTH)],
   };
 };
+
+/** How far past the grip the pointer comes up before the arm reaches the release pose. */
+const LIFT = 0.1;
+
+/**
+ * Where the arm is in its swing for a given draw.
+ *
+ * Nothing drawn is the resting pose; a full draw is the arm all the way back.
+ * Coming up past the grip without throwing lifts it to the release pose — the
+ * arm follows the hand even when the hand decides not to throw.
+ */
+export const swingForDraw = (draw: number): number =>
+  draw >= 0
+    ? READY_SWING + (-1 - READY_SWING) * Math.min(1, draw)
+    : READY_SWING * (1 - Math.min(1, -draw / LIFT));

@@ -2,14 +2,10 @@ import { useEffect, useRef } from 'react';
 import type { SandboxState } from '../state/useSandbox.js';
 import { ARENA_RADIUS } from '../state/useSandbox.js';
 import { colorOf } from '../ui/theme.js';
-import { armSwing, readSwing, type Sample } from '../input/gesture.js';
-import { READY_SWING } from './math/armPose.js';
+import { advanceStroke, aimFromPointer, gripStroke, type Sample, type Stroke } from '../input/throwStroke.js';
 import { createStage } from './engine/createStage.js';
 import { createDirector } from './director.js';
-import type { StageSnapshot } from './snapshot.js';
-
-/** How much of the stroke to remember. Older than this cannot be part of a throw. */
-const STROKE_MEMORY = 400;
+import type { HandInput, StageSnapshot } from './snapshot.js';
 
 const snapshotOf = (game: SandboxState): StageSnapshot => ({
   board: game.match.board,
@@ -17,8 +13,7 @@ const snapshotOf = (game: SandboxState): StageSnapshot => ({
   alive: game.alive,
   phase: game.phase,
   lastAttempt: game.lastAttempt,
-  swinging: game.swing !== null,
-  previewFlight: game.previewFlight,
+  swinging: game.draw !== null,
   stand: game.stand,
   restHeading: game.restHeading,
   config: game.config,
@@ -34,21 +29,24 @@ const snapshotOf = (game: SandboxState): StageSnapshot => ({
  *
  * Two jobs, kept apart. The engine is created once and left alone by React: it
  * reads the latest snapshot every frame, so a re-render never rebuilds the scene.
- * The pointer handlers turn the finger into a stroke — its position works the
- * arm while it moves, its last moments become the throw when it lets go.
+ * The pointer handlers are the player's hand:
  *
- * Samples and the arm's position live in refs, not state. A whole flick can
- * happen inside one frame, and a throw assembled from state React has not
- * re-rendered yet would be a throw that never moved.
+ * - **moving** points it — the pointer's place across the stage is where the
+ *   hand aims, and there is no cursor, only the knife;
+ * - **pressing** grips;
+ * - **pulling back and pushing through** throws, read by `advanceStroke`;
+ * - **letting go** before pushing through calls the throw off.
+ *
+ * The hand and the stroke live in refs, not state. They change on every pointer
+ * event, a whole push can happen inside one frame, and the scene reads them
+ * once a frame anyway.
  */
 export const Stage = ({ game }: { game: SandboxState }) => {
-  const { phase, setSwing, release } = game;
+  const { phase, setDraw, release } = game;
   const canvas = useRef<HTMLCanvasElement>(null);
   const snapshot = useRef(snapshotOf(game));
-  const stroke = useRef<Sample[]>([]);
-  // Where the finger first touched, which is what "drawn back" is measured from.
-  const anchor = useRef<Sample | null>(null);
-  const arm = useRef(READY_SWING);
+  const stroke = useRef<Stroke | null>(null);
+  const hand = useRef<HandInput>({ aim: 0, draw: null });
 
   useEffect(() => {
     snapshot.current = snapshotOf(game);
@@ -58,7 +56,7 @@ export const Stage = ({ game }: { game: SandboxState }) => {
     const target = canvas.current;
     if (!target) return;
     const stage = createStage(target, { gravity: snapshot.current.config.flight.gravity });
-    const director = createDirector(stage, () => snapshot.current, () => arm.current);
+    const director = createDirector(stage, () => snapshot.current, () => hand.current);
     stage.physics.catch((error: unknown) => console.error(error));
     // A handle for poking at the live scene from the browser console.
     if (import.meta.env.DEV) (window as unknown as { __stage: unknown }).__stage = stage;
@@ -70,51 +68,59 @@ export const Stage = ({ game }: { game: SandboxState }) => {
 
   const canThrow = phase.kind === 'ready';
 
-  const track = (event: React.PointerEvent<HTMLElement>) => {
-    const now = event.timeStamp || performance.now();
-    /*
-     * Browsers batch pointer moves to one per frame and keep the rest, which for
-     * a flick is most of the stroke. Without them a fast flick arrives as two or
-     * three points and its pace is a guess.
-     */
+  /*
+   * Browsers batch pointer moves to one per frame and keep the rest. For a fast
+   * push those kept events are most of the motion, and without them its speed
+   * and line are guesses.
+   */
+  const samplesOf = (event: React.PointerEvent<HTMLElement>): Sample[] => {
     const coalesced = event.nativeEvent.getCoalescedEvents?.() ?? [];
     const points = coalesced.length > 0 ? coalesced : [event.nativeEvent];
-    for (const point of points) {
-      stroke.current.push({ x: point.clientX, y: point.clientY, t: point.timeStamp || now });
-    }
-    stroke.current = stroke.current.filter((s) => now - s.t <= STROKE_MEMORY);
+    const now = event.timeStamp || performance.now();
+    return points.map((point) => ({ x: point.clientX, y: point.clientY, t: point.timeStamp || now }));
   };
 
-  const viewportHeight = (element: HTMLElement) => element.clientHeight || 1;
+  const aimAt = (event: React.PointerEvent<HTMLElement>) => {
+    const box = event.currentTarget.getBoundingClientRect();
+    return aimFromPointer(event.clientX, box.left, box.width, game.config);
+  };
+
+  const letGo = () => {
+    stroke.current = null;
+    hand.current = { ...hand.current, draw: null };
+    setDraw(null);
+  };
 
   const onPointerDown = (event: React.PointerEvent<HTMLElement>) => {
-    if (!canThrow) return;
+    if (!canThrow || event.button > 0) return;
     event.currentTarget.setPointerCapture?.(event.pointerId);
-    stroke.current = [];
-    track(event);
-    anchor.current = stroke.current[stroke.current.length - 1] ?? null;
+    const aim = aimAt(event);
+    const [at] = samplesOf(event).slice(-1);
+    stroke.current = gripStroke(at!, aim);
+    hand.current = { aim, draw: 0 };
+    setDraw(0);
   };
 
   const onPointerMove = (event: React.PointerEvent<HTMLElement>) => {
-    if (!canThrow || stroke.current.length === 0) return;
-    track(event);
-    const height = viewportHeight(event.currentTarget);
-    const reading = readSwing(stroke.current, height);
-    setSwing(reading);
-    const latest = stroke.current[stroke.current.length - 1];
-    if (anchor.current && latest) {
-      arm.current = armSwing(anchor.current, latest, reading, height, game.config);
+    if (!stroke.current) {
+      // Not gripping: the hand simply follows the pointer across the stage.
+      hand.current = { aim: aimAt(event), draw: null };
+      return;
     }
-  };
-
-  const onPointerUp = (event: React.PointerEvent<HTMLElement>) => {
-    if (stroke.current.length === 0) return;
-    track(event);
-    const reading = readSwing(stroke.current, viewportHeight(event.currentTarget));
-    stroke.current = [];
-    anchor.current = null;
-    arm.current = READY_SWING;
-    release(reading);
+    const { stroke: next, reading } = advanceStroke(
+      stroke.current,
+      samplesOf(event),
+      event.currentTarget.clientHeight,
+      game.config,
+    );
+    if (reading.thrown) {
+      letGo();
+      release(reading.thrown);
+      return;
+    }
+    stroke.current = next;
+    hand.current = { aim: next.aim, draw: reading.draw };
+    setDraw(Math.max(0, reading.draw));
   };
 
   return (
@@ -122,8 +128,8 @@ export const Stage = ({ game }: { game: SandboxState }) => {
       className="stage"
       onPointerDown={onPointerDown}
       onPointerMove={onPointerMove}
-      onPointerUp={onPointerUp}
-      onPointerCancel={onPointerUp}
+      onPointerUp={letGo}
+      onPointerCancel={letGo}
     >
       <canvas ref={canvas} />
     </div>

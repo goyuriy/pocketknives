@@ -5,70 +5,77 @@ import { simulateFlight } from './flight.js';
 import { scatterLaunch } from './launch.js';
 
 /**
- * What the hand was doing at the moment it let go.
+ * What the player asked the hand to do.
  *
- * Deliberately abstract — no pixels, no viewport. The surface that captured the
- * gesture normalises it to these numbers, and everything downstream works the
- * same whether it came from a touchscreen, a mouse, or a replay.
+ * Deliberately abstract — no pixels, no viewport, no mouse. The surface that
+ * captured the input normalises it to these three numbers, and everything
+ * downstream works the same whether they came from a mouse, a finger, or a
+ * replay.
  *
- * Two things only: which way, and how hard. The wrist is not the player's job —
- * see `wristSpin`.
+ * Three decisions, each of them the player's, none of them a reflex:
+ * where to point, how far back to draw, and how cleanly to push through.
  */
-export type SwingReading = {
-  /** How fast the hand was travelling, in screen-heights per second. */
-  readonly speed: number;
-  /** Where it was heading relative to straight ahead, radians, positive to the right. */
-  readonly aimOffset: number;
+export type ThrowIntent = {
+  /** Where the hand pointed, radians from straight ahead, positive to the right. */
+  readonly aim: number;
+  /** How far the arm was drawn back, 0 to 1. This is the distance. */
+  readonly draw: number;
+  /**
+   * How far the push strayed sideways, radians, positive to the right.
+   *
+   * A straight push is zero. A push that wanders pulls the knife off the aimed
+   * line the way a golf swing that comes across the ball slices it — an error
+   * the player made, can see, and can stop making, not a roll of the dice.
+   */
+  readonly drift: number;
 };
 
 const clamp01 = (value: number): number => Math.min(1, Math.max(0, value));
 
-/** How hard the hand threw, 0 to 1, from how fast it was moving. */
-export const swingPower = (reading: SwingReading, config: ThrowConfig = DEFAULT_CONFIG): number => {
-  const { fullPowerSwipe, minSwipe } = config.gesture;
-  return clamp01((reading.speed - minSwipe) / Math.max(1e-6, fullPowerSwipe - minSwipe));
+/** How hard the arm threw, 0 to 1, from how far it was drawn back. */
+export const drawPower = (intent: ThrowIntent, config: ThrowConfig = DEFAULT_CONFIG): number => {
+  const { minDraw } = config.gesture;
+  return clamp01((intent.draw - minDraw) / Math.max(1e-6, 1 - minDraw));
 };
 
-/**
- * Did the hand throw anything at all?
- *
- * It has to have been moving, and moving *away* — up the screen, towards the
- * circle. Drawing the hand back to wind up is a stroke too, and letting go
- * mid-wind-up must not hurl the knife over the thrower's shoulder.
- */
-export const isThrow = (reading: SwingReading, config: ThrowConfig = DEFAULT_CONFIG): boolean =>
-  reading.speed >= config.gesture.minSwipe && Math.abs(reading.aimOffset) < Math.PI / 2;
+/** Was the arm drawn back far enough to have thrown anything at all? */
+export const isThrow = (intent: ThrowIntent, config: ThrowConfig = DEFAULT_CONFIG): boolean =>
+  intent.draw >= config.gesture.minDraw;
+
+/** The line the knife actually leaves on: the aim, pulled by however the push drifted. */
+export const thrownHeading = (
+  restHeading: number,
+  intent: ThrowIntent,
+  config: ThrowConfig = DEFAULT_CONFIG,
+): number => restHeading - (intent.aim + intent.drift * config.gesture.driftGain);
 
 /**
- * Turns a throwing motion into a knife in the air.
+ * Turns a throw into a knife in the air.
  *
- * The player chooses direction and pace; the hand does the rest. Pace sets the
- * distance, and the wrist then turns the knife by exactly as much as that
- * distance needs to bring it in point-first. So a clean throw always sticks,
- * wherever it was aimed — what decides the throw is *where* it lands, which is
- * the game the circle is actually about.
+ * The draw sets the distance, and the wrist then turns the knife by exactly as
+ * much as that distance needs to bring it in point-first. So a clean throw
+ * always sticks, wherever it was aimed — what decides the throw is *where* it
+ * lands, which is the game the circle is actually about.
  *
- * What can still go wrong is the hand itself. `seed` applies the scatter in the
- * config after the wrist has made its choice: a wobble in the tumble, or in the
- * pace the wrist had planned for, and the knife arrives off its sweet spot. A
- * longer throw spends longer in the air for that error to grow in, which is
- * what makes reaching far a risk rather than a free choice.
+ * What can still go wrong is the hand. A crooked push sends it off line (see
+ * `drift`), and `seed` applies the scatter in the config after the wrist has
+ * made its choice: a wobble in the tumble or the pace, and the knife arrives
+ * off its sweet spot. A longer throw spends longer in the air for that wobble
+ * to grow in, which makes reaching far a risk rather than a free choice.
  */
 export const swingLaunch = (
   from: Vec2,
   restHeading: number,
-  reading: SwingReading,
+  intent: ThrowIntent,
   config: ThrowConfig = DEFAULT_CONFIG,
   seed?: number,
 ): Launch => {
-  const { gesture, style } = config;
+  const { style } = config;
   const aimed: Launch = {
     origin: [from[0], from[1], style.releaseHeight] as Vec3,
-    // Follow-through: the knife goes where the hand was going. This is the
-    // opposite of a drawn-bow gesture, and rightly so — a throw is not a pull.
-    heading: restHeading - reading.aimOffset * gesture.aimGain,
+    heading: thrownHeading(restHeading, intent, config),
     pitch: style.pitch,
-    speed: launchSpeed(config, swingPower(reading, config)),
+    speed: launchSpeed(config, drawPower(intent, config)),
     spin: 0,
     bladeAngle: style.startingBladeAngle,
   };

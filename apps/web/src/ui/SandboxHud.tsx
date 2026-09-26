@@ -1,7 +1,7 @@
 import { area, type MissReason, type StickOutcome } from '@pocketknives/core';
 import type { Attempt, SandboxState } from '../state/useSandbox.js';
 import { colorOf } from './theme.js';
-import { SwingMeter } from './SwingMeter.js';
+import { DrawMeter } from './DrawMeter.js';
 import { KnifePicker } from './KnifePicker.js';
 
 const MISS_TEXT: Record<MissReason, string> = {
@@ -29,7 +29,7 @@ const NOT_STUCK: Record<Exclude<StickOutcome, 'stuck'>, string> = {
  * clean stick that wins nothing is a fault of aim, not of the throw, and reading
  * it as a bad throw sends the player off correcting the wrong thing.
  */
-const describe = (attempt: Attempt, arenaArea: number): string => {
+const result = (attempt: Attempt, arenaArea: number): string => {
   if (!attempt.verdict.stuck) return NOT_STUCK[attempt.verdict.outcome as Exclude<StickOutcome, 'stuck'>];
   if (!attempt.outcome || attempt.outcome.kind === 'miss') {
     return `Stuck. ${attempt.outcome ? MISS_TEXT[attempt.outcome.reason] : ''}`.trim();
@@ -38,10 +38,28 @@ const describe = (attempt: Attempt, arenaArea: number): string => {
   return `Stuck — took ${share}% from ${attempt.outcome.victimId}.`;
 };
 
+/** A push this far off straight is worth mentioning — below it, it is just a hand. */
+const NOTICEABLE_DRIFT = 0.12;
+
+/**
+ * Says so when the push went crooked.
+ *
+ * Drift is an error the player made rather than one the dice made, which is
+ * only fair if they are told: a knife that lands left of where it pointed, with
+ * no explanation, reads as the game cheating.
+ */
+const driftNote = (drift: number): string =>
+  Math.abs(drift) < NOTICEABLE_DRIFT
+    ? ''
+    : ` Your push wandered ${drift > 0 ? 'right' : 'left'} and pulled the knife with it.`;
+
+const describe = (attempt: Attempt, arenaArea: number): string =>
+  result(attempt, arenaArea) + driftNote(attempt.intent.drift);
+
 export const SandboxHud = ({ game }: { game: SandboxState }) => {
   const arenaArea = area(game.match.board.arena);
   const attempt = game.phase.kind === 'ready' ? game.lastAttempt : game.phase.attempt;
-  const throwing = game.swing !== null;
+  const throwing = game.draw !== null;
 
   const holdings = game.match.players.map((id) => ({
     id,
@@ -60,14 +78,18 @@ export const SandboxHud = ({ game }: { game: SandboxState }) => {
         <KnifePicker chosen={game.knifeId} onChoose={game.setKnifeId} />
       </div>
 
-      <SwingMeter
-        reading={throwing ? game.swing : (attempt?.reading ?? null)}
+      <DrawMeter
+        draw={throwing ? game.draw : (attempt?.intent.draw ?? null)}
         config={game.config}
         color={colorOf(game.currentPlayer)}
       />
 
       <div className="message">
-        {throwing ? 'Flick up and let go.' : attempt ? describe(attempt, arenaArea) : 'Pull back, then flick towards the circle.'}
+        {throwing
+          ? 'Pull back for distance, push through to throw. Let go to call it off.'
+          : attempt
+            ? describe(attempt, arenaArea)
+            : 'Point with the mouse. Hold, pull back, push through.'}
       </div>
 
       <div className="standings">

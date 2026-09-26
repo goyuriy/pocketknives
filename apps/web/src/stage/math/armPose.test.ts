@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { KNIVES, knifeById, type Vec3 } from '@pocketknives/core';
-import { armAngle, armPose, gripOffset, type ArmSetup } from './armPose.js';
+import { armAngle, armPose, gripOffset, READY_SWING, swingForDraw, type ArmSetup } from './armPose.js';
 import { bladeDirection } from './coords.js';
 
 const setup = (id: string, heading = Math.PI / 2): ArmSetup => {
@@ -73,5 +73,18 @@ describe('armAngle', () => {
     expect(armAngle(-1)).toBeGreaterThan(armAngle(0));
     expect(armAngle(0)).toBeGreaterThan(armAngle(1));
     expect(armAngle(-5)).toBe(armAngle(-1));
+  });
+});
+
+describe('swingForDraw', () => {
+  it('rests when nothing is drawn, and is fully back at a full draw', () => {
+    expect(swingForDraw(0)).toBe(READY_SWING);
+    expect(swingForDraw(1)).toBe(-1);
+    expect(swingForDraw(3)).toBe(-1);
+  });
+
+  it('lifts to the release pose as the hand comes up past the grip', () => {
+    expect(swingForDraw(-1)).toBe(-0);
+    expect(swingForDraw(-0.05)).toBeGreaterThan(READY_SWING);
   });
 });

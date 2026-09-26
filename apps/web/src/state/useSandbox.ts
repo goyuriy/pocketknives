@@ -19,7 +19,7 @@ import {
   type Match,
   type PlayerId,
   type StickVerdict,
-  type SwingReading,
+  type ThrowIntent,
   type ThrowConfig,
   type ThrowOutcome,
 } from '@pocketknives/core';
@@ -40,8 +40,8 @@ export type Attempt = {
   readonly outcome: ThrowOutcome | null;
   readonly playbackDuration: number;
   readonly seed: number;
-  /** What the hand did, kept so the meter can show the throw that was made. */
-  readonly reading: SwingReading;
+  /** What the player asked for, kept so the meter and the message can show the throw that was made. */
+  readonly intent: ThrowIntent;
 };
 
 export type Phase =
@@ -53,8 +53,8 @@ export type Phase =
 /**
  * The sandbox: a board, a knife, and a hand to throw it with.
  *
- * The player supplies a direction and a pace, nothing more; the wrist and the
- * wobble belong to the core (`swingLaunch`).
+ * The player supplies an aim, a draw and a push; the wrist and the wobble
+ * belong to the core (`swingLaunch`).
  *
  * A throw is resolved the instant the hand lets go — flight, stick and cut are
  * all pure functions, so the whole outcome is known before a frame is drawn.
@@ -66,7 +66,9 @@ export const useSandbox = (initialPlayers = 4) => {
   const [playerCount, setPlayerCount] = useState(initialPlayers);
   const [match, setMatch] = useState<Match>(() => newMatch(initialPlayers));
   const [phase, setPhase] = useState<Phase>({ kind: 'ready' });
-  const [swing, setSwing] = useState<SwingReading | null>(null);
+  // How far the arm is drawn while the button is down; null when it is not.
+  // Only for the HUD — the scene reads the hand directly, far more often.
+  const [draw, setDraw] = useState<number | null>(null);
   const [lastAttempt, setLastAttempt] = useState<Attempt | null>(null);
   const [knifeId, setKnifeId] = useState('thrower');
   // How far along their own frontage the player stands, 0 to 1. A fraction, not
@@ -110,22 +112,6 @@ export const useSandbox = (initialPlayers = 4) => {
     [match.board, match.rules.minSharedBorder],
   );
 
-  /**
-   * Where the knife would go if the hand let go right now.
-   *
-   * Honest rather than helpful, and that is the point. A slow, deliberate motion
-   * draws a clear short arc; a hard flick is over before the preview means
-   * anything. You can look, or you can throw far, but not both — which is a fair
-   * description of throwing a knife.
-   */
-  const previewFlight = useMemo(
-    () =>
-      swing && isThrow(swing, config)
-        ? simulateFlight(swingLaunch(stand, restHeading, swing, config), config.flight)
-        : null,
-    [swing, stand, restHeading, config],
-  );
-
   useEffect(() => () => timers.current.forEach(clearTimeout), []);
 
   const schedule = (fn: () => void, seconds: number) => {
@@ -135,17 +121,17 @@ export const useSandbox = (initialPlayers = 4) => {
   /**
    * Commits a throw.
    *
-   * Takes the reading as an argument rather than from state: a whole stroke can
+   * Takes the intent as an argument rather than from state: a whole push can
    * land inside one frame, and state React has not re-rendered yet would hold
    * the hand's position from before it moved.
    */
   const release = useCallback(
-    (reading: SwingReading) => {
-      setSwing(null);
-      if (phase.kind !== 'ready' || !isThrow(reading, config)) return;
+    (intent: ThrowIntent) => {
+      setDraw(null);
+      if (phase.kind !== 'ready' || !isThrow(intent, config)) return;
 
       const seed = Math.floor(Math.random() * 0xffffffff);
-      const launch = swingLaunch(stand, restHeading, reading, config, seed);
+      const launch = swingLaunch(stand, restHeading, intent, config, seed);
       const flight = simulateFlight(launch, config.flight);
       const verdict = stickVerdict(flight.impact, config);
       const outcome = verdict.stuck
@@ -159,7 +145,7 @@ export const useSandbox = (initialPlayers = 4) => {
         outcome,
         playbackDuration: flight.impact.time / playbackScale,
         seed,
-        reading,
+        intent,
       };
 
       setLastAttempt(attempt);
@@ -185,22 +171,22 @@ export const useSandbox = (initialPlayers = 4) => {
     setPlayerCount(count);
     setMatch(newMatch(count));
     setPhase({ kind: 'ready' });
-    setSwing(null);
+    setDraw(null);
     setLastAttempt(null);
   }, []);
 
   const selectPlayer = useCallback((index: number) => {
     setMatch((current) => ({ ...current, turn: index % current.players.length }));
     setPhase({ kind: 'ready' });
-    setSwing(null);
+    setDraw(null);
     setLastAttempt(null);
   }, []);
 
   return {
     match,
     phase,
-    swing,
-    setSwing,
+    draw,
+    setDraw,
     lastAttempt,
     release,
     reset,
@@ -211,7 +197,6 @@ export const useSandbox = (initialPlayers = 4) => {
     restHeading,
     alive,
     fields,
-    previewFlight,
     playerCount,
     config,
     knife,

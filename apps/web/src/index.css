@@ -350,3 +350,11 @@ button:active {
 .stand input[type='range'] {
   width: 100%;
 }
+
+/*
+ * The hand is the cursor. Like a body-worn camera shooter, the only marker of
+ * where you are pointing is the thing in your hand.
+ */
+.stage canvas {
+  cursor: none;
+}

@@ -53,9 +53,11 @@ const DIALS: readonly Dial[] = [
   { group: 'stick', key: 'minMomentum', label: 'min momentum', min: 0, max: 6, step: 0.1 },
   { group: 'stick', key: 'soilResistance', label: 'ground hardness', min: 2, max: 40, step: 0.5 },
 
-  { group: 'gesture', key: 'fullPowerSwipe', label: 'full swing', min: 0.6, max: 6, step: 0.05, hint: 'hand speed for max range' },
-  { group: 'gesture', key: 'minSwipe', label: 'least swing', min: 0.02, max: 1, step: 0.01 },
-  { group: 'gesture', key: 'aimGain', label: 'aim gain', min: 0.1, max: 2, step: 0.05 },
+  { group: 'gesture', key: 'fullDraw', label: 'full draw', min: 0.08, max: 0.6, step: 0.01, hint: 'screen-heights of pull for max range' },
+  { group: 'gesture', key: 'minDraw', label: 'least draw', min: 0, max: 0.3, step: 0.01 },
+  { group: 'gesture', key: 'minPushSpeed', label: 'push speed', min: 0.1, max: 3, step: 0.05, hint: 'slower than this eases off instead of throwing' },
+  { group: 'gesture', key: 'maxAim', label: 'aim reach', min: 0.2, max: 1.5, step: 0.01, hint: 'radians either side, screen edge to edge' },
+  { group: 'gesture', key: 'driftGain', label: 'drift pull', min: 0, max: 1.5, step: 0.05, hint: 'how much a crooked push bends the throw' },
 
   { group: 'flight', key: 'gravity', label: 'gravity', min: 5, max: 60, step: 0.5 },
 ];

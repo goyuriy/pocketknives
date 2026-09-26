@@ -1,12 +1,13 @@
 import type { KnifeSpec } from '@pocketknives/core';
 import { CUT_DURATION } from '../state/useSandbox.js';
 import type { Stage } from './engine/createStage.js';
-import type { StageSnapshot } from './snapshot.js';
+import type { HandInput, StageSnapshot } from './snapshot.js';
+import { handSway } from '../input/handSway.js';
+import { READY_SWING, swingForDraw } from './math/armPose.js';
 import { RESTING_ARM, stepArm } from './math/armMotion.js';
-import { cameraEaseRate, cameraPose } from './math/cameraPose.js';
+import { cameraEaseRate, cameraPose, easeHeading, LOOK_FOLLOW_RATE } from './math/cameraPose.js';
 import { fallenPlacement, flyingPlacement, stuckPlacement } from './math/knifePlacement.js';
 import { createArenaView } from './views/arenaView.js';
-import { createAimPreviewView } from './views/aimPreviewView.js';
 import { createArmView } from './views/armView.js';
 import { createCameraRig } from './views/cameraRig.js';
 import { createKnifeModel, place, type KnifeModel } from './views/knifeModel.js';
@@ -27,19 +28,18 @@ export type Director = { readonly dispose: () => void };
  *
  * Effectful: owns the views and registers itself on the render loop.
  *
- * @param read       the latest game state; called once per frame
- * @param fingerSwing where the finger has put the arm right now (-1 … 0)
+ * @param read the latest game state; called once per frame
+ * @param hand where the pointer has put the hand right now
  */
 export const createDirector = (
   stage: Stage,
   read: () => StageSnapshot,
-  fingerSwing: () => number,
+  hand: () => HandInput,
 ): Director => {
   const { scene, playfield, shadows, engine } = stage;
   const first = read();
 
   const arena = createArenaView(scene, playfield, first.arenaRadius);
-  const preview = createAimPreviewView(scene, playfield);
   const arm = createArmView(scene, playfield, shadows);
   const camera = createCameraRig(scene);
 
@@ -57,6 +57,7 @@ export const createDirector = (
   };
 
   let motion = RESTING_ARM;
+  let look: number | null = null;
   let phaseSeen = first.phase;
   let phaseStartedAt = performance.now();
 
@@ -87,8 +88,6 @@ export const createDirector = (
       phase.kind === 'cutting' ? Math.min(1, intoPhase / CUT_DURATION) : 1,
     );
 
-    preview.show(phase.kind === 'ready' ? state.previewFlight : null, state.playerColor);
-
     const { flying, landed: resting } = knivesFor(state.knife);
     flying.root.setEnabled(phase.kind === 'flying');
     if (phase.kind === 'flying') {
@@ -106,14 +105,19 @@ export const createDirector = (
     }
 
     const released = phase.kind !== 'ready';
-    motion = stepArm(motion, fingerSwing(), released, seconds);
+    const { aim, draw } = hand();
+    // The hand's own waver is drawn as well as thrown: what the player sees is
+    // exactly the line the knife would leave on.
+    const heading =
+      phase.kind === 'ready'
+        ? state.restHeading - (aim + handSway(now / 1000))
+        : phase.attempt.flight.impact.heading;
+
+    motion = stepArm(motion, draw === null ? READY_SWING : swingForDraw(draw), released, seconds);
     arm.pose(
       {
         release: [state.stand[0], state.stand[1], state.config.style.releaseHeight],
-        heading:
-          phase.kind === 'ready'
-            ? (state.previewFlight?.impact.heading ?? state.restHeading)
-            : phase.attempt.flight.impact.heading,
+        heading,
         releaseBladeAngle: state.config.style.startingBladeAngle,
         spec: state.knife,
         hands: state.hands,
@@ -123,7 +127,8 @@ export const createDirector = (
       state.playerColor,
     );
 
-    camera.follow(cameraPose(state.stand, landed, state.arenaRadius), cameraEaseRate(landed), seconds);
+    look = look === null ? heading : easeHeading(look, heading, LOOK_FOLLOW_RATE, seconds);
+    camera.follow(cameraPose(state.stand, landed, state.arenaRadius, look), cameraEaseRate(landed), seconds);
   };
 
   const observer = scene.onBeforeRenderObservable.add(frame);
@@ -132,7 +137,6 @@ export const createDirector = (
     dispose: () => {
       scene.onBeforeRenderObservable.remove(observer);
       arena.dispose();
-      preview.dispose();
       arm.dispose();
       camera.dispose();
       knives?.flying.dispose();
