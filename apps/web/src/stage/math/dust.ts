@@ -22,23 +22,33 @@ export type PuffState = {
 /** Air drag on a puff, per second: dust flies out fast and stops short. */
 const DRAG = 4;
 
+/** The most puffs any impact throws up — a greatsword thrown flat out. */
+export const MOST_PUFFS = 26;
+
+/** How many puffs an impact throws up: set by the knife's weight, shaded by its pace. */
+export const puffCount = (weight: number, pace: number): number =>
+  Math.round(4 + (MOST_PUFFS - 4) * weight * (0.4 + 0.6 * pace));
+
 /**
  * The puffs an impact throws up, sprayed mostly forward along the throw — the
- * knife carries the dirt with it — and more of them, bigger and faster, the
- * harder it hit. Seeded, so the same throw always kicks up the same dust.
+ * knife carries the dirt with it.
+ *
+ * Weight is what shows: a heavy knife throws up many big, slow-hanging clods,
+ * a light one a few small wisps. Pace only shades it — throws faster, a few
+ * more. Seeded, so the same throw always kicks up the same dust.
  */
-export const dustPuffs = (heading: number, strength: number, seed: number): Puff[] => {
+export const dustPuffs = (heading: number, weight: number, pace: number, seed: number): Puff[] => {
   const next = seededRandom(seed);
-  const count = Math.round(6 + 10 * strength);
-  return Array.from({ length: count }, () => {
+  const push = 0.5 + 0.6 * pace + 0.4 * weight;
+  return Array.from({ length: puffCount(weight, pace) }, () => {
     // Forward-biased fan: most puffs within ±70° of the heading.
     const angle = heading + (next() + next() - 1) * 1.2;
-    const speed = (0.8 + 2.2 * next()) * (0.5 + strength);
+    const speed = (0.8 + 2.2 * next()) * push;
     return {
       drift: [Math.cos(angle) * speed, Math.sin(angle) * speed] as const,
-      rise: (0.4 + 1.1 * next()) * (0.5 + strength),
-      size: 0.08 + 0.12 * next() * (0.6 + strength),
-      life: 0.55 + 0.6 * next(),
+      rise: (0.4 + 1.1 * next()) * push,
+      size: (0.06 + 0.1 * next()) * (0.6 + 1.2 * weight),
+      life: 0.5 + 0.5 * next() + 0.4 * weight,
     };
   });
 };

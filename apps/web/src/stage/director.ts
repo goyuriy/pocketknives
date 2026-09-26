@@ -2,7 +2,7 @@ import type { KnifeSpec, Vec3 } from '@pocketknives/core';
 import { CUT_DURATION, IMPACT_BEAT, type Attempt } from '../state/useSandbox.js';
 import type { ImpactSound } from '../audio/impactSound.js';
 import { impactFeel, type ImpactFeel } from './math/impactFeel.js';
-import { shakeAmplitude, shakeOffset } from './math/shake.js';
+import { shakeAmplitude, shakeDuration, shakeOffset } from './math/shake.js';
 import { createDustView } from './views/dustView.js';
 import type { Stage } from './engine/createStage.js';
 import type { HandInput, StageSnapshot } from './snapshot.js';
@@ -98,7 +98,8 @@ export const createDirector = (
         const { flight, verdict, seed } = phase.attempt;
         const feel = impactFeel(verdict, flight.impact, state.knife);
         impact = { attempt: phase.attempt, at: now, feel };
-        dust.burst([flight.impact.point[0], flight.impact.point[1], 0.02], flight.impact.heading, feel.strength, seed, now / 1000);
+        const ground: Vec3 = [flight.impact.point[0], flight.impact.point[1], 0.02];
+        dust.burst(ground, flight.impact.heading, feel.weight, feel.pace, seed, now / 1000);
         sound.play(feel);
       }
     }
@@ -193,7 +194,11 @@ export const createDirector = (
 
     look = look === null ? heading : easeHeading(look, heading, LOOK_FOLLOW_RATE, seconds);
     const jolt = impact && Number.isFinite(sinceImpact)
-      ? shakeOffset(sinceImpact, shakeAmplitude(impact.feel.kind, impact.feel.strength))
+      ? shakeOffset(
+          sinceImpact,
+          shakeAmplitude(impact.feel.kind, impact.feel.weight, impact.feel.pace),
+          shakeDuration(impact.feel.weight),
+        )
       : undefined;
     camera.follow(cameraPose(release, overhead, state.arenaRadius, look), cameraEaseRate(overhead), seconds, jolt);
   };

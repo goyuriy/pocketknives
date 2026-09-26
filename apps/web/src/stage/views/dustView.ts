@@ -3,16 +3,16 @@ import type { Mesh } from '@babylonjs/core/Meshes/mesh';
 import type { TransformNode } from '@babylonjs/core/Meshes/transformNode';
 import { CreateSphere } from '@babylonjs/core/Meshes/Builders/sphereBuilder';
 import type { Vec3 } from '@pocketknives/core';
-import { dustPuffs, puffAt, type Puff } from '../math/dust.js';
+import { dustPuffs, MOST_PUFFS, puffAt, type Puff } from '../math/dust.js';
 import { paint } from './materials.js';
 
 /** The most puffs alive at once. One impact at a time is all the game ever has. */
-const POOL = 18;
+const POOL = MOST_PUFFS;
 const DUST = '#8a7057';
 
 export type DustView = {
   /** Kicks up dirt at `origin`, sprayed along `heading`, as of `now` (seconds). */
-  readonly burst: (origin: Vec3, heading: number, strength: number, seed: number, now: number) => void;
+  readonly burst: (origin: Vec3, heading: number, weight: number, pace: number, seed: number, now: number) => void;
   /** Moves every puff on to `now` (seconds). */
   readonly update: (now: number) => void;
   readonly dispose: () => void;
@@ -37,8 +37,8 @@ export const createDustView = (scene: Scene, playfield: TransformNode): DustView
   let live: { origin: Vec3; startedAt: number; puffs: readonly Puff[] } | null = null;
 
   return {
-    burst: (origin, heading, strength, seed, now) => {
-      live = { origin, startedAt: now, puffs: dustPuffs(heading, strength, seed).slice(0, POOL) };
+    burst: (origin, heading, weight, pace, seed, now) => {
+      live = { origin, startedAt: now, puffs: dustPuffs(heading, weight, pace, seed).slice(0, POOL) };
     },
     update: (now) => {
       meshes.forEach((mesh, i) => {

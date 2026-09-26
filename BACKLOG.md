@@ -59,6 +59,9 @@ harder than a needle.
 - ✅ Sound, synthesised (no assets): thunk + dirt crunch + ringing blade for a
   stick, skitters per bounce for a clatter, a dull knock for a drop.
 - ✅ Screen shake, a short jolt.
+- ✅ Weight reads first: dust and shake are driven by the knife's weight (on a
+  log scale across the rack), with pace only shading them — a needle ticks the
+  view and scuffs the dirt, a greatsword slams it and throws up clods.
 - 📋 A puff of dust at each bounce, not just the first hit.
 - 📋 A dark scuff mark left on the ground where a knife bounced.
 - 💡 Hit-stop: freeze the frame for ~60 ms on a big stick.

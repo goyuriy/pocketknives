@@ -1,8 +1,16 @@
 import { describe, expect, it } from 'vitest';
-import { DEFAULT_CONFIG, simulateFlight, stickVerdict, swingLaunch, standingPoint, type Vec3 } from '@pocketknives/core';
-import { dustPuffs, puffAt } from './dust.js';
-import { impactFeel } from './impactFeel.js';
-import { shakeAmplitude, shakeOffset, SHAKE_DURATION } from './shake.js';
+import {
+  DEFAULT_CONFIG,
+  knifeById,
+  simulateFlight,
+  standingPoint,
+  stickVerdict,
+  swingLaunch,
+  type Vec3,
+} from '@pocketknives/core';
+import { dustPuffs, MOST_PUFFS, puffAt, puffCount } from './dust.js';
+import { impactFeel, knifeWeight } from './impactFeel.js';
+import { shakeAmplitude, shakeDuration, shakeOffset } from './shake.js';
 import {
   bouncingPlacement,
   BOUNCE_DURATION,
@@ -36,20 +44,49 @@ describe('impactFeel', () => {
   });
 });
 
+/** The rack, lightest to heaviest. */
+const RACK = ['needle', 'kitchen', 'thrower', 'cleaver', 'greatsword'].map((id) => knifeById(id).spec.mass);
+
+describe('weight', () => {
+  it('places every knife in the rack in order, spread across the whole scale', () => {
+    const weights = RACK.map(knifeWeight);
+    weights.slice(1).forEach((w, i) => expect(w).toBeGreaterThan(weights[i]!));
+    expect(weights[0]).toBeLessThan(0.25);
+    expect(weights.at(-1)).toBeCloseTo(1, 1);
+  });
+
+  it('keeps the needle and the thrower clearly apart', () => {
+    expect(knifeWeight(RACK[2]!) - knifeWeight(RACK[0]!)).toBeGreaterThan(0.15);
+  });
+});
+
 describe('dust', () => {
-  it('kicks up more dirt the harder it hits, and the same dirt for the same throw', () => {
-    expect(dustPuffs(0, 1, 7).length).toBeGreaterThan(dustPuffs(0, 0, 7).length);
-    expect(dustPuffs(0.4, 0.5, 7)).toEqual(dustPuffs(0.4, 0.5, 7));
+  it('throws up more dirt the heavier the knife, at the same pace', () => {
+    const counts = RACK.map((mass) => puffCount(knifeWeight(mass), 0.6));
+    counts.slice(1).forEach((c, i) => expect(c).toBeGreaterThan(counts[i]!));
+    expect(counts.at(-1)).toBeGreaterThanOrEqual(counts[0]! * 3);
+  });
+
+  it('lets weight matter more than pace', () => {
+    // A heavy knife thrown gently still throws up more than a light one thrown hard.
+    expect(puffCount(1, 0.2)).toBeGreaterThan(puffCount(0.2, 1));
+    expect(puffCount(1, 1)).toBe(MOST_PUFFS);
+  });
+
+  it('throws bigger clods for a heavier knife, and the same dirt for the same throw', () => {
+    const size = (weight: number) => dustPuffs(0, weight, 0.5, 7).reduce((sum, p) => sum + p.size, 0) / puffCount(weight, 0.5);
+    expect(size(1)).toBeGreaterThan(size(0.2));
+    expect(dustPuffs(0.4, 0.5, 0.5, 7)).toEqual(dustPuffs(0.4, 0.5, 0.5, 7));
   });
 
   it('sprays mostly forward along the throw', () => {
-    const puffs = dustPuffs(0, 0.8, 3);
+    const puffs = dustPuffs(0, 0.8, 0.8, 3);
     const forward = puffs.filter((p) => p.drift[0] > 0).length;
     expect(forward / puffs.length).toBeGreaterThan(0.75);
   });
 
   it('rises, swells, thins, and is gone', () => {
-    const [puff] = dustPuffs(0, 0.5, 1);
+    const [puff] = dustPuffs(0, 0.5, 0.5, 1);
     const early = puffAt(puff!, [0, 0, 0], 0.05)!;
     const late = puffAt(puff!, [0, 0, 0], puff!.life * 0.9)!;
     expect(late.position[2]).toBeGreaterThan(early.position[2]);
@@ -104,13 +141,20 @@ describe('bounce', () => {
 
 describe('shake', () => {
   it('jolts, then stops', () => {
-    const jolt = shakeOffset(0.02, 0.1);
+    const jolt = shakeOffset(0.02, 0.1, 0.3);
     expect(Math.hypot(...jolt)).toBeGreaterThan(0);
-    expect(shakeOffset(SHAKE_DURATION, 0.1)).toEqual([0, 0, 0]);
+    expect(shakeOffset(0.3, 0.1, 0.3)).toEqual([0, 0, 0]);
   });
 
-  it('shakes hardest for a stick and not at all for a drop', () => {
-    expect(shakeAmplitude('stick', 1)).toBeGreaterThan(shakeAmplitude('clatter', 1));
-    expect(shakeAmplitude('tap', 1)).toBe(0);
+  it('shakes harder and longer the heavier the knife', () => {
+    const amplitudes = RACK.map((mass) => shakeAmplitude('stick', knifeWeight(mass), 0.6));
+    amplitudes.slice(1).forEach((a, i) => expect(a).toBeGreaterThan(amplitudes[i]!));
+    expect(amplitudes.at(-1)).toBeGreaterThan(amplitudes[0]! * 4);
+    expect(shakeDuration(1)).toBeGreaterThan(shakeDuration(0.2));
+  });
+
+  it('shakes hardest for a stick, less for a bounce, not at all for a drop', () => {
+    expect(shakeAmplitude('stick', 0.7, 0.6)).toBeGreaterThan(shakeAmplitude('clatter', 0.7, 0.6));
+    expect(shakeAmplitude('tap', 1, 1)).toBe(0);
   });
 });
