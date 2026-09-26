@@ -5,7 +5,7 @@ import { Quaternion } from '@babylonjs/core/Maths/math.vector';
 import type { ShadowGenerator } from '@babylonjs/core/Lights/Shadows/shadowGenerator';
 import type { StandardMaterial } from '@babylonjs/core/Materials/standardMaterial';
 import type { KnifeSpec } from '@pocketknives/core';
-import { bladeQuaternion } from '../math/coords.js';
+import { bladeQuaternion, leanedBladeQuaternion } from '../math/coords.js';
 import { knifeShape } from '../math/knifeShape.js';
 import type { Placement } from '../math/knifePlacement.js';
 import { slab } from '../math/meshData.js';
@@ -70,8 +70,8 @@ export const createKnifeModel = (
 };
 
 /** Puts a node where a placement says, pointing the way it says. */
-export const place = (node: TransformNode, { position, heading, bladeAngle }: Placement): void => {
+export const place = (node: TransformNode, { position, heading, bladeAngle, lean = 0 }: Placement): void => {
   node.position.set(...position);
-  const [x, y, z, w] = bladeQuaternion(heading, bladeAngle);
+  const [x, y, z, w] = lean === 0 ? bladeQuaternion(heading, bladeAngle) : leanedBladeQuaternion(heading, bladeAngle, lean);
   (node.rotationQuaternion ??= Quaternion.Identity()).set(x, y, z, w);
 };

@@ -1,5 +1,9 @@
 import type { KnifeSpec, Vec3 } from '@pocketknives/core';
-import { CUT_DURATION } from '../state/useSandbox.js';
+import { CUT_DURATION, IMPACT_BEAT, type Attempt } from '../state/useSandbox.js';
+import type { ImpactSound } from '../audio/impactSound.js';
+import { impactFeel, type ImpactFeel } from './math/impactFeel.js';
+import { shakeAmplitude, shakeOffset } from './math/shake.js';
+import { createDustView } from './views/dustView.js';
 import type { Stage } from './engine/createStage.js';
 import type { HandInput, StageSnapshot } from './snapshot.js';
 import { handSway } from '../input/handSway.js';
@@ -7,7 +11,12 @@ import { bodyPose, READY_SWING, swingForDraw } from './math/bodyPose.js';
 import { easeToward, RESTING_ARM, stepArm } from './math/armMotion.js';
 import { flightTimeAt, rateAt, RELEASE_SLOW_MOTION } from '../playback/releaseTimeline.js';
 import { cameraEaseRate, cameraPose, easeHeading, LOOK_FOLLOW_RATE } from './math/cameraPose.js';
-import { fallenPlacement, flyingPlacement, stuckPlacement } from './math/knifePlacement.js';
+import {
+  bouncingPlacement,
+  flyingPlacement,
+  quiveringPlacement,
+  quiverLean,
+} from './math/knifePlacement.js';
 import { createArenaView } from './views/arenaView.js';
 import { createBodyView } from './views/bodyView.js';
 import { createCameraRig } from './views/cameraRig.js';
@@ -32,13 +41,15 @@ export type Director = { readonly dispose: () => void };
  *
  * Effectful: owns the views and registers itself on the render loop.
  *
- * @param read the latest game state; called once per frame
- * @param hand where the pointer has put the hand right now
+ * @param read  the latest game state; called once per frame
+ * @param hand  where the pointer has put the hand right now
+ * @param sound where impacts are heard
  */
 export const createDirector = (
   stage: Stage,
   read: () => StageSnapshot,
   hand: () => HandInput,
+  sound: ImpactSound,
 ): Director => {
   const { scene, playfield, shadows, engine } = stage;
   const first = read();
@@ -46,6 +57,7 @@ export const createDirector = (
   const arena = createArenaView(scene, playfield, first.arenaRadius);
   const body = createBodyView(scene, playfield, shadows);
   const camera = createCameraRig(scene);
+  const dust = createDustView(scene, playfield);
 
   let knives: { spec: KnifeSpec; flying: KnifeModel; landed: KnifeModel } | null = null;
   const knivesFor = (spec: KnifeSpec) => {
@@ -67,6 +79,9 @@ export const createDirector = (
   let look: number | null = null;
   let phaseSeen = first.phase;
   let phaseStartedAt = performance.now();
+  // The last knife to hit the ground, and when: everything that happens on
+  // impact — dust, sound, shake, quiver, bounce — is timed from this.
+  let impact: { attempt: Attempt; at: number; feel: ImpactFeel } | null = null;
 
   const frame = () => {
     const now = performance.now();
@@ -78,6 +93,14 @@ export const createDirector = (
       phaseSeen = phase;
       phaseStartedAt = now;
       if (phase.kind === 'flying') swingAtRelease = motion.shown;
+      if (phase.kind === 'cutting') {
+        // The flight's playback has just reached the ground.
+        const { flight, verdict, seed } = phase.attempt;
+        const feel = impactFeel(verdict, flight.impact, state.knife);
+        impact = { attempt: phase.attempt, at: now, feel };
+        dust.burst([flight.impact.point[0], flight.impact.point[1], 0.02], flight.impact.heading, feel.strength, seed, now / 1000);
+        sound.play(feel);
+      }
     }
     const intoPhase = (now - phaseStartedAt) / 1000;
     const { handOff } = RELEASE_SLOW_MOTION;
@@ -86,6 +109,8 @@ export const createDirector = (
     const intoFlight = Math.max(0, intoPhase - handOff);
 
     const landed = phase.kind === 'cutting' || phase.kind === 'resting';
+    // Lift over the circle only once the impact has had its moment at eye level.
+    const overhead = phase.kind === 'resting' || (phase.kind === 'cutting' && intoPhase >= IMPACT_BEAT);
     // The knife and its cut stay put after the animation ends, so the throw can
     // be studied rather than glimpsed. Only aiming the next one clears them.
     const settled = landed
@@ -97,7 +122,7 @@ export const createDirector = (
     arena.showFields(state.fields, state.alive);
     arena.showCut(
       settled?.outcome?.kind === 'claimed' ? settled.outcome.cut : null,
-      phase.kind === 'cutting' ? Math.min(1, intoPhase / CUT_DURATION) : 1,
+      phase.kind === 'cutting' ? Math.min(1, Math.max(0, (intoPhase - IMPACT_BEAT) / CUT_DURATION)) : 1,
     );
 
     const { flying, landed: resting } = knivesFor(state.knife);
@@ -109,14 +134,20 @@ export const createDirector = (
       place(flying.root, flyingPlacement(phase.attempt.flight, flightTime));
     }
     resting.root.setEnabled(settled !== null);
+    // Seconds since this knife hit; long ago for a throw from before a reload.
+    const sinceImpact = impact && impact.attempt === settled ? (now - impact.at) / 1000 : Infinity;
     if (settled) {
       const { flight, verdict } = settled;
+      const feel = impact?.feel ?? impactFeel(verdict, flight.impact, state.knife);
       place(
         resting.root,
-        verdict.stuck ? stuckPlacement(flight, verdict.quality, verdict.depth) : fallenPlacement(flight),
+        verdict.stuck
+          ? quiveringPlacement(flight, verdict.quality, verdict.depth, quiverLean(sinceImpact, feel.strength, feel.clean))
+          : bouncingPlacement(flight, sinceImpact, feel.strength),
       );
       resting.setDimmed(!verdict.stuck);
     }
+    dust.update(now / 1000);
 
     const released = phase.kind !== 'ready';
     const { aim, pitch, draw } = hand();
@@ -161,7 +192,10 @@ export const createDirector = (
     );
 
     look = look === null ? heading : easeHeading(look, heading, LOOK_FOLLOW_RATE, seconds);
-    camera.follow(cameraPose(release, landed, state.arenaRadius, look), cameraEaseRate(landed), seconds);
+    const jolt = impact && Number.isFinite(sinceImpact)
+      ? shakeOffset(sinceImpact, shakeAmplitude(impact.feel.kind, impact.feel.strength))
+      : undefined;
+    camera.follow(cameraPose(release, overhead, state.arenaRadius, look), cameraEaseRate(overhead), seconds, jolt);
   };
 
   const observer = scene.onBeforeRenderObservable.add(frame);
@@ -172,6 +206,7 @@ export const createDirector = (
       arena.dispose();
       body.dispose();
       camera.dispose();
+      dust.dispose();
       knives?.flying.dispose();
       knives?.landed.dispose();
     },

@@ -12,6 +12,7 @@ import {
 } from '../input/throwStroke.js';
 import { createStage } from './engine/createStage.js';
 import { createDirector } from './director.js';
+import { createImpactSound, type ImpactSound } from '../audio/impactSound.js';
 import type { HandInput, StageSnapshot } from './snapshot.js';
 
 const snapshotOf = (game: SandboxState): StageSnapshot => ({
@@ -55,6 +56,7 @@ export const Stage = ({ game }: { game: SandboxState }) => {
   const canvas = useRef<HTMLCanvasElement>(null);
   const snapshot = useRef(snapshotOf(game));
   const stroke = useRef<Stroke | null>(null);
+  const sound = useRef<ImpactSound | null>(null);
   const hand = useRef<HandInput>({ aim: 0, pitch: game.config.style.pitch, draw: null });
 
   useEffect(() => {
@@ -65,13 +67,17 @@ export const Stage = ({ game }: { game: SandboxState }) => {
     const target = canvas.current;
     if (!target) return;
     const stage = createStage(target, { gravity: snapshot.current.config.flight.gravity });
-    const director = createDirector(stage, () => snapshot.current, () => hand.current);
+    const impacts = createImpactSound();
+    sound.current = impacts;
+    const director = createDirector(stage, () => snapshot.current, () => hand.current, impacts);
     stage.physics.catch((error: unknown) => console.error(error));
     // A handle for poking at the live scene from the browser console.
     if (import.meta.env.DEV) (window as unknown as { __stage: unknown }).__stage = stage;
     return () => {
       director.dispose();
       stage.dispose();
+      impacts.dispose();
+      sound.current = null;
     };
   }, []);
 
@@ -112,6 +118,8 @@ export const Stage = ({ game }: { game: SandboxState }) => {
   };
 
   const onPointerDown = (event: React.PointerEvent<HTMLElement>) => {
+    // Browsers keep audio silent until the player has done something; a press is something.
+    sound.current?.unlock();
     if (!canThrow || event.button > 0) return;
     event.currentTarget.setPointerCapture?.(event.pointerId);
     const box = event.currentTarget.getBoundingClientRect();

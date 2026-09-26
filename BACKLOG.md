@@ -25,7 +25,7 @@ Status: ✅ done · 🔨 in progress · 📋 ready · 💡 idea
 
 |            | **Acquisition** | **Engagement** | **Retention** | **Monetization** |
 | ---------- | --------------- | -------------- | ------------- | ---------------- |
-| **Core**   | C1 Slow-motion release · C2 Impact juice · C4 Throw replay · C9 Physics comedy · C7 First three throws | C1 · C2 · C3 Cut reveal · C5 Reach rule · C6 Match flow · C8 Bots · C9 · C10 Grounds · C11 Wind | C6 · C7 · C8 · C10 | — |
+| **Core**   | C1 Slow-motion release ✅ · C2 Impact juice ✅ · C4 Throw replay · C9 Physics comedy · C7 First three throws | C1 · C2 · C3 Cut reveal · C5 Reach rule · C6 Match flow · C8 Bots · C9 · C10 Grounds · C11 Wind | C6 · C7 · C8 · C10 | — |
 | **Meta**   | M3 Daily board | M1 Knife collection · M4 Mastery | M1 · M2 Progression · M3 · M4 · M6 Season pass | M5 Cosmetics · M6 · M7 Character & hands |
 | **Social** | S1 Link rooms · S3 Reactions · S4 Clip share · S5 Party mode | S1 · S3 · S5 · S8 Tournaments | S2 Leaderboards · S6 Friends & rivals · S7 Crews · S8 | S9 Supporter pack |
 
@@ -46,10 +46,22 @@ second a player replays in their head and shares.
 - 💡 "Near miss" slow motion: extra slow when the knife lands at the edge of
   the stick window.
 
-### C2 · Impact juice — 📋 · E, A
-The throw pays off on contact: dust burst, the knife quivering in the ground,
-a thunk, a small screen shake scaled by bite depth, a clatter when it bounces
-off. Cheap, and what separates "a simulation" from "a game".
+### C2 · Impact juice — ✅ first pass · E, A
+The throw pays off on contact. Cheap, and what separates "a simulation" from
+"a game". Everything is scaled by the impact's momentum, so a greatsword lands
+harder than a needle.
+- ✅ Impact beat: the camera holds at eye level for 0.3 s after the hit before
+  lifting to show the cut, so the impact is seen where it happens.
+- ✅ Dust burst, sprayed forward along the throw, seeded per throw.
+- ✅ Quiver: the stuck handle waggles about the buried point and dies away —
+  more after a scrappy stick, less after a clean one.
+- ✅ Bounce: a knife that did not stick cartwheels in two hops to rest.
+- ✅ Sound, synthesised (no assets): thunk + dirt crunch + ringing blade for a
+  stick, skitters per bounce for a clatter, a dull knock for a drop.
+- ✅ Screen shake, a short jolt.
+- 📋 A puff of dust at each bounce, not just the first hit.
+- 📋 A dark scuff mark left on the ground where a knife bounced.
+- 💡 Hit-stop: freeze the frame for ~60 ms on a big stick.
 
 ### C3 · Cut reveal — 📋 · E
 Land changing hands is the payoff and should be felt: the cut tears along the
@@ -171,6 +183,6 @@ of a season, a name colour, no power.
 
 ## Next up, in order
 
-1. **C2 Impact juice** and the rest of **C1** — finish the feel of one throw.
+1. The rest of **C1** (impact slow motion, whoosh) — finish the feel of one throw.
 2. **C6 Match flow** and **C7 First three throws** — a playable game for a stranger.
 3. **S1 Link rooms** — the first way anyone else sees it.

@@ -28,6 +28,12 @@ import { playbackDuration } from '../playback/releaseTimeline.js';
 
 export const ARENA_RADIUS = 10;
 
+/**
+ * Seconds the camera stays with the knife after it hits, before lifting to show
+ * the cut. The impact is the payoff of the throw and has to be seen where it
+ * happens: the dirt, the quiver, the jolt.
+ */
+export const IMPACT_BEAT = 0.3;
 /** Seconds the cut takes to draw itself before land changes hands. */
 export const CUT_DURATION = 0.55;
 /** Seconds the result stays up before the next player may throw. */
@@ -165,11 +171,11 @@ export const useSandbox = (initialPlayers = 4) => {
         const won = attempt.outcome;
         if (won?.kind === 'claimed') setMatch((current) => ({ ...current, board: won.board }));
         setPhase({ kind: 'resting', attempt });
-      }, attempt.playbackDuration + CUT_DURATION);
+      }, attempt.playbackDuration + IMPACT_BEAT + CUT_DURATION);
       schedule(() => {
         if (!stayOnPlayer) setMatch(passTurn);
         setPhase({ kind: 'ready' });
-      }, attempt.playbackDuration + CUT_DURATION + REST_DURATION);
+      }, attempt.playbackDuration + IMPACT_BEAT + CUT_DURATION + REST_DURATION);
     },
     [phase.kind, stand, restHeading, match, currentPlayer, playbackScale, stayOnPlayer, config],
   );

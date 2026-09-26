@@ -57,6 +57,13 @@ export const rotate = (q: Quat, [vx, vy, vz]: Vec3): Vec3 => {
 export const bladeQuaternion = (heading: number, bladeAngle: number): Quat =>
   compose(axisAngle([0, 0, 1], heading), axisAngle([0, 1, 0], -bladeAngle));
 
+/**
+ * The same, leaned sideways by `lean` about the horizontal line of the throw —
+ * the way a knife stuck in the ground waggles from side to side.
+ */
+export const leanedBladeQuaternion = (heading: number, bladeAngle: number, lean: number): Quat =>
+  compose(axisAngle([Math.cos(heading), Math.sin(heading), 0], lean), bladeQuaternion(heading, bladeAngle));
+
 /** Unit vector the blade points along, in game coordinates. */
 export const bladeDirection = (heading: number, bladeAngle: number): Vec3 => [
   Math.cos(heading) * Math.cos(bladeAngle),
