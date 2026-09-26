@@ -346,18 +346,7 @@ button:active {
   color: var(--ink);
 }
 
-.stand {
-  display: grid;
-  grid-template-columns: 52px 1fr;
-  align-items: center;
-  gap: 9px;
-  font-size: 11px;
-  color: var(--ink-dim);
-}
 
-.stand input[type='range'] {
-  width: 100%;
-}
 
 /*
  * The hand is the cursor. Like a body-worn camera shooter, the only marker of
@@ -365,4 +354,38 @@ button:active {
  */
 .stage canvas {
   cursor: none;
+}
+
+/* The floating walking stick: a ring where the thumb landed, a knob where it is. */
+.walk-stick {
+  position: absolute;
+  margin: calc(-1 * 56px) 0 0 calc(-1 * 56px);
+  border-radius: 50%;
+  border: 2px solid #ffffff55;
+  background: #00000022;
+  pointer-events: none;
+  display: grid;
+  place-items: center;
+}
+
+.walk-stick-knob {
+  width: 46px;
+  height: 46px;
+  border-radius: 50%;
+  background: #ffffffaa;
+}
+
+/* Until the mouse is captured, say how to take it. */
+.look-hint {
+  position: absolute;
+  top: calc(12px + env(safe-area-inset-top));
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 6px 12px;
+  border-radius: 999px;
+  background: #16130fcc;
+  color: var(--ink);
+  font-size: 13px;
+  pointer-events: none;
+  white-space: nowrap;
 }

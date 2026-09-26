@@ -1,5 +1,7 @@
-import type { KnifeSpec, Vec3 } from '@pocketknives/core';
-import { CUT_DURATION, IMPACT_BEAT, type Attempt } from '../state/useSandbox.js';
+import { homeSpot, isOnOwnLand, keepOnOwnLand, type KnifeSpec, type Vec2, type Vec3 } from '@pocketknives/core';
+import type { MutableRefObject } from 'react';
+import { CUT_DURATION, IMPACT_BEAT, type Attempt, type Stance } from '../state/useSandbox.js';
+import { walkStep, type WalkInput } from '../input/walk.js';
 import type { ImpactSound } from '../audio/impactSound.js';
 import { impactFeel, type ImpactFeel } from './math/impactFeel.js';
 import { shakeAmplitude, shakeDuration, shakeOffset } from './math/shake.js';
@@ -7,20 +9,17 @@ import { createDustView } from './views/dustView.js';
 import type { Stage } from './engine/createStage.js';
 import type { HandInput, StageSnapshot } from './snapshot.js';
 import { handSway } from '../input/handSway.js';
-import { bodyPose, READY_SWING, swingForDraw } from './math/bodyPose.js';
+import { bodyPose, READY_SWING, releasePointFor, swingForDraw } from './math/bodyPose.js';
 import { easeToward, RESTING_ARM, stepArm } from './math/armMotion.js';
 import { flightTimeAt, rateAt, RELEASE_SLOW_MOTION } from '../playback/releaseTimeline.js';
 import { cameraEaseRate, cameraPose, easeHeading, LOOK_FOLLOW_RATE } from './math/cameraPose.js';
-import {
-  bouncingPlacement,
-  flyingPlacement,
-  quiveringPlacement,
-  quiverLean,
-} from './math/knifePlacement.js';
+import { flyingPlacement } from './math/knifePlacement.js';
 import { createArenaView } from './views/arenaView.js';
 import { createBodyView } from './views/bodyView.js';
 import { createCameraRig } from './views/cameraRig.js';
 import { createKnifeModel, place, type KnifeModel } from './views/knifeModel.js';
+import { createGroundKnives, type Landing } from './views/groundKnives.js';
+import { createWalker } from './views/walker.js';
 
 /** How briskly the free arm rises to point, and drops again, per second. */
 const FREE_ARM_RATE = 9;
@@ -39,18 +38,27 @@ export type Director = { readonly dispose: () => void };
  * That is what lets the scene be a plain function of state and time: drop a
  * frame, or reload mid-throw, and the next frame is simply correct.
  *
- * Effectful: owns the views and registers itself on the render loop.
+ * The one thing it does move is the thrower: walking is simulated here, a
+ * frame at a time, because it is the one input that has to meet the physics
+ * world — knives standing in the ground are solid. Where the thrower ends up is
+ * written back to `stance`, which is what a throw is thrown from.
  *
- * @param read  the latest game state; called once per frame
- * @param hand  where the pointer has put the hand right now
- * @param sound where impacts are heard
+ * Effectful: owns the views and registers itself on the render loop.
  */
-export const createDirector = (
-  stage: Stage,
-  read: () => StageSnapshot,
-  hand: () => HandInput,
-  sound: ImpactSound,
-): Director => {
+export type DirectorInputs = {
+  /** The latest game state; called once per frame. */
+  readonly read: () => StageSnapshot;
+  /** Where the pointer has put the hand right now. */
+  readonly hand: () => HandInput;
+  /** Which way the player is asking to walk right now. */
+  readonly walk: () => WalkInput;
+  /** Where the thrower stands and faces. The director moves the feet; the controls turn the facing. */
+  readonly stance: MutableRefObject<Stance>;
+  /** Where impacts are heard. */
+  readonly sound: ImpactSound;
+};
+
+export const createDirector = (stage: Stage, { read, hand, walk, stance, sound }: DirectorInputs): Director => {
   const { scene, playfield, shadows, engine } = stage;
   const first = read();
 
@@ -58,20 +66,31 @@ export const createDirector = (
   const body = createBodyView(scene, playfield, shadows);
   const camera = createCameraRig(scene);
   const dust = createDustView(scene, playfield);
+  const ground = createGroundKnives(scene, shadows);
+  const walker = createWalker(stage, first.config.flight.gravity);
 
-  let knives: { spec: KnifeSpec; flying: KnifeModel; landed: KnifeModel } | null = null;
-  const knivesFor = (spec: KnifeSpec) => {
-    if (knives?.spec === spec) return knives;
-    knives?.flying.dispose();
-    knives?.landed.dispose();
-    const flying = createKnifeModel(scene, 'flying-knife', spec, shadows);
-    const landed = createKnifeModel(scene, 'landed-knife', spec, shadows);
-    flying.root.parent = playfield;
-    landed.root.parent = playfield;
-    knives = { spec, flying, landed };
-    return knives;
+  let flying: { spec: KnifeSpec; model: KnifeModel } | null = null;
+  const flyingKnife = (spec: KnifeSpec) => {
+    if (flying?.spec === spec) return flying.model;
+    flying?.model.dispose();
+    const model = createKnifeModel(scene, 'flying-knife', spec, shadows);
+    model.root.parent = playfield;
+    flying = { spec, model };
+    return model;
   };
+  // When each knife hit the ground, and how hard.
+  const landings = new Map<Attempt, Landing>();
+  // Whose ground the thrower was last put on — a new turn puts them on their own.
+  let placedFor: string | null = null;
 
+  /** Puts the thrower in the middle of their own ground, facing the centre of the circle. */
+  const placeAtHome = (state: StageSnapshot) => {
+    const feet = homeSpot(state.board, state.playerId) ?? stance.current.feet;
+    const facing = Math.hypot(feet[0], feet[1]) > 1e-6 ? Math.atan2(-feet[1], -feet[0]) : stance.current.facing;
+    stance.current = { feet, facing };
+    walker.place(feet);
+    placedFor = state.playerId;
+  };
   let motion = RESTING_ARM;
   let raised = 0;
   // Where the arm was when the hand let go: the hand-off swings it from here.
@@ -95,9 +114,10 @@ export const createDirector = (
       if (phase.kind === 'flying') swingAtRelease = motion.shown;
       if (phase.kind === 'cutting') {
         // The flight's playback has just reached the ground.
-        const { flight, verdict, seed } = phase.attempt;
-        const feel = impactFeel(verdict, flight.impact, state.knife);
+        const { flight, verdict, seed, knife } = phase.attempt;
+        const feel = impactFeel(verdict, flight.impact, knife);
         impact = { attempt: phase.attempt, at: now, feel };
+        landings.set(phase.attempt, { at: now, feel });
         const ground: Vec3 = [flight.impact.point[0], flight.impact.point[1], 0.02];
         dust.burst(ground, flight.impact.heading, feel.weight, feel.pace, seed, now / 1000);
         sound.play(feel);
@@ -126,37 +146,42 @@ export const createDirector = (
       phase.kind === 'cutting' ? Math.min(1, Math.max(0, (intoPhase - IMPACT_BEAT) / CUT_DURATION)) : 1,
     );
 
-    const { flying, landed: resting } = knivesFor(state.knife);
-    flying.root.setEnabled(phase.kind === 'flying' && !handingOff);
-    if (phase.kind === 'flying' && !handingOff) {
+    const inAir = phase.kind === 'flying' ? flyingKnife(phase.attempt.knife) : null;
+    flying?.model.root.setEnabled(inAir !== null && !handingOff);
+    if (inAir && phase.kind === 'flying' && !handingOff) {
       // Off the fingers at a crawl, then up to the cruising pace — which is
       // itself slower than real time, because the knife's turn is worth watching.
       const flightTime = flightTimeAt(intoFlight, state.playbackScale);
-      place(flying.root, flyingPlacement(phase.attempt.flight, flightTime));
+      place(inAir.root, flyingPlacement(phase.attempt.flight, flightTime));
     }
-    resting.root.setEnabled(settled !== null);
-    // Seconds since this knife hit; long ago for a throw from before a reload.
-    const sinceImpact = impact && impact.attempt === settled ? (now - impact.at) / 1000 : Infinity;
-    if (settled) {
-      const { flight, verdict } = settled;
-      const feel = impact?.feel ?? impactFeel(verdict, flight.impact, state.knife);
-      place(
-        resting.root,
-        verdict.stuck
-          ? quiveringPlacement(flight, verdict.quality, verdict.depth, quiverLean(sinceImpact, feel.strength, feel.clean))
-          : bouncingPlacement(flight, sinceImpact, feel.strength),
-      );
-      resting.setDimmed(!verdict.stuck);
-    }
+    // Forget landings for knives that have been picked up.
+    for (const attempt of landings.keys()) if (!state.thrown.includes(attempt)) landings.delete(attempt);
+    ground.show(state.thrown, landings, now);
+    const sinceImpact = impact && landings.has(impact.attempt) ? (now - impact.at) / 1000 : Infinity;
     dust.update(now / 1000);
 
     const released = phase.kind !== 'ready';
     const { aim, pitch, draw } = hand();
+
+    // A new turn, or ground taken from under the thrower's feet: back home.
+    if (phase.kind === 'ready' && draw === null) {
+      if (placedFor !== state.playerId || !isOnOwnLand(state.board, state.playerId, stance.current.feet)) {
+        placeAtHome(state);
+      }
+      // Walking: wherever the player asks, as far as solid things allow, and
+      // never off their own ground. Feet stay planted through a throw.
+      const { feet, facing } = stance.current;
+      const walked = walker.step(feet, walkStep(feet, walk(), facing, seconds), seconds);
+      const allowed = keepOnOwnLand(state.board, state.playerId, feet, walked);
+      if (allowed[0] !== walked[0] || allowed[1] !== walked[1]) walker.place(allowed);
+      stance.current = { ...stance.current, feet: allowed };
+    }
+    const feet: Vec2 = stance.current.feet;
     // The hand's own waver is drawn as well as thrown: what the player sees is
     // exactly the line the knife would leave on.
     const heading =
       phase.kind === 'ready'
-        ? state.restHeading - (aim + handSway(now / 1000))
+        ? stance.current.facing - (aim + handSway(now / 1000))
         : phase.attempt.flight.impact.heading;
 
     if (handingOff) {
@@ -173,7 +198,11 @@ export const createDirector = (
     }
     // The free arm comes up to point only while the button is held.
     raised = easeToward(raised, draw !== null && !released ? 1 : 0, FREE_ARM_RATE, seconds);
-    const release: Vec3 = [state.stand[0], state.stand[1], state.config.style.releaseHeight];
+    // Out in front of the feet while aiming; once thrown, exactly where the flight began.
+    const release: Vec3 =
+      phase.kind === 'ready'
+        ? [...releasePointFor(feet, heading), state.config.style.releaseHeight]
+        : phase.attempt.flight.samples[0]!.position;
     const pose = bodyPose(
       {
         release,
@@ -181,14 +210,19 @@ export const createDirector = (
         releaseBladeAngle: state.config.style.startingBladeAngle,
         loft: pitch - state.config.style.pitch,
         raised,
-        spec: state.knife,
+        spec: phase.kind === 'ready' ? state.knife : phase.attempt.knife,
         hands: state.hands,
       },
       motion.shown,
     );
     body.show(
       pose,
-      { spec: state.knife, hands: state.hands, heading, sleeve: state.playerColor },
+      {
+        spec: phase.kind === 'ready' ? state.knife : phase.attempt.knife,
+        hands: state.hands,
+        heading,
+        sleeve: state.playerColor,
+      },
       !released || handingOff,
     );
 
@@ -200,7 +234,7 @@ export const createDirector = (
           shakeDuration(impact.feel.weight),
         )
       : undefined;
-    camera.follow(cameraPose(release, overhead, state.arenaRadius, look), cameraEaseRate(overhead), seconds, jolt);
+    camera.follow(cameraPose(feet, overhead, state.arenaRadius, look), cameraEaseRate(overhead), seconds, jolt);
   };
 
   const observer = scene.onBeforeRenderObservable.add(frame);
@@ -212,8 +246,9 @@ export const createDirector = (
       body.dispose();
       camera.dispose();
       dust.dispose();
-      knives?.flying.dispose();
-      knives?.landed.dispose();
+      ground.dispose();
+      walker.dispose();
+      flying?.model.dispose();
     },
   };
 };

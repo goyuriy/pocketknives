@@ -25,7 +25,7 @@ Status: ✅ done · 🔨 in progress · 📋 ready · 💡 idea
 
 | | **Acquisition** — brings new players in | **Engagement** — makes a session better | **Retention** — brings players back | **Monetization** — earns without spoiling it |
 | --- | --- | --- | --- | --- |
-| **Core** — the throw and the match | Slow-motion release ✅ · Impact juice ✅ · Throw replay · Physics comedy · First three throws | Slow-motion release · Impact juice · Cut reveal · Reach rule · Match flow · Bots · Physics comedy · Grounds · Wind | Match flow · First three throws · Bots · Grounds | Nothing, on purpose — the throw is never for sale |
+| **Core** — the throw and the match | Slow-motion release ✅ · Impact juice ✅ · Throw replay · Physics comedy · First three throws | Slow-motion release · Impact juice · Walking · Cut reveal · Reach rule · Match flow · Bots · Physics comedy · Grounds · Wind | Match flow · First three throws · Bots · Grounds | Nothing, on purpose — the throw is never for sale |
 | **Meta** — what you carry between matches | Daily board | Knife collection · Progression tree · Knife mastery | Knife collection · Progression tree · Daily board · Knife mastery · Season pass | Cosmetics · Season pass · Character & hands |
 | **Social** — playing with other people | Link rooms · Reactions · Clip share · Party mode | Link rooms · Reactions · Party mode · Tournaments | Leaderboards · Friends & rivals · Crews · Tournaments | Supporter pack |
 
@@ -75,6 +75,22 @@ shows the percentage.
 The best throw of a match (biggest cut, longest stick, elimination) replayed
 from a cinematic angle at the end. Throws are deterministic, so a replay is
 five numbers and a seed — no video to store. Feeds **Clip share**.
+
+### Walking — ✅ first pass · E
+Walk your own ground and throw from wherever you stand on it, with basic
+physics: a character capsule (Havok) that stands, falls and bumps into things,
+knives that stay where they fell — stuck ones solid, missed ones bouncing to
+rest for real. Controls follow proven patterns: mouse-look with a captured
+pointer and WASD/arrows on desktop, a floating left-thumb stick on touch, the
+left stick on a gamepad.
+- ✅ Walk within your own land, sliding along its border.
+- ✅ Mouse-look (Pointer Lock), angle from looking up and down.
+- ✅ Floating touch stick; gamepad left stick.
+- ✅ Knives stay on the ground; stuck ones are solid, missed ones are physics.
+- 📋 Gamepad aiming and throwing: right stick to look, and to swing (pull back,
+  push through), as golf games do.
+- 📋 Footsteps and a little head bob, so walking is felt.
+- 💡 A run-up: a few quick steps into the throw for extra reach.
 
 ### Reach rule — 💡 · E
 From the yard game: you must reach the knife while keeping a foot on your own

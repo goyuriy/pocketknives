@@ -1,6 +1,14 @@
 import { describe, expect, it } from 'vitest';
 import { DEFAULT_CONFIG } from '@pocketknives/core';
-import { advanceStroke, aimFromPointer, gripStroke, pitchFromPointer, type Sample } from './throwStroke.js';
+import {
+  advanceStroke,
+  aimFromPointer,
+  gripStroke,
+  lookReach,
+  pitchFromPointer,
+  screenReach,
+  type Sample,
+} from './throwStroke.js';
 import { handSway } from './handSway.js';
 
 const HEIGHT = 800;
@@ -16,7 +24,7 @@ const path = (from: Sample, to: { x: number; y: number }, steps: number, ms: num
 
 const grip: Sample = { x: 400, y: 400, t: 1000 };
 /** An 800-wide stage, so the grip point at x=400 is straight ahead. */
-const reach = { left: 0, width: 800 };
+const reach = screenReach(0, 800, DEFAULT_CONFIG);
 
 /** Grip, draw back by `drawn` of a full draw over `drawMs`, then push to `overshoot` above the grip. */
 const swing = (drawn: number, pushMs: number, sideways = 0, drawMs = 300) => {
@@ -120,6 +128,15 @@ describe('advanceStroke', () => {
     const push = path(again.at(-1)!, { x: 400, y: 380 }, 5, 15);
     const { reading } = advanceStroke(first.stroke, [...again, ...push], HEIGHT, DEFAULT_CONFIG);
     expect(reading.thrown?.draw).toBeCloseTo(0.4, 2);
+  });
+});
+
+describe('lookReach', () => {
+  it('turns as far as the mouse travels, with no edge to stop it', () => {
+    // Mouse-look: 2000 px of travel at 0.004 rad/px is 8 radians — more than a full turn.
+    const moved = path(grip, { x: 2400, y: 400 + 0.3 * fullDraw }, 10, 20);
+    const { reading } = advanceStroke(gripStroke(grip, lookReach(400, 0.004), 0.4), moved, HEIGHT, DEFAULT_CONFIG);
+    expect(reading.aim).toBeCloseTo(8, 9);
   });
 });
 

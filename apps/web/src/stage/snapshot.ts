@@ -4,7 +4,6 @@ import type {
   KnifeSpec,
   PlayerId,
   ThrowConfig,
-  Vec2,
 } from '@pocketknives/core';
 import type { Attempt, Phase } from '../state/useSandbox.js';
 
@@ -25,8 +24,10 @@ export type StageSnapshot = {
   readonly lastAttempt: Attempt | null;
   /** True while the finger is down and the hand is moving. */
   readonly swinging: boolean;
-  readonly stand: Vec2;
-  readonly restHeading: number;
+  /** Whose turn it is — whose ground the thrower may walk. */
+  readonly playerId: PlayerId;
+  /** Every knife thrown this match that is still lying out, oldest first. */
+  readonly thrown: readonly Attempt[];
   readonly config: ThrowConfig;
   readonly knife: KnifeSpec;
   readonly hands: 1 | 2;

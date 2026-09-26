@@ -1,4 +1,4 @@
-import type { KnifeSpec, Vec3 } from '@pocketknives/core';
+import type { KnifeSpec, Vec2, Vec3 } from '@pocketknives/core';
 import { bladeDirection } from './coords.js';
 import { twoBoneIk, type Limb } from './twoBoneIk.js';
 
@@ -143,6 +143,20 @@ const ofFrame = ({ origin, forward, right }: BodyFrame, [x, y, z]: Vec3): Vec3 =
 const add = (a: Vec3, b: Vec3, scale = 1): Vec3 => [a[0] + b[0] * scale, a[1] + b[1] * scale, a[2] + b[2] * scale];
 const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
 const lerp3 = (a: Vec3, b: Vec3, t: number): Vec3 => [lerp(a[0], b[0], t), lerp(a[1], b[1], t), lerp(a[2], b[2], t)];
+
+/**
+ * Where the knife leaves the hand for a thrower standing at `feet` and throwing
+ * along `heading`: out in front, and a little right, where the throwing arm is.
+ * The inverse of how `bodyPose` finds the feet from a release.
+ */
+export const releasePointFor = (feet: Vec2, heading: number): Vec2 => {
+  const forward: Vec2 = [Math.cos(heading), Math.sin(heading)];
+  const right: Vec2 = [Math.sin(heading), -Math.cos(heading)];
+  return [
+    feet[0] + forward[0] * STAND_BACK + right[0] * BODY_LEFT,
+    feet[1] + forward[1] * STAND_BACK + right[1] * BODY_LEFT,
+  ];
+};
 
 /** Where the eye is, for a thrower about to throw from `release` along `heading`. */
 export const eyeAt = (release: Vec3, heading: number): Vec3 =>

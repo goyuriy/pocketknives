@@ -131,19 +131,55 @@ is applied before the flight, from a recorded seed (see below).
 
 ## Where you stand
 
-You throw from your own ground, so the stretch of rim you still hold is the
-stretch you may throw from — and you choose where along it to stand.
+**You walk your own ground, and throw from wherever you stand on it.** You can
+go anywhere your land reaches and nowhere else: walk into your border and you
+slide along it rather than crossing. Your feet must be on your own ground when
+you let go; your arm reaches out in front of you, and may reach over the border,
+as it does in the yard.
 
-That gives rim frontage a value of its own. A player squeezed inland keeps their
-area but loses their angles, and can end up holding plenty of ground with no line
-on anybody. It also means an attack on someone's edge costs them more than the
-land it takes.
+That makes the shape of your land matter twice. Ground that pushes towards an
+opponent is ground you can walk out on and throw short from; losing it pushes
+you back and makes every throw longer. A thin strip of land is a road as well as
+an asset.
 
-The choice is stored as a fraction of frontage rather than an angle, so it
-survives the ground moving underneath it: lose half your edge and you are still
-standing proportionally where you were, not suddenly outside your own land.
+Each turn starts in the middle of your largest piece, facing the centre of the
+circle. If the ground under your feet is taken, you are put back home.
 
-> `ownedRimArcs`, `standingBearing` — [standing.ts](packages/core/src/rules/standing.ts)
+**Controls.**
+
+| | Walk | Turn and aim | Angle | Throw |
+| --- | --- | --- | --- | --- |
+| Mouse and keys | WASD or arrow keys | Mouse across (click to capture the mouse, Esc to release) | Mouse up and down | Hold, pull back, push through — across still turns while drawn |
+| Gamepad | Left stick | — | — | — |
+| Touch | A floating stick: put a thumb down on the left of the screen | Drag on the right | Where the finger comes down | The same drag: pull back, push through |
+
+These follow what players already know from games that do it well. Mouse-look
+with a captured pointer is the standard in every first-person browser game — a
+visible cursor stops turning dead at the edge of the screen. Holding a button to
+make the mouse into a swing is how golf games play on PC. The touch split — move
+with the left thumb, aim-and-release with the right — is Brawl Stars', and a stick
+that floats to wherever the thumb lands is the one players find easiest to learn.
+Your feet stay planted while the button is held, so the grip point means
+something.
+
+> `isOnOwnLand`, `keepOnOwnLand`, `homeSpot` — [standing.ts](packages/core/src/rules/standing.ts)
+> `walkStep`, `walkFromStick` — [walk.ts](apps/web/src/input/walk.ts)
+> `useThrowControls` — [useThrowControls.ts](apps/web/src/stage/useThrowControls.ts)
+
+## Knives on the ground
+
+Every knife thrown stays where it fell, for the rest of the match (the oldest is
+picked up once there are sixteen). A stuck knife is solid — you walk round it,
+not through it. A knife that did not stick is handed to the physics engine the
+moment it lands: it kicks off the ground the way it arrived, bounces and settles
+for real, and can be kicked about afterwards.
+
+None of that decides anything. A knife that did not stick claimed nothing, and
+one that stuck has already cut; the physics is for the eye and the feet.
+
+> `createGroundKnives` — [groundKnives.ts](apps/web/src/stage/views/groundKnives.ts)
+> `rebound` — [rebound.ts](apps/web/src/stage/math/rebound.ts)
+> `createWalker` — [walker.ts](apps/web/src/stage/views/walker.ts)
 
 ## The knife
 

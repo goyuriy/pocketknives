@@ -8,11 +8,35 @@ export type Sample = {
   readonly t: number;
 };
 
-/** The stretch of screen the hand's reach is spread across, in the pointer's own coordinates. */
+/**
+ * How sideways pointer movement becomes aim, relative to the facing the hand
+ * started from: `(x − centre) × radiansPerPixel`, capped at `limit` if there is
+ * one.
+ *
+ * Two kinds, one shape. On a touch screen the pointer's place across the stage
+ * *is* the aim, capped at the arm's reach (`screenReach`). With the mouse
+ * captured for mouse-look there is no place, only motion, and the aim turns as
+ * far as the mouse travels (`lookReach`).
+ */
 export type Reach = {
-  readonly left: number;
-  readonly width: number;
+  readonly centre: number;
+  readonly radiansPerPixel: number;
+  readonly limit: number | null;
 };
+
+/** Edge to edge of the stage is the arm's whole reach. */
+export const screenReach = (left: number, width: number, config: ThrowConfig): Reach => ({
+  centre: left + width / 2,
+  radiansPerPixel: config.gesture.maxAim / Math.max(1, width / 2),
+  limit: config.gesture.maxAim,
+});
+
+/** Mouse-look: aim turns with the mouse from where it gripped, as far as it goes. */
+export const lookReach = (centre: number, radiansPerPixel: number): Reach => ({
+  centre,
+  radiansPerPixel,
+  limit: null,
+});
 
 /**
  * How much of the stage, from the top, the hand's height is read across. The
@@ -76,8 +100,10 @@ export const pitchFromPointer = (y: number, top: number, height: number, config:
   return maxPitch + (minPitch - maxPitch) * down;
 };
 
-const aimOf = (sample: Sample, reach: Reach, config: ThrowConfig): number =>
-  aimFromPointer(sample.x, reach.left, reach.width, config);
+const aimOf = (sample: Sample, { centre, radiansPerPixel, limit }: Reach): number => {
+  const aim = (sample.x - centre) * radiansPerPixel;
+  return limit === null ? aim : Math.min(limit, Math.max(-limit, aim));
+};
 
 export const gripStroke = (at: Sample, reach: Reach, pitch: number): Stroke => ({
   anchor: at,
@@ -131,7 +157,7 @@ export const advanceStroke = (
   const latest = samples[samples.length - 1]!;
   return {
     stroke: { ...stroke, samples: samples.filter((s) => latest.t - s.t <= MEMORY) },
-    reading: { draw: drawOf(latest), aim: aimOf(latest, stroke.reach, config), thrown },
+    reading: { draw: drawOf(latest), aim: aimOf(latest, stroke.reach), thrown },
   };
 };
 
@@ -168,7 +194,7 @@ const throwFrom = (
   if (pushSpeed < config.gesture.minPushSpeed) return null;
 
   const intent: ThrowIntent = {
-    aim: aimOf(bottom, stroke.reach, config) + handSway(release.t / 1000),
+    aim: aimOf(bottom, stroke.reach) + handSway(release.t / 1000),
     pitch: stroke.pitch,
     draw: Math.min(1, drawOf(bottom)),
     drift: Math.atan2(release.x - bottom.x, bottom.y - release.y),

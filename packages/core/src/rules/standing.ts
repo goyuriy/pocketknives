@@ -1,84 +1,69 @@
 import type { Board, PlayerId, Vec2 } from '../types.js';
-import { containsPoint } from '../geometry/ring.js';
-
-/** A stretch of the rim, as bearings. `to` may exceed 2π where the arc wraps. */
-export type RimArc = {
-  readonly from: number;
-  readonly to: number;
-};
-
-export const arcLength = (arc: RimArc): number => arc.to - arc.from;
+import { area, centroid, containsPoint } from '../geometry/ring.js';
 
 /**
- * The stretches of rim a player may stand on.
+ * Where a player may stand: anywhere on their own ground, and nowhere else.
  *
- * You throw from your own ground, so where you may stand is whatever you still
- * hold at the edge of the circle. That makes rim frontage worth something in its
- * own right: a player squeezed inland keeps their area but loses the angles they
- * can throw from, and can find themselves holding plenty of ground with no line
- * on anybody.
- *
- * Sampled around the rim rather than derived from the polygons, because a
- * territory's edge meets the rim in arcs made of many short segments and reading
- * them back out is fiddler's work for no gain — the answer only needs to be
- * accurate to where a person could stand.
+ * You throw from where you stand, so this is also where you may throw from.
+ * It makes the shape of your land matter in a new way — ground that reaches
+ * towards an opponent is ground you can walk out on and throw short from, and
+ * losing it pushes you back.
  */
-export const ownedRimArcs = (
-  board: Board,
-  ownerId: PlayerId,
-  samples = 360,
-): RimArc[] => {
-  const step = (2 * Math.PI) / samples;
-  // Probe just inside the rim: exactly on it the containment test is undecided.
-  const radius = board.radius * 0.995;
-  const owned = Array.from({ length: samples }, (_, i) => {
-    const bearing = i * step;
-    const probe: Vec2 = [Math.cos(bearing) * radius, Math.sin(bearing) * radius];
-    return board.territories.some((t) => t.ownerId === ownerId && containsPoint(t.ring, probe));
-  });
+export const isOnOwnLand = (board: Board, playerId: PlayerId, point: Vec2): boolean =>
+  board.territories.some((t) => t.ownerId === playerId && containsPoint(t.ring, point));
 
-  if (owned.every(Boolean)) return [{ from: 0, to: 2 * Math.PI }];
-  if (!owned.some(Boolean)) return [];
+/** How finely a blocked step is searched for the furthest point still on your land. */
+const SEARCH_STEPS = 12;
 
-  // Start from a gap so a run spanning bearing zero comes out as one arc rather
-  // than two that happen to meet at the seam.
-  const start = owned.indexOf(false);
-  const arcs: RimArc[] = [];
-  let runStart: number | null = null;
+/**
+ * Takes a step from `from` towards `to` without leaving the player's own land.
+ *
+ * A step that stays on your ground is taken as it is. One that would cross your
+ * border slides along it instead — the part of the step running along the
+ * border is kept, the part pushing out through it is dropped — which is how a
+ * wall feels to walk into in any game, rather than stopping dead. If neither
+ * sliding direction works, the step goes as far as it can.
+ *
+ * Pure. `from` is assumed to be on the player's land; if it is not (the ground
+ * was taken from under them), the step is taken unchecked so they can walk
+ * home — see `homeSpot` for putting them somewhere sensible instead.
+ */
+export const keepOnOwnLand = (board: Board, playerId: PlayerId, from: Vec2, to: Vec2): Vec2 => {
+  const onLand = (p: Vec2) => isOnOwnLand(board, playerId, p);
+  if (!onLand(from) || onLand(to)) return to;
 
-  for (let n = 0; n <= samples; n++) {
-    const i = (start + n) % samples;
-    const here = n < samples && owned[i];
-    if (here && runStart === null) runStart = n;
-    if (!here && runStart !== null) {
-      arcs.push({ from: (start + runStart) * step, to: (start + n) * step });
-      runStart = null;
-    }
+  // Slide: try each axis of the step on its own, keep whichever goes further.
+  const slides: Vec2[] = [
+    [to[0], from[1]],
+    [from[0], to[1]],
+  ];
+  const reach = (p: Vec2) => Math.hypot(p[0] - from[0], p[1] - from[1]);
+  const slid = slides.filter(onLand).sort((a, b) => reach(b) - reach(a))[0];
+  if (slid) return slid;
+
+  // Blocked both ways: go as far along the step as the land allows.
+  let inside = 0;
+  let outside = 1;
+  for (let i = 0; i < SEARCH_STEPS; i++) {
+    const mid = (inside + outside) / 2;
+    const p: Vec2 = [from[0] + (to[0] - from[0]) * mid, from[1] + (to[1] - from[1]) * mid];
+    if (onLand(p)) inside = mid;
+    else outside = mid;
   }
-  return arcs;
+  return [from[0] + (to[0] - from[0]) * inside, from[1] + (to[1] - from[1]) * inside];
 };
 
 /**
- * Where a player stands, given how far along their frontage they choose to be.
+ * Where a player starts their turn when they are not standing anywhere yet:
+ * the middle of their largest piece of ground.
  *
- * `position` runs from 0 to 1 across the widest stretch they hold. Expressed as
- * a fraction rather than an angle so a choice survives the ground moving under
- * it: lose half your frontage and you are still standing proportionally where
- * you were, not suddenly outside your own land.
- *
- * Arcs keep an unwrapped form — an arc across the seam runs past 2π — because
- * that is what makes their length readable. A single bearing has no such need,
- * so it comes back wrapped, and callers can compare it without knowing any of
- * this.
+ * Every territory is convex, so its centroid is always inside it — this can
+ * never put a player on someone else's land. Null only for a player with no
+ * ground at all.
  */
-export const standingBearing = (
-  board: Board,
-  ownerId: PlayerId,
-  position: number,
-): number | null => {
-  const arcs = ownedRimArcs(board, ownerId);
-  if (arcs.length === 0) return null;
-  const widest = arcs.reduce((best, arc) => (arcLength(arc) > arcLength(best) ? arc : best));
-  const bearing = widest.from + arcLength(widest) * Math.min(1, Math.max(0, position));
-  return ((bearing % (2 * Math.PI)) + 2 * Math.PI) % (2 * Math.PI);
+export const homeSpot = (board: Board, playerId: PlayerId): Vec2 | null => {
+  const own = board.territories.filter((t) => t.ownerId === playerId);
+  if (own.length === 0) return null;
+  const largest = own.reduce((best, t) => (area(t.ring) > area(best.ring) ? t : best));
+  return centroid(largest.ring);
 };

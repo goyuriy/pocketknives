@@ -5,7 +5,14 @@ import { Quaternion } from '@babylonjs/core/Maths/math.vector';
 import type { ShadowGenerator } from '@babylonjs/core/Lights/Shadows/shadowGenerator';
 import type { StandardMaterial } from '@babylonjs/core/Materials/standardMaterial';
 import type { KnifeSpec } from '@pocketknives/core';
-import { bladeQuaternion, leanedBladeQuaternion } from '../math/coords.js';
+import {
+  axisAngle,
+  bladeQuaternion,
+  compose,
+  leanedBladeQuaternion,
+  PLAYFIELD_TILT,
+  toWorld,
+} from '../math/coords.js';
 import { knifeShape } from '../math/knifeShape.js';
 import type { Placement } from '../math/knifePlacement.js';
 import { slab } from '../math/meshData.js';
@@ -73,5 +80,19 @@ export const createKnifeModel = (
 export const place = (node: TransformNode, { position, heading, bladeAngle, lean = 0 }: Placement): void => {
   node.position.set(...position);
   const [x, y, z, w] = lean === 0 ? bladeQuaternion(heading, bladeAngle) : leanedBladeQuaternion(heading, bladeAngle, lean);
+  (node.rotationQuaternion ??= Quaternion.Identity()).set(x, y, z, w);
+};
+
+const STAND_UP = axisAngle([1, 0, 0], PLAYFIELD_TILT);
+
+/**
+ * The same, for a node that is not under the playfield: placed straight in the
+ * world, with the playfield's tilt applied by hand. Physics bodies live here —
+ * a body under a rotated parent is one more thing to get wrong.
+ */
+export const placeInWorld = (node: TransformNode, { position, heading, bladeAngle, lean = 0 }: Placement): void => {
+  node.position.set(...toWorld(position));
+  const turned = lean === 0 ? bladeQuaternion(heading, bladeAngle) : leanedBladeQuaternion(heading, bladeAngle, lean);
+  const [x, y, z, w] = compose(STAND_UP, turned);
   (node.rotationQuaternion ??= Quaternion.Identity()).set(x, y, z, w);
 };

@@ -1,6 +1,15 @@
 import { describe, expect, it } from 'vitest';
 import { KNIVES, knifeById, type Vec3 } from '@pocketknives/core';
-import { bodyPose, eyeAt, EYE_HEIGHT, gripOffset, READY_SWING, swingForDraw, type BodySetup } from './bodyPose.js';
+import {
+  bodyPose,
+  eyeAt,
+  EYE_HEIGHT,
+  gripOffset,
+  READY_SWING,
+  releasePointFor,
+  swingForDraw,
+  type BodySetup,
+} from './bodyPose.js';
 import { bladeDirection } from './coords.js';
 
 const setup = (id: string, heading = Math.PI / 2): BodySetup => {
@@ -128,5 +137,19 @@ describe('swingForDraw', () => {
   it('lifts to the release pose as the hand comes up past the grip', () => {
     expect(swingForDraw(-1)).toBe(-0);
     expect(swingForDraw(-0.05)).toBeGreaterThan(READY_SWING);
+  });
+});
+
+describe('releasePointFor', () => {
+  it('puts the release out in front of the feet, and brings the eye back over them', () => {
+    const feet: [number, number] = [2, -8];
+    const heading = 1.2;
+    const [x, y] = releasePointFor(feet, heading);
+    const eye = eyeAt([x, y, 1.4], heading);
+    // The eye sits right above the feet — the round trip closes.
+    expect(eye[0]).toBeCloseTo(feet[0], 9);
+    expect(eye[1]).toBeCloseTo(feet[1], 9);
+    // And the release is ahead of them along the heading.
+    expect((x - feet[0]) * Math.cos(heading) + (y - feet[1]) * Math.sin(heading)).toBeGreaterThan(0.5);
   });
 });

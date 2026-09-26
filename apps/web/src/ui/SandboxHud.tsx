@@ -90,7 +90,7 @@ export const SandboxHud = ({ game }: { game: SandboxState }) => {
           ? 'Pull back for distance, push through to throw. Let go to call it off.'
           : attempt
             ? describe(attempt, arenaArea)
-            : 'Point with the mouse — up to lob, down to throw flat. Hold, pull back, push through.'}
+            : 'Walk your own ground. Look to aim — up to lob, down for flat. Hold, pull back, push through.'}
       </div>
 
       <div className="standings">
@@ -106,23 +106,6 @@ export const SandboxHud = ({ game }: { game: SandboxState }) => {
           </button>
         ))}
       </div>
-
-      {/*
-        Where to stand, along whatever rim this player still holds. Its own row
-        because it is a decision taken before the throw, not a setting.
-      */}
-      <label className="stand">
-        <span>stand</span>
-        <input
-          type="range"
-          min={0}
-          max={1}
-          step={0.01}
-          value={game.standPosition}
-          onChange={(event) => game.setStandPosition(Number(event.target.value))}
-          aria-label="Where to stand along your own edge"
-        />
-      </label>
 
       <div className="controls">
         <button type="button" onClick={() => game.reset(game.playerCount)}>

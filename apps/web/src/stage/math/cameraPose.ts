@@ -1,5 +1,5 @@
 import type { Vec2, Vec3 } from '@pocketknives/core';
-import { eyeAt } from './bodyPose.js';
+import { EYE_HEIGHT } from './bodyPose.js';
 
 /**
  * Where the camera sits, and what it looks at.
@@ -32,18 +32,19 @@ export type CameraPose = {
 };
 
 /**
- * @param release where the knife leaves the hand — the thrower stands just behind it
- * @param look    where the view is pointing across the ground, radians — the
- *                hand's heading, lagged
+ * @param feet where the thrower stands — the eye is right above them
+ * @param look where the view is pointing across the ground, radians — the
+ *             hand's heading, lagged
  */
 export const cameraPose = (
-  release: Vec3,
+  feet: Vec2,
   overhead: boolean,
   arenaRadius: number,
   look: number,
 ): CameraPose => {
   if (overhead) {
-    const bearing = Math.atan2(release[1], release[0]);
+    // Over the circle from the thrower's side, so the cut reads the way it was thrown.
+    const bearing = Math.hypot(feet[0], feet[1]) > 1e-6 ? Math.atan2(feet[1], feet[0]) : look + Math.PI;
     return {
       eye: [
         Math.cos(bearing) * (arenaRadius + OVER_SETBACK),
@@ -53,7 +54,7 @@ export const cameraPose = (
       focus: [0, 0, 0],
     };
   }
-  const eye = eyeAt(release, look);
+  const eye: Vec3 = [feet[0], feet[1], EYE_HEIGHT];
   const ahead: Vec2 = [Math.cos(look) * Math.cos(EYE_DIP), Math.sin(look) * Math.cos(EYE_DIP)];
   return {
     eye,

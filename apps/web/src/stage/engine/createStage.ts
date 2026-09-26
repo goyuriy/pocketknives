@@ -123,8 +123,10 @@ export const createStage = (canvas: HTMLCanvasElement, options: StageOptions): S
         throw new Error('Havok physics failed to start');
       }
       // The ground, as far as physics is concerned: a slab just under the
-      // circle. Nothing uses it yet; it is here so a knife can be dropped on it.
-      const floor = CreateBox('floor', { width: 60, depth: 60, height: 1 }, scene);
+      // circle for knives to bounce on and the thrower to stand on — far wider
+      // than the circle, so a knife that bounces a long way still has ground
+      // to settle on.
+      const floor = CreateBox('floor', { width: 400, depth: 400, height: 1 }, scene);
       floor.position.y = -0.5;
       floor.isVisible = false;
       floorBody = new PhysicsAggregate(floor, PhysicsShapeType.BOX, { mass: 0, friction: 0.8 }, scene);

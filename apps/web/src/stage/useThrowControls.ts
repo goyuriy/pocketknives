@@ -1,0 +1,249 @@
+import { useEffect, useRef, useState, type MutableRefObject } from 'react';
+import type { SandboxState, Stance } from '../state/useSandbox.js';
+import {
+  advanceStroke,
+  aimFromPointer,
+  gripStroke,
+  lookReach,
+  pitchFromPointer,
+  screenReach,
+  type Sample,
+  type Stroke,
+} from '../input/throwStroke.js';
+import { STANDING_STILL, walkFromStick, type WalkInput } from '../input/walk.js';
+import type { ImpactSound } from '../audio/impactSound.js';
+import type { HandInput } from './snapshot.js';
+
+/** Radians the body turns per pixel of mouse travel, with the mouse captured. */
+const LOOK_RATE = 0.0035;
+/** Radians of launch angle per pixel of vertical mouse travel, with the mouse captured. */
+const PITCH_RATE = 0.0018;
+/** On a touch screen, how much of the stage from the left is the walking stick's. */
+const STICK_ZONE = 0.4;
+/** How far, in pixels, the walking stick's knob travels for a full walk. */
+export const STICK_REACH = 56;
+
+/** The on-screen walking stick, in pixels relative to the stage: where the thumb landed, and where it is. */
+export type StickView = { readonly origin: readonly [number, number]; readonly knob: readonly [number, number] };
+
+export type ThrowControls = {
+  readonly handlers: {
+    readonly onPointerDown: (event: React.PointerEvent<HTMLElement>) => void;
+    readonly onPointerMove: (event: React.PointerEvent<HTMLElement>) => void;
+    readonly onPointerUp: (event: React.PointerEvent<HTMLElement>) => void;
+    readonly onPointerCancel: (event: React.PointerEvent<HTMLElement>) => void;
+  };
+  /** The walking stick to draw, while a thumb is on it. */
+  readonly stick: StickView | null;
+  /** Whether the mouse is captured for mouse-look. */
+  readonly looking: boolean;
+};
+
+/**
+ * The player's hands on the stage — every way of pointing, walking and throwing.
+ *
+ * Built on what players already know from games that do this well:
+ *
+ * - **Mouse:** first-person mouse-look. The first click captures the pointer
+ *   (Pointer Lock) — the standard in every browser shooter, because a visible
+ *   cursor stops turning dead at the edge of the screen. Across turns you, up
+ *   and down sets the angle, and holding the button turns up and down into the
+ *   draw, as a golf game's swing does on PC. Across still turns you while drawn.
+ *   Escape gives the mouse back.
+ * - **Touch:** Brawl Stars' split. A thumb landing on the left of the stage
+ *   becomes a walking stick, floating wherever it landed; anywhere else aims and
+ *   throws with the drag gesture.
+ * - **Keys and gamepad** walk too; they are read by the stage each frame.
+ *
+ * The stroke, the stance and the hand live in refs: they change on every
+ * pointer event, and the scene reads them once a frame.
+ */
+export const useThrowControls = ({
+  game,
+  canvas,
+  stance,
+  hand,
+  touchWalk,
+  sound,
+}: {
+  game: SandboxState;
+  canvas: MutableRefObject<HTMLCanvasElement | null>;
+  stance: MutableRefObject<Stance>;
+  hand: MutableRefObject<HandInput>;
+  touchWalk: MutableRefObject<WalkInput>;
+  sound: MutableRefObject<ImpactSound | null>;
+}): ThrowControls => {
+  const { phase, setDraw, setPitch, release } = game;
+  const stroke = useRef<Stroke | null>(null);
+  // Mouse-look has no pointer position, only motion: this is the motion summed,
+  // a place for the stroke reader to measure draws and pushes in.
+  const look = useRef({ x: 0, y: 0 });
+  // The facing the grip began from; the hand's aim is measured from it.
+  const gripFacing = useRef(0);
+  const stickId = useRef<number | null>(null);
+  const [stick, setStick] = useState<StickView | null>(null);
+  const [looking, setLooking] = useState(false);
+  const canThrow = phase.kind === 'ready';
+
+  const point = (aim: number, pitch: number, draw: number | null) => {
+    hand.current = { aim, pitch, draw };
+    setPitch(pitch);
+  };
+
+  /** Ends a grip without throwing, or after one; the turn made while gripping is kept. */
+  const letGo = () => {
+    if (stroke.current && document.pointerLockElement) {
+      stance.current = { ...stance.current, facing: gripFacing.current - hand.current.aim };
+      hand.current = { ...hand.current, aim: 0 };
+    }
+    stroke.current = null;
+    hand.current = { ...hand.current, draw: null };
+    setDraw(null);
+  };
+
+  useEffect(() => {
+    const changed = () => {
+      const captured = document.pointerLockElement === canvas.current;
+      setLooking(captured);
+      if (!captured && stroke.current) letGo();
+      if (!captured) hand.current = { ...hand.current, aim: 0 };
+    };
+    document.addEventListener('pointerlockchange', changed);
+    return () => document.removeEventListener('pointerlockchange', changed);
+  });
+
+  /** Every pointer update in this event, including the ones the browser batched into it. */
+  const updatesOf = (event: React.PointerEvent<HTMLElement>): PointerEvent[] => {
+    const coalesced = event.nativeEvent.getCoalescedEvents?.() ?? [];
+    return coalesced.length > 0 ? coalesced : [event.nativeEvent];
+  };
+
+  /** Samples for the stroke reader: screen positions normally, summed motion when looking. */
+  const samplesOf = (event: React.PointerEvent<HTMLElement>): Sample[] => {
+    const now = event.timeStamp || performance.now();
+    return updatesOf(event).map((update) => {
+      if (!document.pointerLockElement) return { x: update.clientX, y: update.clientY, t: update.timeStamp || now };
+      look.current = { x: look.current.x + update.movementX, y: look.current.y + update.movementY };
+      return { ...look.current, t: update.timeStamp || now };
+    });
+  };
+
+  const box = (event: React.PointerEvent<HTMLElement>) => event.currentTarget.getBoundingClientRect();
+
+  /**
+   * Keeps a pointer's events coming here even when it strays off the stage.
+   * Best effort: capture can be refused (a pointer already lifted, a synthetic
+   * one), and a refused capture must never cost the player their throw.
+   */
+  const capture = (event: React.PointerEvent<HTMLElement>) => {
+    try {
+      event.currentTarget.setPointerCapture?.(event.pointerId);
+    } catch {
+      // Without capture, events still arrive while the pointer is over the stage.
+    }
+  };
+
+  const onPointerDown = (event: React.PointerEvent<HTMLElement>) => {
+    sound.current?.unlock();
+    const area = box(event);
+
+    if (event.pointerType === 'touch' && event.clientX < area.left + area.width * STICK_ZONE) {
+      stickId.current = event.pointerId;
+      capture(event);
+      const origin = [event.clientX - area.left, event.clientY - area.top] as const;
+      setStick({ origin, knob: origin });
+      return;
+    }
+    if (!canThrow || event.button > 0) return;
+    if (event.pointerType === 'mouse' && !document.pointerLockElement) {
+      // The first click takes the mouse; it does not also throw.
+      void canvas.current?.requestPointerLock();
+      return;
+    }
+
+    const captured = document.pointerLockElement !== null;
+    if (!captured) capture(event);
+    const at: Sample = captured
+      ? { ...look.current, t: event.timeStamp }
+      : { x: event.clientX, y: event.clientY, t: event.timeStamp };
+    // A finger has no hover, so its angle is wherever it came down.
+    const pitch =
+      event.pointerType === 'touch'
+        ? pitchFromPointer(event.clientY, area.top, area.height, game.config)
+        : hand.current.pitch;
+    const reach = captured ? lookReach(at.x, LOOK_RATE) : screenReach(area.left, area.width, game.config);
+
+    gripFacing.current = stance.current.facing;
+    stroke.current = gripStroke(at, reach, pitch);
+    point(captured ? 0 : aimFromPointer(event.clientX, area.left, area.width, game.config), pitch, 0);
+    setDraw(0);
+  };
+
+  const onPointerMove = (event: React.PointerEvent<HTMLElement>) => {
+    if (stickId.current === event.pointerId) {
+      if (!stick) return;
+      const area = box(event);
+      const knob = [event.clientX - area.left, event.clientY - area.top] as const;
+      const [dx, dy] = [knob[0] - stick.origin[0], knob[1] - stick.origin[1]];
+      touchWalk.current = walkFromStick(dx / STICK_REACH, dy / STICK_REACH);
+      const travel = Math.min(1, STICK_REACH / Math.max(1, Math.hypot(dx, dy)));
+      setStick({ origin: stick.origin, knob: [stick.origin[0] + dx * travel, stick.origin[1] + dy * travel] });
+      return;
+    }
+
+    if (!stroke.current) {
+      if (document.pointerLockElement) {
+        // Looking about: across turns the body, up and down sets the angle.
+        const moved = updatesOf(event).reduce<[number, number]>(
+          (sum, u) => [sum[0] + u.movementX, sum[1] + u.movementY],
+          [0, 0],
+        );
+        stance.current = { ...stance.current, facing: stance.current.facing - moved[0] * LOOK_RATE };
+        const { minPitch, maxPitch } = game.config.gesture;
+        const pitch = Math.min(maxPitch, Math.max(minPitch, hand.current.pitch - moved[1] * PITCH_RATE));
+        point(0, pitch, null);
+      } else if (event.pointerType !== 'touch') {
+        const area = box(event);
+        point(
+          aimFromPointer(event.clientX, area.left, area.width, game.config),
+          pitchFromPointer(event.clientY, area.top, area.height, game.config),
+          null,
+        );
+      }
+      return;
+    }
+
+    const { stroke: next, reading } = advanceStroke(
+      stroke.current,
+      samplesOf(event),
+      event.currentTarget.clientHeight,
+      game.config,
+    );
+    if (reading.thrown) {
+      const throwFrom: Stance = { feet: stance.current.feet, facing: gripFacing.current };
+      hand.current = { ...hand.current, aim: reading.thrown.aim };
+      letGo();
+      release(reading.thrown, throwFrom);
+      return;
+    }
+    stroke.current = next;
+    hand.current = { aim: reading.aim, pitch: next.pitch, draw: reading.draw };
+    setDraw(Math.max(0, reading.draw));
+  };
+
+  const onPointerUp = (event: React.PointerEvent<HTMLElement>) => {
+    if (stickId.current === event.pointerId) {
+      stickId.current = null;
+      touchWalk.current = STANDING_STILL;
+      setStick(null);
+      return;
+    }
+    letGo();
+  };
+
+  return {
+    handlers: { onPointerDown, onPointerMove, onPointerUp, onPointerCancel: onPointerUp },
+    stick,
+    looking,
+  };
+};

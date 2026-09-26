@@ -7,15 +7,17 @@ import {
   isThrow,
   knifeById,
   passTurn,
+  isOnOwnLand,
   resolveThrow,
   simulateFlight,
-  standingBearing,
-  standingPoint,
   stickVerdict,
   survivors,
   swingLaunch,
+  thrownHeading,
   throwFromImpact,
   type Flight,
+  type KnifeSpec,
+  type Vec2,
   type Match,
   type PlayerId,
   type StickVerdict,
@@ -25,6 +27,7 @@ import {
 } from '@pocketknives/core';
 import { PLAYER_NAMES } from '../ui/theme.js';
 import { playbackDuration } from '../playback/releaseTimeline.js';
+import { releasePointFor } from '../stage/math/bodyPose.js';
 
 export const ARENA_RADIUS = 10;
 
@@ -38,6 +41,15 @@ export const IMPACT_BEAT = 0.3;
 export const CUT_DURATION = 0.55;
 /** Seconds the result stays up before the next player may throw. */
 const REST_DURATION = 0.7;
+/** How many thrown knives stay lying about the circle. The oldest is picked up first. */
+const KNIVES_LEFT_OUT = 16;
+
+/** Where the thrower is standing and which way they face — what a throw is thrown from. */
+export type Stance = {
+  readonly feet: Vec2;
+  /** Heading the body faces, radians; the hand aims relative to it. */
+  readonly facing: number;
+};
 
 export type Attempt = {
   readonly playerId: PlayerId;
@@ -49,6 +61,8 @@ export type Attempt = {
   readonly seed: number;
   /** What the player asked for, kept so the meter and the message can show the throw that was made. */
   readonly intent: ThrowIntent;
+  /** The knife thrown, so it can lie on the ground as itself after the next pick. */
+  readonly knife: KnifeSpec;
 };
 
 export type Phase =
@@ -60,8 +74,10 @@ export type Phase =
 /**
  * The sandbox: a board, a knife, and a hand to throw it with.
  *
- * The player supplies an aim, a draw and a push; the wrist and the wobble
- * belong to the core (`swingLaunch`).
+ * The player walks their own ground and supplies an aim, a draw and a push;
+ * the wrist and the wobble belong to the core (`swingLaunch`). Where they are
+ * standing lives with the stage, which moves them every frame, and arrives here
+ * only with the throw.
  *
  * A throw is resolved the instant the hand lets go — flight, stick and cut are
  * all pure functions, so the whole outcome is known before a frame is drawn.
@@ -85,10 +101,9 @@ export const useSandbox = (initialPlayers = 4) => {
     [],
   );
   const [lastAttempt, setLastAttempt] = useState<Attempt | null>(null);
+  // Every knife thrown this match, oldest first — they stay where they fell.
+  const [thrown, setThrown] = useState<readonly Attempt[]>([]);
   const [knifeId, setKnifeId] = useState('thrower');
-  // How far along their own frontage the player stands, 0 to 1. A fraction, not
-  // an angle, so the choice survives the ground moving under them.
-  const [standPosition, setStandPosition] = useState(0.5);
   const [tuning, setTuning] = useState<ThrowConfig>(DEFAULT_CONFIG);
   const [playbackScale, setPlaybackScale] = useState(0.55);
   const [stayOnPlayer, setStayOnPlayer] = useState(true);
@@ -103,21 +118,6 @@ export const useSandbox = (initialPlayers = 4) => {
   );
 
   const currentPlayer = match.players[match.turn]!;
-  /*
-   * You throw from your own ground, so the rim you still hold is the rim you may
-   * throw from. A player squeezed inland keeps their area but loses their
-   * angles — which is why this is read off the board every turn rather than
-   * fixed at the wedge each player started with.
-   */
-  const bearing = useMemo(
-    () =>
-      standingBearing(match.board, currentPlayer, standPosition) ??
-      bearingAtStart(match.turn, match.players.length),
-    [match.board, currentPlayer, standPosition, match.turn, match.players.length],
-  );
-  const stand = useMemo(() => standingPoint(bearing, ARENA_RADIUS), [bearing]);
-  const restHeading = bearing + Math.PI;
-
   const alive = useMemo(
     () => survivors(match.board, match.rules, match.players),
     [match.board, match.rules, match.players],
@@ -136,17 +136,23 @@ export const useSandbox = (initialPlayers = 4) => {
   /**
    * Commits a throw.
    *
-   * Takes the intent as an argument rather than from state: a whole push can
-   * land inside one frame, and state React has not re-rendered yet would hold
-   * the hand's position from before it moved.
+   * Takes the intent and the stance as arguments rather than from state: a whole
+   * push can land inside one frame, and the player walks every frame — state
+   * React has not re-rendered yet would hold where they were, not where they are.
+   *
+   * The knife leaves the hand out in front of the thrower's feet, on the line it
+   * is thrown along. The feet must be on the thrower's own ground; the reach of
+   * the arm may be over the border, as it is in the yard.
    */
   const release = useCallback(
-    (intent: ThrowIntent) => {
+    (intent: ThrowIntent, stance: Stance) => {
       setDraw(null);
       if (phase.kind !== 'ready' || !isThrow(intent, config)) return;
+      if (!isOnOwnLand(match.board, currentPlayer, stance.feet)) return;
 
       const seed = Math.floor(Math.random() * 0xffffffff);
-      const launch = swingLaunch(stand, restHeading, intent, config, seed);
+      const from = releasePointFor(stance.feet, thrownHeading(stance.facing, intent, config));
+      const launch = swingLaunch(from, stance.facing, intent, config, seed);
       const flight = simulateFlight(launch, config.flight);
       const verdict = stickVerdict(flight.impact, config);
       const outcome = verdict.stuck
@@ -161,9 +167,11 @@ export const useSandbox = (initialPlayers = 4) => {
         playbackDuration: playbackDuration(flight.impact.time, playbackScale),
         seed,
         intent,
+        knife: config.knife,
       };
 
       setLastAttempt(attempt);
+      setThrown((knives) => [...knives, attempt].slice(-KNIVES_LEFT_OUT));
       setPhase({ kind: 'flying', attempt });
 
       schedule(() => setPhase({ kind: 'cutting', attempt }), attempt.playbackDuration);
@@ -177,7 +185,7 @@ export const useSandbox = (initialPlayers = 4) => {
         setPhase({ kind: 'ready' });
       }, attempt.playbackDuration + IMPACT_BEAT + CUT_DURATION + REST_DURATION);
     },
-    [phase.kind, stand, restHeading, match, currentPlayer, playbackScale, stayOnPlayer, config],
+    [phase.kind, match, currentPlayer, playbackScale, stayOnPlayer, config],
   );
 
   const reset = useCallback((count: number) => {
@@ -188,6 +196,7 @@ export const useSandbox = (initialPlayers = 4) => {
     setPhase({ kind: 'ready' });
     setDraw(null);
     setLastAttempt(null);
+    setThrown([]);
   }, []);
 
   const selectPlayer = useCallback((index: number) => {
@@ -209,9 +218,7 @@ export const useSandbox = (initialPlayers = 4) => {
     reset,
     selectPlayer,
     currentPlayer,
-    stand,
-    bearing,
-    restHeading,
+    thrown,
     alive,
     fields,
     playerCount,
@@ -221,8 +228,6 @@ export const useSandbox = (initialPlayers = 4) => {
     setTuning,
     knifeId,
     setKnifeId,
-    standPosition,
-    setStandPosition,
     playbackScale,
     setPlaybackScale,
     stayOnPlayer,
@@ -235,9 +240,5 @@ const newMatch = (playerCount: number): Match =>
     createBoard(PLAYER_NAMES.slice(0, playerCount), ARENA_RADIUS),
     PLAYER_NAMES.slice(0, playerCount),
   );
-
-/** Centre of a player's opening wedge — the fallback when they hold no rim at all. */
-const bearingAtStart = (index: number, playerCount: number): number =>
-  ((index + 0.5) * 2 * Math.PI) / playerCount;
 
 export type SandboxState = ReturnType<typeof useSandbox>;

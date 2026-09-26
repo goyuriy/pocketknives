@@ -1,19 +1,14 @@
 import { useEffect, useRef } from 'react';
-import type { SandboxState } from '../state/useSandbox.js';
+import type { SandboxState, Stance } from '../state/useSandbox.js';
 import { ARENA_RADIUS } from '../state/useSandbox.js';
 import { colorOf } from '../ui/theme.js';
-import {
-  advanceStroke,
-  aimFromPointer,
-  gripStroke,
-  pitchFromPointer,
-  type Sample,
-  type Stroke,
-} from '../input/throwStroke.js';
+import { createWalkDevices } from '../input/devices.js';
+import { combineWalks, STANDING_STILL, type WalkInput } from '../input/walk.js';
+import { createImpactSound, type ImpactSound } from '../audio/impactSound.js';
 import { createStage } from './engine/createStage.js';
 import { createDirector } from './director.js';
-import { createImpactSound, type ImpactSound } from '../audio/impactSound.js';
 import type { HandInput, StageSnapshot } from './snapshot.js';
+import { useThrowControls, STICK_REACH } from './useThrowControls.js';
 
 const snapshotOf = (game: SandboxState): StageSnapshot => ({
   board: game.match.board,
@@ -22,8 +17,8 @@ const snapshotOf = (game: SandboxState): StageSnapshot => ({
   phase: game.phase,
   lastAttempt: game.lastAttempt,
   swinging: game.draw !== null,
-  stand: game.stand,
-  restHeading: game.restHeading,
+  playerId: game.currentPlayer,
+  thrown: game.thrown,
   config: game.config,
   knife: game.config.knife,
   hands: game.knife.hands,
@@ -33,31 +28,22 @@ const snapshotOf = (game: SandboxState): StageSnapshot => ({
 });
 
 /**
- * The 3D stage, and the surface the player throws on.
+ * The 3D stage, and the surface the player plays on.
  *
- * Two jobs, kept apart. The engine is created once and left alone by React: it
- * reads the latest snapshot every frame, so a re-render never rebuilds the scene.
- * The pointer handlers are the player's hand:
- *
- * - **moving** points it — the pointer's place across the stage is where the
- *   hand aims, and its height how steeply; there is no cursor, only the hands;
- * - **pressing** grips;
- * - **pulling back and pushing through** throws, read by `advanceStroke` —
- *   and the hand keeps turning with the pointer while drawn, so the line can be
- *   settled with the arm already back;
- * - **letting go** before pushing through calls the throw off.
- *
- * The hand and the stroke live in refs, not state. They change on every pointer
- * event, a whole push can happen inside one frame, and the scene reads them
- * once a frame anyway.
+ * The engine is created once and left alone by React: it reads the latest
+ * snapshot every frame, so a re-render never rebuilds the scene. Everything the
+ * player does with their hands — walking, looking, throwing — comes through
+ * `useThrowControls` and the walking devices, into refs the stage reads each
+ * frame.
  */
 export const Stage = ({ game }: { game: SandboxState }) => {
-  const { phase, setDraw, setPitch, release } = game;
   const canvas = useRef<HTMLCanvasElement>(null);
   const snapshot = useRef(snapshotOf(game));
-  const stroke = useRef<Stroke | null>(null);
   const sound = useRef<ImpactSound | null>(null);
   const hand = useRef<HandInput>({ aim: 0, pitch: game.config.style.pitch, draw: null });
+  // Placed by the stage on the thrower's own ground once it has a board to read.
+  const stance = useRef<Stance>({ feet: [0, 0], facing: 0 });
+  const touchWalk = useRef<WalkInput>(STANDING_STILL);
 
   useEffect(() => {
     snapshot.current = snapshotOf(game);
@@ -68,100 +54,44 @@ export const Stage = ({ game }: { game: SandboxState }) => {
     if (!target) return;
     const stage = createStage(target, { gravity: snapshot.current.config.flight.gravity });
     const impacts = createImpactSound();
+    const devices = createWalkDevices();
     sound.current = impacts;
-    const director = createDirector(stage, () => snapshot.current, () => hand.current, impacts);
+    const director = createDirector(stage, {
+      read: () => snapshot.current,
+      hand: () => hand.current,
+      walk: () => combineWalks(devices.read(), touchWalk.current),
+      stance,
+      sound: impacts,
+    });
     stage.physics.catch((error: unknown) => console.error(error));
     // A handle for poking at the live scene from the browser console.
     if (import.meta.env.DEV) (window as unknown as { __stage: unknown }).__stage = stage;
     return () => {
       director.dispose();
+      devices.dispose();
       stage.dispose();
       impacts.dispose();
       sound.current = null;
     };
   }, []);
 
-  const canThrow = phase.kind === 'ready';
-
-  /*
-   * Browsers batch pointer moves to one per frame and keep the rest. For a fast
-   * push those kept events are most of the motion, and without them its speed
-   * and line are guesses.
-   */
-  const samplesOf = (event: React.PointerEvent<HTMLElement>): Sample[] => {
-    const coalesced = event.nativeEvent.getCoalescedEvents?.() ?? [];
-    const points = coalesced.length > 0 ? coalesced : [event.nativeEvent];
-    const now = event.timeStamp || performance.now();
-    return points.map((point) => ({ x: point.clientX, y: point.clientY, t: point.timeStamp || now }));
-  };
-
-  const aimAt = (event: React.PointerEvent<HTMLElement>) => {
-    const box = event.currentTarget.getBoundingClientRect();
-    return aimFromPointer(event.clientX, box.left, box.width, game.config);
-  };
-
-  const pitchAt = (event: React.PointerEvent<HTMLElement>) => {
-    const box = event.currentTarget.getBoundingClientRect();
-    return pitchFromPointer(event.clientY, box.top, box.height, game.config);
-  };
-
-  /** Points the hand, and tells the HUD the angle — which only re-renders when it changes. */
-  const point = (aim: number, pitch: number, draw: number | null) => {
-    hand.current = { aim, pitch, draw };
-    setPitch(pitch);
-  };
-
-  const letGo = () => {
-    stroke.current = null;
-    hand.current = { ...hand.current, draw: null };
-    setDraw(null);
-  };
-
-  const onPointerDown = (event: React.PointerEvent<HTMLElement>) => {
-    // Browsers keep audio silent until the player has done something; a press is something.
-    sound.current?.unlock();
-    if (!canThrow || event.button > 0) return;
-    event.currentTarget.setPointerCapture?.(event.pointerId);
-    const box = event.currentTarget.getBoundingClientRect();
-    const [at] = samplesOf(event).slice(-1);
-    // The angle is whatever the hand was set to before gripping; it locks here.
-    const pitch = hand.current.pitch;
-    stroke.current = gripStroke(at!, { left: box.left, width: box.width }, pitch);
-    point(aimAt(event), pitch, 0);
-    setDraw(0);
-  };
-
-  const onPointerMove = (event: React.PointerEvent<HTMLElement>) => {
-    if (!stroke.current) {
-      // Not gripping: the hand follows the pointer — across to aim, up and down to set the angle.
-      point(aimAt(event), pitchAt(event), null);
-      return;
-    }
-    const { stroke: next, reading } = advanceStroke(
-      stroke.current,
-      samplesOf(event),
-      event.currentTarget.clientHeight,
-      game.config,
-    );
-    if (reading.thrown) {
-      letGo();
-      release(reading.thrown);
-      return;
-    }
-    stroke.current = next;
-    hand.current = { aim: reading.aim, pitch: next.pitch, draw: reading.draw };
-    setDraw(Math.max(0, reading.draw));
-  };
+  const { handlers, stick, looking } = useThrowControls({ game, canvas, stance, hand, touchWalk, sound });
+  const desktop = typeof window !== 'undefined' && window.matchMedia?.('(pointer: fine)').matches;
 
   return (
-    <div
-      className="stage"
-      onPointerDown={onPointerDown}
-      onPointerMove={onPointerMove}
-      onPointerUp={letGo}
-      onPointerCancel={letGo}
-    >
+    <div className="stage" {...handlers}>
       <canvas ref={canvas} />
+      {stick && (
+        <div className="walk-stick" style={{ left: stick.origin[0], top: stick.origin[1], width: STICK_REACH * 2, height: STICK_REACH * 2 }}>
+          <div
+            className="walk-stick-knob"
+            style={{ transform: `translate(${stick.knob[0] - stick.origin[0]}px, ${stick.knob[1] - stick.origin[1]}px)` }}
+          />
+        </div>
+      )}
+      {desktop && !looking && (
+        <div className="look-hint">Click to take the mouse · WASD or arrows to walk · Esc to let go</div>
+      )}
     </div>
   );
 };
