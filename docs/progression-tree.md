@@ -1,7 +1,7 @@
 # Progression tree
 
 What a player unlocks over time, how, and why it is built the way it is.
-Backlog epic: **M2 · Progression tree** in [BACKLOG.md](../BACKLOG.md).
+Backlog epic: **Progression tree** in [BACKLOG.md](../BACKLOG.md).
 
 Status: 💡 design — nothing here is built yet. The knives it refers to exist
 ([knives.ts](../packages/core/src/throw/knives.ts)); grips do not.
@@ -126,7 +126,7 @@ first, most specialised last.
 Experience comes from playing matches (more for winning, some for every stick),
 and each level unlocks something cosmetic: blade finishes, handle wraps, sleeve
 colours, throw trails, stuck-knife flourishes, titles. This is the branch the
-season pass (M6) extends later. It is the only branch money can touch.
+**Season pass** extends later. It is the only branch money can touch.
 
 ---
 
