@@ -23,11 +23,11 @@ Status: ✅ done · 🔨 in progress · 📋 ready · 💡 idea
 
 ## Matrix
 
-| | **Acquisition** | **Engagement** | **Retention** | **Monetization** |
+| | **Acquisition** — brings new players in | **Engagement** — makes a session better | **Retention** — brings players back | **Monetization** — earns without spoiling it |
 | --- | --- | --- | --- | --- |
-| **Core** | Slow-motion release ✅ · Impact juice ✅ · Throw replay · Physics comedy · First three throws | Slow-motion release · Impact juice · Cut reveal · Reach rule · Match flow · Bots · Physics comedy · Grounds · Wind | Match flow · First three throws · Bots · Grounds | — |
-| **Meta** | Daily board | Knife collection · Progression tree · Knife mastery | Knife collection · Progression tree · Daily board · Knife mastery · Season pass | Cosmetics · Season pass · Character & hands |
-| **Social** | Link rooms · Reactions · Clip share · Party mode | Link rooms · Reactions · Party mode · Tournaments | Leaderboards · Friends & rivals · Crews · Tournaments | Supporter pack |
+| **Core** — the throw and the match | Slow-motion release ✅ · Impact juice ✅ · Throw replay · Physics comedy · First three throws | Slow-motion release · Impact juice · Cut reveal · Reach rule · Match flow · Bots · Physics comedy · Grounds · Wind | Match flow · First three throws · Bots · Grounds | Nothing, on purpose — the throw is never for sale |
+| **Meta** — what you carry between matches | Daily board | Knife collection · Progression tree · Knife mastery | Knife collection · Progression tree · Daily board · Knife mastery · Season pass | Cosmetics · Season pass · Character & hands |
+| **Social** — playing with other people | Link rooms · Reactions · Clip share · Party mode | Link rooms · Reactions · Party mode · Tournaments | Leaderboards · Friends & rivals · Crews · Tournaments | Supporter pack |
 
 ---
 
