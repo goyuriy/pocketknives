@@ -9,6 +9,7 @@ import { createStage } from './engine/createStage.js';
 import { createDirector } from './director.js';
 import type { HandInput, StageSnapshot } from './snapshot.js';
 import { useThrowControls, STICK_REACH } from './useThrowControls.js';
+import { useGamepadThrow } from './useGamepadThrow.js';
 
 const snapshotOf = (game: SandboxState): StageSnapshot => ({
   board: game.match.board,
@@ -33,8 +34,8 @@ const snapshotOf = (game: SandboxState): StageSnapshot => ({
  * The engine is created once and left alone by React: it reads the latest
  * snapshot every frame, so a re-render never rebuilds the scene. Everything the
  * player does with their hands — walking, looking, throwing — comes through
- * `useThrowControls` and the walking devices, into refs the stage reads each
- * frame.
+ * `useThrowControls` (mouse and touch), `useGamepadThrow` (the right stick) and
+ * the walking devices, into refs the stage reads each frame.
  */
 export const Stage = ({ game }: { game: SandboxState }) => {
   const canvas = useRef<HTMLCanvasElement>(null);
@@ -76,6 +77,7 @@ export const Stage = ({ game }: { game: SandboxState }) => {
   }, []);
 
   const { handlers, stick, looking } = useThrowControls({ game, canvas, stance, hand, touchWalk, sound });
+  useGamepadThrow({ game, stance, hand });
   const desktop = typeof window !== 'undefined' && window.matchMedia?.('(pointer: fine)').matches;
 
   return (

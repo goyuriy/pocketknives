@@ -150,7 +150,7 @@ circle. If the ground under your feet is taken, you are put back home.
 | | Walk | Turn and aim | Angle | Throw |
 | --- | --- | --- | --- | --- |
 | Mouse and keys | WASD or arrow keys | Mouse across (click to capture the mouse, Esc to release) | Mouse up and down | Hold, pull back, push through — across still turns while drawn |
-| Gamepad | Left stick | — | — | — |
+| Gamepad | Left stick | Right stick across | Right stick up and down | Hold the right trigger (or bumper): the right stick becomes a swing stick — pull back, push up past the grip point. Across still turns. |
 | Touch | A floating stick: put a thumb down on the left of the screen | Drag on the right | Where the finger comes down | The same drag: pull back, push through |
 
 These follow what players already know from games that do it well. Mouse-look
@@ -162,9 +162,15 @@ that floats to wherever the thumb lands is the one players find easiest to learn
 Your feet stay planted while the button is held, so the grip point means
 something.
 
+The gamepad's grip point sits a quarter of the way *up* the stick, not at its
+centre. A stick springs back to centre when it is let go, and a grip point at
+the centre would turn every released pull into a throw; this way a throw has to
+be pushed through on purpose.
+
 > `isOnOwnLand`, `keepOnOwnLand`, `homeSpot` — [standing.ts](packages/core/src/rules/standing.ts)
 > `walkStep`, `walkFromStick` — [walk.ts](apps/web/src/input/walk.ts)
 > `useThrowControls` — [useThrowControls.ts](apps/web/src/stage/useThrowControls.ts)
+> `useGamepadThrow`, `padSample` — [useGamepadThrow.ts](apps/web/src/stage/useGamepadThrow.ts), [gamepadSwing.ts](apps/web/src/input/gamepadSwing.ts)
 
 ## Knives on the ground
 

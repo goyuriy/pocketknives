@@ -56,10 +56,20 @@ export const walkFromKeys = (held: ReadonlySet<string>): WalkInput =>
  * @param y stick *down*, -1 to 1 — the way gamepads and screens both count
  */
 export const walkFromStick = (x: number, y: number): WalkInput => {
+  const [across, down] = withDeadzone(x, y);
+  // `|| 0` keeps a centred stick at 0 rather than -0.
+  return { forward: -down || 0, right: across };
+};
+
+/**
+ * A stick's position with the resting wobble near the centre ignored, and the
+ * rest of its travel rescaled so leaving the deadzone starts from nothing.
+ */
+export const withDeadzone = (x: number, y: number): [number, number] => {
   const travel = Math.hypot(x, y);
-  if (travel < DEADZONE) return STANDING_STILL;
+  if (travel < DEADZONE) return [0, 0];
   const scaled = Math.min(1, (travel - DEADZONE) / (1 - DEADZONE)) / travel;
-  return { forward: -y * scaled, right: x * scaled };
+  return [x * scaled, y * scaled];
 };
 
 /**

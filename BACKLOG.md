@@ -87,8 +87,9 @@ left stick on a gamepad.
 - ✅ Mouse-look (Pointer Lock), angle from looking up and down.
 - ✅ Floating touch stick; gamepad left stick.
 - ✅ Knives stay on the ground; stuck ones are solid, missed ones are physics.
-- 📋 Gamepad aiming and throwing: right stick to look, and to swing (pull back,
-  push through), as golf games do.
+- ✅ Gamepad aiming and throwing: right stick looks; with the right trigger
+  held it swings (pull back, push through), as golf games do.
+- 💡 Rumble on the draw and on impact, scaled like the camera shake.
 - 📋 Footsteps and a little head bob, so walking is felt.
 - 💡 A run-up: a few quick steps into the throw for extra reach.
 
