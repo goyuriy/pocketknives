@@ -39,6 +39,11 @@ export type BodyLook = {
    * inside it; yes from anywhere else.
    */
   readonly head: boolean;
+  /**
+   * Whether the drawn body is shown at all. Off while a rigged character
+   * stands in for it; the knife is drawn either way.
+   */
+  readonly drawn: boolean;
 };
 
 /**
@@ -134,6 +139,9 @@ export const createBodyView = (scene: Scene, playfield: TransformNode, shadows: 
       }
 
       trunk.show(pose.figure, look.heading, look.head);
+      trunk.meshes.forEach((mesh) => mesh.setEnabled(look.drawn));
+      trunk.head.setEnabled(look.drawn && look.head);
+      arms.forEach((arm) => [arm.upper, arm.lower, arm.elbow, arm.fist].forEach((node) => node.setEnabled(look.drawn)));
 
       const [throwing, other] = arms;
       if (throwing) posed(throwing, pose.throwingArm, bladeQuaternion(look.heading, pose.bladeAngle));

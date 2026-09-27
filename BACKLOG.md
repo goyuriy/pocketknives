@@ -199,7 +199,19 @@ Later: sleeves, gloves, tattoos as cosmetics.
 - ✅ A debug camera behind the thrower (**behind** in the debug row), to see
   the character; from the thrower's own eyes only the arms and the body's
   shadow show.
-- 📋 Swap in the rigged model on the same `BodyPose`.
+- ✅ A rigged character from Mixamo — X Bot, with Mixamo's idle, walk and
+  run — for every camera but the thrower's own eyes. The clips are blended by
+  pace and played at the speed the feet are really moving, backwards for
+  walking backwards; the arms are turned each frame to reach where the drawn
+  arms would, so the knife is in its hand. Loaded after the first frame; the
+  drawn body stands in until it arrives. How to swap in other Mixamo exports:
+  `apps/web/public/characters/README.md`.
+- 📋 Strafing clips (Mixamo "Left/Right Strafe Walk"): a sidestep still plays
+  the walk forward.
+- 📋 A throw clip for the body (the arms stay on the reach), and the hand
+  closed on the handle.
+- 📋 The rig's arms are shorter than the drawn ones, so from behind the knife
+  jumps a little forward as it leaves the hand.
 
 ---
 

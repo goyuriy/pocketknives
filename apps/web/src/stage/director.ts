@@ -21,6 +21,7 @@ import { createCameraRig } from './views/cameraRig.js';
 import { createKnifeModel, place, type KnifeModel } from './views/knifeModel.js';
 import { createGroundKnives, type Landing } from './views/groundKnives.js';
 import { createWalker } from './views/walker.js';
+import { createCharacterView } from './views/characterView.js';
 
 /** How briskly the free arm rises to point, and drops again, per second. */
 const FREE_ARM_RATE = 9;
@@ -69,6 +70,7 @@ export const createDirector = (stage: Stage, { read, hand, walk, stance, sound }
   const dust = createDustView(scene, playfield);
   const ground = createGroundKnives(scene, shadows);
   const walker = createWalker(stage, first.config.flight.gravity);
+  const character = createCharacterView(scene, shadows);
 
   let flying: { spec: KnifeSpec; model: KnifeModel } | null = null;
   const flyingKnife = (spec: KnifeSpec) => {
@@ -103,6 +105,8 @@ export const createDirector = (stage: Stage, { read, hand, walk, stance, sound }
   };
   // The legs' walk: where in the stride they are, eased in and out with the pace.
   let stride: Stride = { phase: 0, amount: 0, along: [1, 0] };
+  // How fast the feet are going, eased so one uneven frame does not jolt the clips.
+  let pace = 0;
   let motion = RESTING_ARM;
   let raised = 0;
   // Where the arm was when the hand let go: the hand-off swings it from here.
@@ -202,6 +206,8 @@ export const createDirector = (stage: Stage, { read, hand, walk, stance, sound }
 
     // Swung along the way the feet went, in the terms of the way the body faces.
     stride = strideFor(stride, stepped[0], stepped[1], heading, seconds);
+    const stepSpeed = seconds > 0 ? Math.hypot(stepped[1][0] - stepped[0][0], stepped[1][1] - stepped[0][1]) / seconds : 0;
+    pace = easeToward(pace, stepSpeed, PACE_EASE, seconds);
 
     if (handingOff) {
       // A fixed swing, not an eased one: the flight starts on a schedule, and
@@ -235,14 +241,38 @@ export const createDirector = (stage: Stage, { read, hand, walk, stance, sound }
       },
       motion.shown,
     );
-    body.show(
+    // From anywhere but the thrower's own eyes, the rigged character stands in
+    // for the drawn body once it has loaded, and the knife goes in its hand.
+    const outside = overhead || state.thirdPerson;
+    const inHand = character.show({
+      feet,
+      heading,
+      speed: pace,
+      backwards: stride.along[0] < -0.5,
       pose,
+      hands: state.hands,
+      color: state.playerColor,
+      visible: outside,
+    });
+    const held = inHand
+      ? {
+          ...pose,
+          knifeAt: [
+            pose.knifeAt[0] + inHand[0] - pose.throwingArm.end[0],
+            pose.knifeAt[1] + inHand[1] - pose.throwingArm.end[1],
+            pose.knifeAt[2] + inHand[2] - pose.throwingArm.end[2],
+          ] as Vec3,
+        }
+      : pose;
+    body.show(
+      held,
       {
         spec: phase.kind === 'ready' ? state.knife : phase.attempt.knife,
         hands: state.hands,
         heading,
         sleeve: state.playerColor,
-        head: overhead || state.thirdPerson,
+        head: outside,
+        drawn: inHand === null,
       },
       !released || handingOff,
     );
@@ -282,11 +312,14 @@ export const createDirector = (stage: Stage, { read, hand, walk, stance, sound }
       dust.dispose();
       ground.dispose();
       walker.dispose();
+      character.dispose();
       flying?.model.dispose();
     },
   };
 };
 
+/** How quickly the character's pace follows the feet, per second. */
+const PACE_EASE = 10;
 /** Below this pace, units per second, the legs are standing, not walking. */
 const WALKING_PACE = 0.3;
 /** How quickly the legs fall into and out of a walk, per second. */
