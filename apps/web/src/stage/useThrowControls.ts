@@ -60,6 +60,8 @@ export type ThrowControls = {
    * it is, and turning is done at the edge of the screen or with the keys.
    */
   readonly lockRefused: boolean;
+  /** Whether the player had the mouse captured and let it go (Escape): the game waits for a click. */
+  readonly paused: boolean;
 };
 
 /**
@@ -126,6 +128,7 @@ export const useThrowControls = ({
   const [stick, setStick] = useState<StickView | null>(null);
   const [looking, setLooking] = useState(false);
   const [lockRefused, setLockRefused] = useState(false);
+  const [paused, setPaused] = useState(false);
   const refused = useRef(false);
   const unlockedAt = useRef(-Infinity);
   const canThrow = phase.kind === 'ready';
@@ -143,17 +146,28 @@ export const useThrowControls = ({
   };
 
   /**
-   * Asks the browser to capture the mouse. Effectful. A refusal — a rejected
-   * promise, a thrown error or a `pointerlockerror` — switches to the free
-   * cursor for the rest of the visit, so no later click is spent asking again.
+   * Asks the browser to capture the mouse, raw: `unadjustedMovement` turns off
+   * the operating system's pointer acceleration, so the same sweep of the hand
+   * always turns the same way — what every shooter asks for. Where raw input
+   * is not supported the browser says `NotSupportedError`, and the plain
+   * capture is asked for instead.
+   *
+   * Effectful. A refusal — a rejected promise, a thrown error or a
+   * `pointerlockerror` — switches to the free cursor, so no later click is
+   * spent asking again; a capture that works after all switches back.
    */
   const askForTheMouse = (target: HTMLCanvasElement) => {
-    try {
-      const asked: unknown = target.requestPointerLock();
-      if (asked instanceof Promise) asked.catch(refuseLock);
-    } catch {
-      refuseLock();
-    }
+    const ask = (raw: boolean) => {
+      const retry = (error: unknown) =>
+        raw && (error as { name?: string } | null)?.name === 'NotSupportedError' ? ask(false) : refuseLock();
+      try {
+        const asked: unknown = raw ? target.requestPointerLock({ unadjustedMovement: true }) : target.requestPointerLock();
+        if (asked instanceof Promise) asked.catch(retry);
+      } catch (error) {
+        retry(error);
+      }
+    };
+    ask(true);
   };
 
   /**
@@ -174,6 +188,11 @@ export const useThrowControls = ({
     const changed = () => {
       const captured = document.pointerLockElement === canvas.current;
       setLooking(captured);
+      setPaused(!captured);
+      if (captured) {
+        refused.current = false;
+        setLockRefused(false);
+      }
       if (!captured) unlockedAt.current = performance.now();
       if (!captured && stroke.current) letGo();
       if (!captured) {
@@ -373,5 +392,6 @@ export const useThrowControls = ({
     stick,
     looking,
     lockRefused,
+    paused,
   };
 };

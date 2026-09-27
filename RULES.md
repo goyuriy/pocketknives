@@ -253,6 +253,12 @@ From your own eyes you see only your arms — upper arm, elbow, forearm and
 hand — as in any first-person game — but the whole of your shadow; from every
 other camera, and to every other player, the whole thrower.
 
+The captured mouse is read raw where the browser allows it, without the
+operating system's pointer acceleration, so the same sweep of the hand always
+turns the same way. Escape lets the mouse go and pauses on "click to carry
+on"; Chrome refuses to take it back for about a second after, and that
+refusal is not mistaken for a browser that never will.
+
 Some browsers will not capture the mouse — embedded ones, an iPad with a
 trackpad. There the first refusal switches the game to the free cursor for the
 rest of the visit, so no click is spent asking again, and the hint says how to

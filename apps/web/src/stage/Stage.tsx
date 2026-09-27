@@ -81,7 +81,7 @@ export const Stage = ({ game }: { game: SandboxState }) => {
     };
   }, []);
 
-  const { handlers, stick, looking, lockRefused } = useThrowControls({ game, canvas, stance, hand, touchWalk, sound });
+  const { handlers, stick, looking, lockRefused, paused } = useThrowControls({ game, canvas, stance, hand, touchWalk, sound });
   useGamepadThrow({ game, stance, hand });
   const desktop = typeof window !== 'undefined' && window.matchMedia?.('(pointer: fine)').matches;
 
@@ -97,10 +97,12 @@ export const Stage = ({ game }: { game: SandboxState }) => {
         </div>
       )}
       {desktop && !looking && (
-        <div className="look-hint">
+        <div className={paused && !lockRefused ? 'look-hint paused' : 'look-hint'}>
           {lockRefused
             ? 'The mouse aims · hold it at the screen edge or Q / E to turn · WASD or arrows to walk'
-            : 'Click to take the mouse · WASD or arrows to walk · Q / E to turn · Esc to let go'}
+            : paused
+              ? 'Paused · click to carry on'
+              : 'Click to take the mouse · WASD or arrows to walk · Q / E to turn · Esc to let go'}
         </div>
       )}
     </div>

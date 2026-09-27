@@ -400,6 +400,13 @@ button:active {
   white-space: nowrap;
 }
 
+/* After Escape: the game is waiting for a click, so say so where the eye is. */
+.look-hint.paused {
+  top: 40%;
+  padding: 12px 22px;
+  font-size: 17px;
+}
+
 /* --- Touch and small screens ------------------------------------------- */
 
 /*
