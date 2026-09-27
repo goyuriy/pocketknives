@@ -151,7 +151,7 @@ export const createDirector = (stage: Stage, { read, hand, walk, stance, sound }
         : null;
 
     arena.showFields(state.fields, state.alive);
-    arena.showReach(reachOf(state), state.playerColor);
+    arena.showReach(state.showReach ? reachOf(state) : null, state.playerColor);
     arena.showCut(
       settled?.outcome?.kind === 'claimed' ? settled.outcome.cut : null,
       phase.kind === 'cutting' ? Math.min(1, Math.max(0, (intoPhase - IMPACT_BEAT) / CUT_DURATION)) : 1,

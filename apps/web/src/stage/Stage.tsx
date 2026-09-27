@@ -20,6 +20,7 @@ const snapshotOf = (game: SandboxState): StageSnapshot => ({
   swinging: game.draw !== null,
   playerId: game.currentPlayer,
   reach: game.match.rules.reach,
+  showReach: game.showReach,
   thrown: game.thrown,
   config: game.config,
   knife: game.config.knife,

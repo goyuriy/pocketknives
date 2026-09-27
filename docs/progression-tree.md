@@ -15,6 +15,8 @@ Status: 💡 design — nothing here is built yet. The knives it refers to exist
    forgiveness, precision against power — the same rule the knife rack already
    follows ([RULES.md](../RULES.md), *The knife*). A new player with the
    starting kit can beat a veteran; the veteran just has more ways to try.
+   The one exception is **Long hands**, a passive skill kept deliberately
+   small. See *Skills*.
 2. **Unlock by doing, not by grinding.** The big unlocks are *trials* — a short
    feat that uses the thing being unlocked, or the skill it needs. Earning a
    grip is learning it. Experience points exist, but only buy looks.
@@ -28,7 +30,7 @@ Status: 💡 design — nothing here is built yet. The knives it refers to exist
 
 ## Shape of the tree
 
-Three branches that grow side by side. Levels come from playing; each branch
+Four branches that grow side by side. Levels come from playing; each branch
 has its own gates.
 
 ```
@@ -39,6 +41,9 @@ has its own gates.
              ┌─ Knives ────────────────────────────────────────────┐
   start ──►  Thrower ──► Kitchen ──► Cleaver ──► Needle
                                         └────► Greatsword
+
+             ┌─ Skills (passive, levels 1–5) ──────────────────────┐
+  start ──►  Long hands 1 ──► 2 ──► 3 ──► 4 ──► 5
 
              ┌─ Looks (experience levels) ─────────────────────────┐
   start ──►  blade finishes · handle wraps · sleeves · trails · titles
@@ -105,6 +110,44 @@ Specialist"). They never touch the numbers above.
 
 ---
 
+## Skills
+
+Passive skills are always on and never chosen per throw. Each has five levels,
+earned in order. There is one so far.
+
+### Long hands
+
+You can reach further from your own ground to draw the line. The reach rule
+([RULES.md](../RULES.md), *Within reach*) says a knife only claims ground if it
+lands within `reach` of land you hold. Long hands adds to that reach. Each level
+adds a little more than the one before it, so the last levels are the ones
+worth chasing.
+
+| Level | Adds | Reach (from 5) | Unlock trial |
+| --- | --- | --- | --- |
+| 1 | +2% | 5.10 | Claim 5 times with the knife in the last fifth of your reach |
+| 2 | +3% | 5.25 | Claim 15 times that way |
+| 3 | +4% | 5.45 | Claim 30 times that way, with at least two knives |
+| 4 | +5% | 5.70 | Win a match where most of your ground came from the last fifth of your reach |
+| 5 | +6% | 6.00 | Claim from beyond the level-4 reach 10 times in one match |
+
+Numbers are starting points for tuning, not final. The percentages are of the
+base reach, so level 5 is +20% altogether.
+
+**How it is built.** `RuleSet.reach` stays the base, the same for everyone. A
+player's reach is the base times their Long hands factor, and `resolveThrow`
+and the chalked reach line both read the player's own reach. Everyone can see
+that line, so an opponent's longer arms are always visible, never a surprise.
+
+**Why it earns its exception.** It is the one upgrade in the tree, so it is
+kept small. It only moves a line everyone can see. It never touches the throw
+itself: sticking, spin, wobble and power are all unchanged. The trials ask you
+to play at the edge of your reach, the thing the skill rewards. Earning it is
+practising it. It is never sold (principle 4), and it counts in matchmaking
+(see *Open questions*).
+
+---
+
 ## Knives
 
 The five knives already built, each measured in [RULES.md](../RULES.md). The
@@ -138,6 +181,11 @@ colours, throw trails, stuck-knife flourishes, titles. This is the branch the
 - **Trials in multiplayer.** Trials should count in any mode, but a trial that
   can be farmed against friends needs care — e.g. only count matches against
   opponents at a similar level, or bots.
+- **Long hands in multiplayer.** It is the tree's one straight upgrade: a level-5
+  player reaches 20% further than a new one. Options: match players of similar
+  Long hands level, cap it in ranked play, or offer a trade-off later (for
+  example, long hands lower the draw's top speed a little) so it becomes a
+  sidegrade after all.
 - **Grip unlocks for returning players** who already know the game from another
   device: a short skill check to skip ahead, rather than replaying trials.
 

@@ -289,7 +289,8 @@ circle wins nothing.
 
 The edge of your reach is chalked on the ground in your colour as a dotted line,
 all the way round your land. That is a fact about the board, not a preview of
-the throw. Nothing shows where the knife will land.
+the throw. Nothing shows where the knife will land. The **reach** switch in the
+debug row hides it, for seeing the ground bare.
 
 > `distanceToLand` — [standing.ts](packages/core/src/rules/standing.ts)
 > `resolveThrow` — [cut.ts](packages/core/src/rules/cut.ts)

@@ -25,7 +25,7 @@ Status: ✅ done · 🔨 in progress · 📋 ready · 💡 idea
 
 | | **Acquisition** — brings new players in | **Engagement** — makes a session better | **Retention** — brings players back | **Monetization** — earns without spoiling it |
 | --- | --- | --- | --- | --- |
-| **Core** — the throw and the match | Slow-motion release ✅ · Impact juice ✅ · Throw replay · Physics comedy · First three throws | Slow-motion release · Impact juice · Walking · Cut reveal · Reach rule · Match flow · Bots · Physics comedy · Grounds · Wind | Match flow · First three throws · Bots · Grounds | Nothing, on purpose — the throw is never for sale |
+| **Core** — the throw and the match | Slow-motion release ✅ · Impact juice ✅ · Throw replay · Physics comedy · First three throws | Slow-motion release · Impact juice · Walking · Cut reveal · Reach rule ✅ · Match flow · Bots · Physics comedy · Grounds · Wind | Match flow · First three throws · Bots · Grounds | Nothing, on purpose — the throw is never for sale |
 | **Meta** — what you carry between matches | Daily board | Knife collection · Progression tree · Knife mastery | Knife collection · Progression tree · Daily board · Knife mastery · Season pass | Cosmetics · Season pass · Character & hands |
 | **Social** — playing with other people | Link rooms · Reactions · Clip share · Party mode | Link rooms · Reactions · Party mode · Tournaments | Leaderboards · Friends & rivals · Crews · Tournaments | Supporter pack |
 
@@ -93,10 +93,17 @@ left stick on a gamepad.
 - 📋 Footsteps and a little head bob, so walking is felt.
 - 💡 A run-up: a few quick steps into the throw for extra reach.
 
-### Reach rule — 💡 · E
+### Reach rule — ✅ first pass · E
 From the yard game: you must reach the knife while keeping a foot on your own
-land, which caps how deep one throw can claim. Currently open in RULES.md.
-Makes deep throws a decision instead of always the best move.
+land, which caps how deep one throw can claim. Makes deep throws a decision
+instead of always the best move. See RULES.md, *Within reach*.
+- ✅ A knife claims only if it lands within `reach` (5) of your own ground;
+  otherwise `out_of_reach`, no line.
+- ✅ The edge of your reach chalked on the ground as a dotted line in your
+  colour, with a debug switch to hide it.
+- 📋 Tune the reach against play, and the draw's power range with it: most of
+  a full draw now lands out of reach.
+- 💡 Per-player reach, for the **Long hands** skill (**Progression tree**).
 
 ### Match flow — 📋 · E, R
 A complete match: turn order shown, elimination moment, winner screen,
@@ -138,10 +145,11 @@ Which knives are open, and when, is decided by the knife branch of the
 **Progression tree**.
 
 ### Progression tree — 💡 · R, E
-What a player unlocks over time: three branches side by side — **grips**,
-**knives**, **looks**. Designed in [docs/progression-tree.md](docs/progression-tree.md).
-Rules: sidegrades not upgrades, unlock by doing (trials) not by grinding,
-real throwing first, nothing sold changes where a knife lands.
+What a player unlocks over time: four branches side by side — **grips**,
+**knives**, **skills**, **looks**. Designed in [docs/progression-tree.md](docs/progression-tree.md).
+Rules: sidegrades not upgrades (Long hands the one small exception), unlock by
+doing (trials) not by grinding, real throwing first, nothing sold changes where
+a knife lands.
 - 💡 **Grips** — how the knife is held, each a real throwing technique with its
   own trade-off, unlocked by a trial that practises it:
   - Hammer (start) — the baseline throw.
@@ -154,6 +162,11 @@ real throwing first, nothing sold changes where a knife lands.
   Needle; the Greatsword earned by a trial.
 - 💡 **Grip mastery** — three ranks per grip, for sticks thrown with it; looks
   only.
+- 💡 **Skills** — passive, always on, five levels each, earned by trials:
+  - Long hands (1–5) — reach further from your ground to draw the line. Each
+    level adds a little more than the last: +2%, +3%, +4%, +5%, +6% of the base
+    reach, so +20% at level 5. The tree's one upgrade, kept small and visible
+    (the reach line shows it), never sold.
 - 💡 **Looks** — experience levels unlock cosmetics; the branch the **Season pass** extends.
 
 ### Daily board — 💡 · R, A

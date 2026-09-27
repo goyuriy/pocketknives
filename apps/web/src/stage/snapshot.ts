@@ -28,6 +28,8 @@ export type StageSnapshot = {
   readonly playerId: PlayerId;
   /** How far past their own ground the thrower can reach to draw a line. */
   readonly reach: number;
+  /** Whether that reach is chalked on the ground. */
+  readonly showReach: boolean;
   /** Every knife thrown this match that is still lying out, oldest first. */
   readonly thrown: readonly Attempt[];
   readonly config: ThrowConfig;

@@ -26,6 +26,7 @@ import {
   type ThrowOutcome,
 } from '@pocketknives/core';
 import { PLAYER_NAMES } from '../ui/theme.js';
+import { useRememberedFlag } from '../ui/useRememberedFlag.js';
 import { playbackDuration } from '../playback/releaseTimeline.js';
 import { releasePointFor } from '../stage/math/bodyPose.js';
 
@@ -107,6 +108,9 @@ export const useSandbox = (initialPlayers = 4) => {
   const [tuning, setTuning] = useState<ThrowConfig>(DEFAULT_CONFIG);
   const [playbackScale, setPlaybackScale] = useState(0.55);
   const [stayOnPlayer, setStayOnPlayer] = useState(true);
+  // Whether the edge of the thrower's reach is chalked on the ground. On by
+  // default; switched off only to see the ground bare while debugging.
+  const [showReach, setShowReach] = useRememberedFlag('pocketknives.reachLine', true);
   const timers = useRef<number[]>([]);
 
   // The chosen knife is part of the config, not a decoration on top of it, so
@@ -232,6 +236,8 @@ export const useSandbox = (initialPlayers = 4) => {
     setPlaybackScale,
     stayOnPlayer,
     setStayOnPlayer,
+    showReach,
+    setShowReach,
   };
 };
 
