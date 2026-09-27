@@ -36,7 +36,7 @@ crosshair and no preview of where it will land — only the knife in your fist,
 pointing. Three decisions make a throw, and none of them is a reflex:
 
 1. **Point.** You see through the thrower's eyes, your own two arms in front of
-   you. Move the mouse across the screen and you turn with it, edge to edge
+   you: the same character every other camera shows, its head out of the way. Move the mouse across the screen and you turn with it, edge to edge
    being the arm's whole reach. Your free hand hangs at your side until you
    hold the button; then it comes up and points out along the line you are
    aiming — the way a javelin thrower sights down their free arm. The

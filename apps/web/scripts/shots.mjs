@@ -54,6 +54,12 @@ const errors = [];
 
 for (const view of views) {
   const page = await browser.newPage({ viewport: { width: 1280, height: 800 }, deviceScaleFactor: 1.5 });
+  // A headless browser cannot lock the pointer, and the game's first click
+  // asks for it rather than throwing. Without Pointer Lock the mouse aims with
+  // its cursor instead, as on an iPad with a trackpad, and the draw works.
+  await page.addInitScript(() => {
+    HTMLCanvasElement.prototype.requestPointerLock = undefined;
+  });
   page.on('pageerror', (error) => errors.push(`${view}: ${error.message}`));
   const address = new URL(url);
   address.searchParams.set('camera', view);

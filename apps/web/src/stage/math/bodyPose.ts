@@ -75,9 +75,10 @@ const BLADE_LIFT = 0.8;
  * throwing shoulder `[forward, right, up]` and the knife's tilt at each.
  *
  * A hammer grip's throw, laid out so the first-person camera can follow it:
- * held, the fist is raised in front of the throwing shoulder with the knife
+ * held, the fist is out in front of the throwing shoulder with the knife
  * standing up out of it, point up and a little forward, the way a thrower
- * holds it before the throw; drawn back, the fist goes up by the ear and the
+ * holds it before the throw — low and right enough to leave the middle of the
+ * view to the circle; drawn back, the fist goes up by the ear and the
  * knife stands nearly upright, still a little ahead of the eyes so its tip
  * stays in the top corner of the view — a knife drawn clean out of shot leaves
  * the player nothing to read the draw from; at release it is out in front at
@@ -85,8 +86,8 @@ const BLADE_LIFT = 0.8;
  * keyframe is not listed — it is wherever the flight begins, worked out per
  * throw.
  */
-const DRAWN: Keyframe = { at: [0.2, 0.08, 0.3], bladeAngle: 1.0 };
-const HELD: Keyframe = { at: [0.4, -0.04, 0.14], bladeAngle: 0.95 };
+const DRAWN: Keyframe = { at: [0.28, 0.1, 0.26], bladeAngle: 1.0 };
+const HELD: Keyframe = { at: [0.4, 0.04, 0.04], bladeAngle: 0.95 };
 const FOLLOWED: Keyframe = { at: [0.34, -0.19, -0.41], bladeAngle: -1.0 };
 
 type Keyframe = { readonly at: Vec3; readonly bladeAngle: number };

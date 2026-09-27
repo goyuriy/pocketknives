@@ -45,6 +45,12 @@ export type CharacterFrame = {
   /** The player's colour, for the character's body. */
   readonly color: string;
   readonly visible: boolean;
+  /**
+   * Seen from its own eyes. The camera is then inside the head, so the head
+   * is folded away to nothing — the way first-person games show a whole body
+   * without the player seeing the inside of their own skull.
+   */
+  readonly firstPerson: boolean;
 };
 
 export type CharacterView = {
@@ -71,6 +77,7 @@ type Rig = {
   readonly otherArm: ArmBones;
   readonly throwingHand: HandShape;
   readonly otherHand: HandShape;
+  readonly head: TransformNode;
   readonly tinted: readonly { material: PBRMaterial; share: number }[];
 };
 
@@ -78,7 +85,8 @@ type Rig = {
 const boneName = (name: string): string => name.replace(/^.*:/, '').replace(/^mixamorig\d*/, '');
 
 /**
- * The thrower as a rigged character, for every camera but their own eyes.
+ * The thrower as a rigged character, seen from every camera, their own eyes
+ * included (with the head folded away, see `firstPerson`).
  *
  * Loaded after the first frame, like physics: the circle must be on screen
  * before a three-megabyte character is. Until it arrives — or if it never does
@@ -137,7 +145,13 @@ export const createCharacterView = (
       // Mixamo faces +z; this turns it to face `heading` on the ground.
       rig.root.rotationQuaternion = Quaternion.RotationAxis(Vector3.Up(), frame.heading + Math.PI / 2);
       rig.root.scaling.setAll(SCALE);
+      // After the clips, which set the head's scale every frame like every bone's.
+      rig.head.scaling.setAll(frame.firstPerson ? HIDDEN : 1);
+      // Every bone's place in the world follows from the root just moved: bring
+      // them all up to date now, parents first, or the arms would reach from
+      // where the shoulders were last frame — a knife trailing the hand as it walks.
       rig.root.computeWorldMatrix(true);
+      for (const node of rig.root.getDescendants(false)) (node as TransformNode).computeWorldMatrix?.(true);
 
       const handle = new Vector3(...toWorld(bladeDirection(frame.heading, frame.pose.bladeAngle)));
       const throwing = reachFor(rig.throwingArm, frame.pose.throwingArm);
@@ -193,6 +207,9 @@ const reachFor = (arm: ArmBones, drawn: Limb): { target: Vector3; pole: Vector3 
   ];
   return { target: shoulder.add(out), pole: new Vector3(...toWorld(sub(drawn.joint, middle))) };
 };
+
+/** How small the head is folded when seen from inside it: nothing, without a zero scale's degenerate matrix. */
+const HIDDEN = 1e-4;
 
 /** Times the second hand is re-aimed to bring its palm, not its wrist, onto the handle. */
 const SETTLING = 3;
@@ -328,6 +345,7 @@ const load = async (scene: Scene, source: string): Promise<Rig> => {
     otherArm: arm('Left'),
     throwingHand,
     otherHand,
+    head: bone('Head'),
     tinted,
   };
 };

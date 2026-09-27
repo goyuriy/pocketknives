@@ -27,7 +27,7 @@ const pose = bodyPose(
   { release: [0.2, -7.15, 1.4], heading, releaseBladeAngle: 0.8, spec: knife.spec, hands: 1, loft: 0, raised: 1 },
   READY_SWING,
 );
-const frame = { feet: [0, -8] as const, heading, speed: 0, backwards: false, pose, hands: 1 as const, color: '#c24d3f', visible: true };
+const frame = { feet: [0, -8] as const, heading, speed: 0, backwards: false, pose, hands: 1 as const, color: '#c24d3f', visible: true, firstPerson: false };
 const worldToGame = (p: { x: number; y: number; z: number }): Vec3 => [p.x, -p.z, p.y];
 
 describe('the character', () => {
@@ -113,6 +113,19 @@ describe('the character', () => {
     const rightwise = (r[0] - grip[0]) * along[0] + (r[1] - grip[1]) * along[1] + (r[2] - grip[2]) * along[2];
     expect(lengthwise).toBeGreaterThan(rightwise + 0.05);
     expect(Math.hypot(off[0] - along[0] * lengthwise, off[1] - along[1] * lengthwise, off[2] - along[2] * lengthwise)).toBeLessThan(0.15);
+  });
+
+  it('folds its head away when seen from its own eyes, and keeps the rest', async () => {
+    const { scene, character } = await loadCharacter();
+    const node = (name: string) => scene.transformNodes.find((t) => t.name === `mixamorig:${name}`)!;
+    // Measured against the neck, since the rig carries its exporter's own scale.
+    const headSize = () => node('Head').absoluteScaling.x / node('Neck').absoluteScaling.x;
+    const inside = character.show({ ...frame, firstPerson: true })!;
+    expect(headSize()).toBeLessThan(0.001);
+    // The hands, and the knife in them, are where they are from any other camera.
+    const outside = character.show(frame)!;
+    expect(Math.hypot(inside[0] - outside[0], inside[1] - outside[1], inside[2] - outside[2])).toBeLessThan(1e-6);
+    expect(headSize()).toBeCloseTo(1, 6);
   });
 
   it('hides when asked, and says so', async () => {

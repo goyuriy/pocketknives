@@ -198,6 +198,10 @@ Later: sleeves, gloves, tattoos as cosmetics.
   with hair and a nose, legs solved hip to ankle, shoes. The feet stand in a
   thrower's stance, walk in stride the way the body moves, and the chest
   leans into the throw.
+- ✅ One character in every view, the thrower's own eyes included: seen from
+  inside, its head is folded away to nothing (the usual first-person trick),
+  so the hands, the grip and the free arm pointing are the same ones every
+  other camera sees. The drawn body is only a stand-in until it loads.
 - ✅ Debug cameras: `behind`, `side`, `front`, `hand` (close on the throwing
   hand), `top` and `arena`, besides the game's own `eyes`. Picked in the debug
   row or with `?camera=side` in the address; they hold still through a throw.

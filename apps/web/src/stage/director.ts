@@ -250,8 +250,9 @@ export const createDirector = (stage: Stage, { read, hand, walk, stance, sound }
       },
       motion.shown,
     );
-    // From anywhere but the thrower's own eyes, the rigged character stands in
-    // for the drawn body once it has loaded, and the knife goes in its hand.
+    // The rigged character is the thrower in every view once it has loaded —
+    // through their own eyes too, head folded away — and the knife goes in its
+    // hand. Until then the drawn body stands in.
     const view = state.cameraView;
     // The game's own camera lifts over the circle after a throw; debug views hold still.
     const lifted = view === 'eyes' ? overhead : view === 'arena';
@@ -264,7 +265,8 @@ export const createDirector = (stage: Stage, { read, hand, walk, stance, sound }
       pose,
       hands: state.hands,
       color: state.playerColor,
-      visible: outside,
+      visible: true,
+      firstPerson: !outside,
     });
     // The knife's grip in the character's palm, pointing the way the drawn one does.
     const heldSpec = phase.kind === 'ready' ? state.knife : phase.attempt.knife;
