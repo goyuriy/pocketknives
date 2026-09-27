@@ -8,6 +8,8 @@ import { Color3 } from '@babylonjs/core/Maths/math.color';
 import { Mesh } from '@babylonjs/core/Meshes/mesh';
 import { SubMesh } from '@babylonjs/core/Meshes/subMesh';
 import { VertexBuffer } from '@babylonjs/core/Buffers/buffer';
+import { MultiMaterial } from '@babylonjs/core/Materials/multiMaterial';
+import { StandardMaterial } from '@babylonjs/core/Materials/standardMaterial';
 import { Quaternion, Vector3 } from '@babylonjs/core/Maths/math.vector';
 import type { Vec2, Vec3 } from '@pocketknives/core';
 import type { BodyPose } from '../math/bodyPose.js';
@@ -342,8 +344,9 @@ const load = async (scene: Scene, source: string): Promise<Rig> => {
     .filter((material) => !material.albedoTexture)
     .map((material) => ({ material, share: /joint/i.test(material.name) ? 0.7 : 0.15 }));
 
+  const shadowOnly = shadowOnlyMaterial(scene);
   const bodies = container.meshes.flatMap((mesh) => {
-    const split = mesh instanceof Mesh ? splitOffArms(mesh) : null;
+    const split = mesh instanceof Mesh ? splitOffArms(mesh, shadowOnly) : null;
     return split ? [split] : [];
   });
   let bodyShown = true;
@@ -371,17 +374,33 @@ const load = async (scene: Scene, source: string): Promise<Rig> => {
 };
 
 /**
- * Splits a skinned mesh into two parts drawn from one set of vertices — its
- * arms, and the rest — and returns a switch that draws both, or the arms
- * alone. Null for a mesh that is not skinned or already has parts of its own,
- * which is left whole.
- *
- * Effectful: reorders the mesh's triangles (`armsFirst`) and replaces its
- * parts. Both parts are always drawn when on screen rather than culled
- * separately: each part's bounds are measured in the bind pose, a T-pose, and
- * an arm reaching forward is nowhere near where its T-pose bounds say.
+ * A material that draws nothing on screen, for a part that should still cast
+ * its shadow. Shadow maps are drawn with a shader of their own, which does not
+ * ask the material whether to write colour, so the part's shadow falls as
+ * before while the part itself is gone.
  */
-const splitOffArms = (mesh: Mesh): ((body: boolean) => void) | null => {
+const shadowOnlyMaterial = (scene: Scene): StandardMaterial => {
+  const material = new StandardMaterial('shadow-only', scene);
+  material.disableColorWrite = true;
+  material.disableDepthWrite = true;
+  return material;
+};
+
+/**
+ * Splits a skinned mesh into two parts drawn from one set of vertices — its
+ * arms, and the rest — and returns a switch that shows both, or the arms
+ * alone. Hidden, the rest still casts its shadow (`shadowOnly`): a thrower in
+ * first person sees only their arms, and the whole of their shadow. Null for
+ * a mesh that is not skinned or already has parts of its own, which is left
+ * whole.
+ *
+ * Effectful: reorders the mesh's triangles (`armsFirst`), replaces its parts
+ * and its material. Both parts are always drawn when on screen rather than
+ * culled separately: each part's bounds are measured in the bind pose, a
+ * T-pose, and an arm reaching forward is nowhere near where its T-pose bounds
+ * say.
+ */
+const splitOffArms = (mesh: Mesh, shadowOnly: StandardMaterial): ((body: boolean) => void) | null => {
   const indices = mesh.getIndices();
   const influences = mesh.getVerticesData(VertexBuffer.MatricesIndicesKind);
   const weights = mesh.getVerticesData(VertexBuffer.MatricesWeightsKind);
@@ -391,14 +410,26 @@ const splitOffArms = (mesh: Mesh): ((body: boolean) => void) | null => {
   const drawn = /joint/i.test(mesh.material?.name ?? '') ? isArmJointBoneName : isArmBoneName;
   const armBones = mesh.skeleton.bones.map((bone) => drawn(boneName(bone.name)));
   const sorted = armsFirst(indices, influences, weights, (index) => armBones[index] ?? false);
-  const material = mesh.subMeshes[0]!.materialIndex;
+  const own = mesh.material;
+  if (!own) return null;
   const vertices = mesh.getTotalVertices();
   mesh.setIndices(sorted.indices);
   mesh.releaseSubMeshes();
-  const arms = new SubMesh(material, 0, vertices, 0, sorted.arms, mesh);
-  const rest = new SubMesh(material, 0, vertices, sorted.arms, sorted.indices.length - sorted.arms, mesh);
+  new SubMesh(0, 0, vertices, 0, sorted.arms, mesh);
+  new SubMesh(1, 0, vertices, sorted.arms, sorted.indices.length - sorted.arms, mesh);
   mesh.alwaysSelectAsActiveMesh = true;
+
+  const partsOf = (name: string, rest: typeof own): MultiMaterial => {
+    const parts = new MultiMaterial(`${mesh.name}-${name}`, mesh.getScene());
+    parts.subMaterials = [own, rest];
+    return parts;
+  };
+  const whole = partsOf('whole', own);
+  const armsOnly = partsOf('arms-only', shadowOnly);
+  mesh.material = whole;
+  // Swapped whole rather than edited: setting a mesh's material clears the
+  // shaders it had compiled for the old one.
   return (body) => {
-    mesh.subMeshes = body ? [arms, rest] : [arms];
+    mesh.material = body ? whole : armsOnly;
   };
 };
