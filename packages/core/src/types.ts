@@ -78,6 +78,15 @@ export type RuleSet = {
    * this. Guards against a claim resolving on a single touching corner.
    */
   readonly minSharedBorder: number;
+  /**
+   * How far past your own ground the knife may land and still be claimed.
+   *
+   * The yard's rule: you draw the line yourself, with a foot still on your own
+   * land, so a knife you cannot reach draws nothing however well it stuck. It
+   * keeps a turn local — you take ground next to your own, a strip at a time,
+   * not a slice from across the circle.
+   */
+  readonly reach: number;
 };
 
 /**
@@ -88,7 +97,8 @@ export type MissReason =
   | 'outside_arena'
   | 'own_territory'
   | 'degenerate_cut'
-  | 'no_connection';
+  | 'no_connection'
+  | 'out_of_reach';
 
 /**
  * The result of resolving one throw against a board.

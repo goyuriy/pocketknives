@@ -3,7 +3,7 @@ import type { Launch } from './types.js';
 import { simulateFlight, wrapAngle } from './flight.js';
 import { aimedLaunch, standingPoint } from './launch.js';
 import { stickVerdict, throwFromImpact } from './stick.js';
-import { DEFAULT_CONFIG, spinRate, stickWindow } from './config.js';
+import { DEFAULT_CONFIG, grabAngle, knifeLength, spinRate, stickWindow } from './config.js';
 
 const launch = (overrides: Partial<Launch> = {}): Launch => ({
   ...aimedLaunch([0, -12], Math.PI / 2, 0.5), // stood south, throwing north
@@ -147,6 +147,41 @@ describe('the tumble decides the throw', () => {
         expect(stickVerdict(impact).stuck, `power ${power.toFixed(3)} landed tip-up`).toBe(false);
       }
     }
+  });
+
+  it('refuses a knife that went in too flat to get your fingers under the handle', () => {
+    // The yard's rule. It went in — it stays standing where it is — but it
+    // does not count.
+    const arriving = { ...simulateFlight(launch()).impact, misalignment: 0 };
+    const lying = stickVerdict({ ...arriving, entryAngle: 0.08 });
+    expect(lying).toMatchObject({ stuck: false, planted: true, outcome: 'handle_low' });
+    expect(lying.depth).toBeGreaterThan(0);
+
+    const standing = stickVerdict({ ...arriving, entryAngle: 0.6 });
+    expect(standing).toMatchObject({ stuck: true, planted: true, outcome: 'stuck' });
+  });
+
+  it('counts a knife exactly when its handle clears the ground by two fingers', () => {
+    const arriving = { ...simulateFlight(launch()).impact, misalignment: 0 };
+    const { depth } = stickVerdict({ ...arriving, entryAngle: 0.6 });
+    const edge = grabAngle(DEFAULT_CONFIG, depth);
+    const butt = (knifeLength(DEFAULT_CONFIG.knife) - depth) * Math.sin(edge);
+    expect(butt).toBeCloseTo(DEFAULT_CONFIG.stick.grabClearance, 9);
+    expect(stickVerdict({ ...arriving, entryAngle: edge + 1e-6 }).stuck).toBe(true);
+    expect(stickVerdict({ ...arriving, entryAngle: edge - 1e-6 }).outcome).toBe('handle_low');
+  });
+
+  it('counts every knife that went in when no clearance is asked for', () => {
+    const lenient = { ...DEFAULT_CONFIG, stick: { ...DEFAULT_CONFIG.stick, grabClearance: 0 } };
+    const arriving = { ...simulateFlight(launch()).impact, misalignment: 0, entryAngle: 0.08 };
+    expect(stickVerdict(arriving, lenient).stuck).toBe(true);
+  });
+
+  it('never plants a knife that skipped, bounced or landed on its handle', () => {
+    const arriving = simulateFlight(launch()).impact;
+    expect(stickVerdict({ ...arriving, misalignment: 0, entryAngle: -0.2 }).planted).toBe(false);
+    expect(stickVerdict({ ...arriving, entryAngle: 0.6, misalignment: Math.PI / 2 }).planted).toBe(false);
+    expect(stickVerdict({ ...arriving, misalignment: 0, entryAngle: 0.6, speed: 1 }).planted).toBe(false);
   });
 
   it('refuses a knife with no pace left in it', () => {

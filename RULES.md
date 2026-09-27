@@ -36,7 +36,7 @@ crosshair and no preview of where it will land — only the knife in your fist,
 pointing. Three decisions make a throw, and none of them is a reflex:
 
 1. **Point.** You see through the thrower's eyes, your own two arms in front of
-   you. Move the mouse across the screen and you turn with it, edge to edge
+   you: the same character every other camera shows, its head out of the way. Move the mouse across the screen and you turn with it, edge to edge
    being the arm's whole reach. Your free hand hangs at your side until you
    hold the button; then it comes up and points out along the line you are
    aiming — the way a javelin thrower sights down their free arm. The
@@ -53,15 +53,20 @@ pointing. Three decisions make a throw, and none of them is a reflex:
 
    | Angle | Full draw reaches | Sticks at full draw |
    | --- | --- | --- |
-   | 6° (flat) | 8.7 | 99% |
-   | 20° (resting) | 13.7 | 90% |
-   | 46° (lob) | 17.9 | 72% |
+   | 6° (flat) | 8.7 | 97% |
+   | 20° (resting) | 13.7 | 81% |
+   | 46° (lob) | 17.9 | 64% |
 
    Reach is measured from where the knife leaves the hand. From the middle of
    a quarter of the circle the far rim is about fifteen away: only a lob gets
-   there.
-2. **Draw.** Hold the button and pull back towards you. The knife cocks up by
-   your ear, point still forward, like a dart. How far back is how hard it is
+   there. But a knife only claims ground if it lands within reach of your own
+   (see *Within reach*), so how far you can throw matters much less than how
+   near you can land it.
+2. **Draw.** Hold the button and pull back towards you. The knife is held in a
+   hammer grip, the first grip every thrower learns: the handle diagonally
+   across the palm, fingers round it, the thumb along its side, the knife
+   standing up out of the fist. Drawn back, the fist goes up by your ear and
+   the knife stands nearly upright, its tip still just in view. How far back is how hard it is
    thrown — a position, not a speed, so it means the same on a
    mouse, a trackpad and a thumb. The hand keeps turning with the mouse while
    the arm is back, so the line can be settled at full draw.
@@ -80,9 +85,9 @@ pointing. Three decisions make a throw, and none of them is a reflex:
 
    | Push | Thrower turns | Sticks | Needle turns | Sticks |
    | --- | --- | --- | --- | --- |
-   | gentle | 1.2 | 91% | 3.2 | 78% |
-   | middling | 4.2 | 89% | 12.2 | 71% |
-   | full whip | 7.2 | 86% | 20.2 | 55% |
+   | gentle | 1.3 | 82% | 3.3 | 68% |
+   | middling | 4.3 | 81% | 12.3 | 58% |
+   | full whip | 7.3 | 77% | 20.3 | 47% |
 
    (Full draw at the resting angle.)
 
@@ -125,10 +130,10 @@ not a free choice. With the Thrower:
 
 | Throw | Reach | Sticks |
 | --- | --- | --- |
-| quarter draw | 4.1 | 100% |
-| half draw | 6.7 | 99% |
-| three-quarters | 9.9 | 96% |
-| full draw | 13.7 | 90% |
+| quarter draw | 4.1 | 99% |
+| half draw | 6.7 | 96% |
+| three-quarters | 9.9 | 89% |
+| full draw | 13.7 | 81% |
 
 The knife still **tumbles forward**, tip over the top and down, the way a thrown
 knife does. Sticking asks three separate questions:
@@ -149,6 +154,28 @@ stick costs the turn, like any other miss.
 > `simulateFlight` — [flight.ts](packages/core/src/throw/flight.ts)
 > `stickVerdict` — [stick.ts](packages/core/src/throw/stick.ts)
 
+**You must be able to catch it by the handle.** This is the yard's own rule, the
+one every argument over a throw came down to: a knife only counts if it stands
+up well enough to be pulled out by the handle. It must leave room to get two fingers under the handle (the butt at
+least `grabClearance` off the ground). A knife that went in but lies nearly
+flat has not stood up in the ground. It stays where it went in, and claims
+nothing.
+
+How high the handle stands depends on two things: the angle the knife went in
+at, and how much of it is left above the ground. So a knife buried deep has to
+stand steeper than one that barely went in, and a short knife has to stand
+steeper than a long one. For a Thrower at its usual depth that means better
+than about 10°. The Needle, being short and sinking deep, needs about 15°.
+
+The wrist knows this rule too. It aims to bring the knife in steep enough for
+the handle to clear, planning for the deepest the point could go, so a clean
+throw is always one you could catch by the handle. What pushes a knife below
+the line is under-turning, the same wobble that lands a worse one handle-first.
+
+> `stickVerdict` — [stick.ts](packages/core/src/throw/stick.ts)
+> `grabAngle` — [config.ts](packages/core/src/throw/config.ts)
+> `sweetSpotAngle` — [swing.ts](packages/core/src/throw/swing.ts)
+
 **The flight itself carries no randomness.** It is a closed-form arc with a
 constant tumble — no drag, no physics engine — so a server and a client agree on
 where the knife landed without replaying each other's floating point. The wobble
@@ -165,7 +192,8 @@ as it does in the yard.
 That makes the shape of your land matter twice. Ground that pushes towards an
 opponent is ground you can walk out on and throw short from; losing it pushes
 you back and makes every throw longer. A thin strip of land is a road as well as
-an asset.
+an asset. And your reach is measured from your ground, so every stretch of it
+pushes the reach out with it.
 
 Each turn starts in the middle of your largest piece, facing the centre of the
 circle. If the ground under your feet is taken, you are put back home.
@@ -201,7 +229,8 @@ be pushed through on purpose.
 
 Every knife thrown stays where it fell, for the rest of the match (the oldest is
 picked up once there are sixteen). A stuck knife is solid — you walk round it,
-not through it. A knife that did not stick is handed to the physics engine the
+not through it. So is one that went in but lies too low to catch by the handle;
+it stands where it went in, dimmed, because it claims nothing. A knife that did not stick is handed to the physics engine the
 moment it lands: it kicks off the ground the way it arrived, bounces and settles
 for real, and can be kicked about afterwards.
 
@@ -215,15 +244,16 @@ one that stuck has already cut; the physics is for the eye and the feet.
 ## The knife
 
 Chosen before the match, not during it: the knife is your strategy, the throw is
-your execution. Each trades **reach** against **forgiveness**.
+your execution. Every knife is its real size and weight, in metres and
+kilograms: the Thrower is 30 cm and 200 g. Each trades **reach** against **forgiveness**.
 
 | Knife | Hands | Full reach | Sticks at full reach | Character |
 | --- | --- | --- | --- | --- |
-| Kitchen | 1 | 15.1 | 94% | Long in the blade and forgiving of a shaky hand. |
-| Thrower | 1 | 13.7 | 90% | Weighted forward and even-tempered. |
-| Cleaver | 1 | 10.2 | 97% | Heavy and slow to turn, buries itself to the handle. |
-| Needle | 1 | 17.0 | 73% | Light and whirling. Flies furthest, forgives nothing. |
-| Greatsword | 2 | 7.6 | 100% | Barely turns, drops point-first from anywhere — but only reaches so far. |
+| Kitchen | 1 | 15.1 | 87% | Long in the blade and forgiving of a shaky hand. |
+| Thrower | 1 | 13.7 | 81% | Weighted forward and even-tempered. |
+| Cleaver | 1 | 10.2 | 92% | Heavy and slow to turn, buries itself to the handle. |
+| Needle | 1 | 17.0 | 62% | Light and whirling. Flies furthest, forgives nothing. |
+| Greatsword | 2 | 7.6 | 100% | Barely turns, drops point-first from anywhere — but only reaches so far. Locked until character level 30; two-handed throwing is parked. |
 
 Every difference is physical:
 
@@ -241,6 +271,34 @@ A sword is held in two hands, and the player sees both on screen. That is how it
 is held, not physics — the flight never reads it.
 
 > `KNIVES` — [knives.ts](packages/core/src/throw/knives.ts)
+
+## Within reach
+
+**You can only draw the line if the knife is near you.** In the yard you draw
+the cut yourself, down the blade, with a foot still on your own land, so a knife
+you cannot reach draws nothing, however well it stuck. Here that is a distance:
+the knife has to land within `reach` (5, half the circle's radius) of ground you
+hold. Otherwise the throw misses as `out_of_reach`, and no line is drawn.
+
+It is measured from the nearest of your ground, not from where you stood to
+throw. That is the yard's version, where you walk to the knife along your own
+land to draw the line. So throwing from deep inside your land is allowed, as
+long as the knife comes down near its edge.
+
+This is what keeps a turn local. Without it, a deep throw paid best: a knife
+stuck anywhere in an opponent's ground took everything between the blade and
+your border, so the far rim was the best place to aim. Now you take ground next
+to your own, a strip at a time, and the long throw that reaches across the
+circle wins nothing.
+
+The edge of your reach is chalked on the ground in your colour as a dotted line,
+all the way round your land. That is a fact about the board, not a preview of
+the throw. Nothing shows where the knife will land. The **reach** switch in the
+debug row hides it, for seeing the ground bare.
+
+> `distanceToLand` — [standing.ts](packages/core/src/rules/standing.ts)
+> `resolveThrow` — [cut.ts](packages/core/src/rules/cut.ts)
+> `reachDots` — [reachLine.ts](apps/web/src/stage/math/reachLine.ts)
 
 ## The cut
 
@@ -345,17 +403,19 @@ All of these cost the turn. None allow a retry.
 | --- | --- |
 | `outside_arena` | The knife landed outside the circle. |
 | `own_territory` | The knife landed on your own ground. |
+| `out_of_reach` | The knife landed too far from your ground to draw the line. |
 | `no_connection` | The half on your side doesn't touch land you hold. |
 | `degenerate_cut` | No clean cut there — landed exactly on a border, or the line grazes a single edge. |
 
 And the ways it fails before the rules are consulted at all — the knife never
-stuck, so there was no line to draw:
+stuck, or never stood up well enough to count, so there was no line to draw:
 
 | Reason | What happened |
 | --- | --- |
 | `handle_first` | The hand wobbled; the knife came in under-turned and the butt struck first. |
 | `flat` | The hand wobbled the other way; it arrived across its own path and skipped. |
 | `too_slow` | Nothing left in it to bury the point. |
+| `handle_low` | It went in, but too flat to get your fingers under the handle. |
 
 A clean throw never fails these — the wrist sees to it. They are the hand's
 wobble, and the lever a player has on them is how far they reach.
@@ -383,12 +443,14 @@ they kill whole classes of bug before they appear.
 ## Tunable constants
 
 In `RuleSet` — kept out of the geometry so they can be balanced without touching
-it. Values are in arena units, where the arena radius is 10.
+it. Values are in metres: the arena's radius is 10 m, a thrower is 1.75 m tall, and
+every knife is the size of the real thing (the Thrower is 30 cm).
 
 | Name | Default | Meaning |
 | --- | --- | --- |
 | `standRadius` | 0.6 | Smallest circle a player must be able to fit on their land to stay in the game. |
 | `minSharedBorder` | 0.05 | Shortest stretch of border that counts as a real connection. Stops a claim resolving on a single touching corner. |
+| `reach` | 5 | Furthest a knife may land from your own ground and still draw a line. |
 
 Everything about the throw lives in one file:
 [config.ts](packages/core/src/throw/config.ts). The sandbox exposes it as live
@@ -401,7 +463,7 @@ dials — press **Tune** — with the derived numbers shown above the sliders, a
 | `gesture` | `fullDraw`, `minDraw`, `minPushSpeed`, `fullWhip`, `maxAim`, `driftGain`, `minPitch`, `maxPitch` | How the hand's motion is read |
 | `style` | `pitch`, `spinImpulse`, `startingBladeAngle`, `releaseHeight`, `minSpeed`, `maxSpeed`, `referenceMass`, `weightPenalty` | How the arm throws |
 | `scatter` | `spin`, `power`, `startingBladeAngle`, `heading` | How much the hand wobbles (seeded) |
-| `stick` | `baseMisalignment`, `minEntryAngle`, `minMomentum`, `soilResistance` | What the ground accepts |
+| `stick` | `baseMisalignment`, `minEntryAngle`, `minMomentum`, `soilResistance`, `grabClearance` | What the ground accepts, and what counts |
 | `flight` | `gravity`, `sampleInterval` | The world |
 
 Derived, and read through helpers so there is one definition of each:
@@ -411,6 +473,8 @@ Derived, and read through helpers so there is one definition of each:
 - **reach factor** from mass — see the knife section.
 - **stick window** scales with blade length.
 - **bite depth** from mass, impact speed and edge width, capped at the blade.
+- **grab angle** — the shallowest a knife can stand and still clear
+  `grabClearance` under its handle, from how much of it is left above the ground.
 
 `scatter.spin` is the main difficulty dial: it is the wobble that grows with
 flight time. `scatter.heading` stays at zero on purpose — where the knife goes is
@@ -428,11 +492,11 @@ There is no aiming preview. The knife in the hand is the aim.
 
 ## Not settled yet
 
-- **The reach rule.** In the yard game you must be able to reach the knife while
-  keeping a foot on your own land, which caps how far one throw can claim.
-  Nothing implements this yet, so a deep throw currently pays maximally: cut
-  anywhere in an opponent's ground and you take everything between the blade and
-  your border. `RuleSet` is open for it when we decide.
+- **How long the reach is.** 5 is a first guess, not a measured one. The
+  shortest throw lands about three from your feet, so a reach much under that
+  would make every throw from the border too long. And the draw still spans
+  throws out to 14, most of which now land out of reach. If short throws feel
+  too coarse to place, the power range is the next thing to tune.
 - **Roll.** The knife currently tumbles strictly within its flight plane, so the
   cut always runs along the throw. Letting a player put a twist on it would free
   the line from the aim — more control, and a third thing to learn. Deliberately

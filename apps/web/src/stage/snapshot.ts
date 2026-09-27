@@ -6,6 +6,7 @@ import type {
   ThrowConfig,
 } from '@pocketknives/core';
 import type { Attempt, Phase } from '../state/useSandbox.js';
+import type { CameraView } from './math/cameraPose.js';
 
 /**
  * Everything the stage needs to know about the game, and nothing else.
@@ -26,6 +27,12 @@ export type StageSnapshot = {
   readonly swinging: boolean;
   /** Whose turn it is — whose ground the thrower may walk. */
   readonly playerId: PlayerId;
+  /** How far past their own ground the thrower can reach to draw a line. */
+  readonly reach: number;
+  /** Whether that reach is chalked on the ground. */
+  readonly showReach: boolean;
+  /** Where the camera is: the thrower's eyes, or a debug view. */
+  readonly cameraView: CameraView;
   /** Every knife thrown this match that is still lying out, oldest first. */
   readonly thrown: readonly Attempt[];
   readonly config: ThrowConfig;

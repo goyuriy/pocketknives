@@ -3,6 +3,7 @@ import type { Impact, StickOutcome, StickVerdict } from './types.js';
 import {
   DEFAULT_CONFIG,
   biteDepth,
+  handleClearance,
   minStickSpeed,
   stickWindow,
   type ThrowConfig,
@@ -10,6 +11,7 @@ import {
 
 const failed = (outcome: StickOutcome): StickVerdict => ({
   stuck: false,
+  planted: false,
   outcome,
   quality: 0,
   depth: 0,
@@ -28,6 +30,10 @@ const failed = (outcome: StickOutcome): StickVerdict => ({
  *    flat and skips, and throwing harder only makes it skip further.
  * 3. **Has it enough left to bury the point?**
  *
+ * And then the yard's own rule, which is not physics but what everyone playing
+ * agrees to: **can you get your fingers under the handle?** A knife that went in
+ * but lies nearly flat is left standing where it is, and does not count.
+ *
  * The first two are easy to conflate and must not be. A knife can be perfectly
  * aligned with its descending path and still have its tip above horizontal —
  * that happens whenever the path is steeper than the knife — and checking only
@@ -44,13 +50,19 @@ export const stickVerdict = (
   if (impact.misalignment >= stickWindow(config)) return failed('flat');
   if (impact.speed < minStickSpeed(config)) return failed('too_slow');
 
+  // 1 for a knife driving in exactly along its path, tapering to 0 where it
+  // would have skipped.
+  const quality = 1 - impact.misalignment / stickWindow(config);
+  // A scrappy stick loses some of its drive to going in crooked.
+  const depth = biteDepth(config, impact.speed) * (0.5 + 0.5 * quality);
+  const grabbable = handleClearance(config, impact.entryAngle, depth) >= config.stick.grabClearance;
+
   return {
-    stuck: true,
-    outcome: 'stuck',
-    // 1 for a knife driving in exactly along its path, tapering to 0 where it
-    // would have skipped.
-    quality: 1 - impact.misalignment / stickWindow(config),
-    depth: biteDepth(config, impact.speed),
+    stuck: grabbable,
+    planted: true,
+    outcome: grabbable ? 'stuck' : 'handle_low',
+    quality,
+    depth,
   };
 };
 

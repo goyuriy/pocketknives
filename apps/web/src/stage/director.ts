@@ -9,17 +9,28 @@ import { createDustView } from './views/dustView.js';
 import type { Stage } from './engine/createStage.js';
 import type { HandInput, StageSnapshot } from './snapshot.js';
 import { handSway } from '../input/handSway.js';
-import { bodyPose, READY_SWING, releasePointFor, swingForDraw } from './math/bodyPose.js';
+import {
+  bodyPose,
+  gripOffset,
+  READY_SWING,
+  releasePointFor,
+  strideAfter,
+  swingForDraw,
+  type Stride,
+} from './math/bodyPose.js';
+import { bladeDirection } from './math/coords.js';
 import { easeToward, RESTING_ARM, stepArm } from './math/armMotion.js';
 import { flightTimeAt, rateAt, RELEASE_SLOW_MOTION } from '../playback/releaseTimeline.js';
 import { cameraEaseRate, cameraPose, easeHeading, eyeDip, eyeLocks, LOOK_FOLLOW_RATE } from './math/cameraPose.js';
 import { flyingPlacement } from './math/knifePlacement.js';
+import { reachDots } from './math/reachLine.js';
 import { createArenaView } from './views/arenaView.js';
 import { createBodyView } from './views/bodyView.js';
 import { createCameraRig } from './views/cameraRig.js';
 import { createKnifeModel, place, type KnifeModel } from './views/knifeModel.js';
 import { createGroundKnives, type Landing } from './views/groundKnives.js';
 import { createWalker } from './views/walker.js';
+import { createCharacterView } from './views/characterView.js';
 
 /** How briskly the free arm rises to point, and drops again, per second. */
 const FREE_ARM_RATE = 9;
@@ -68,6 +79,7 @@ export const createDirector = (stage: Stage, { read, hand, walk, stance, sound }
   const dust = createDustView(scene, playfield);
   const ground = createGroundKnives(scene, shadows);
   const walker = createWalker(stage, first.config.flight.gravity);
+  const character = createCharacterView(scene, shadows);
 
   let flying: { spec: KnifeSpec; model: KnifeModel } | null = null;
   const flyingKnife = (spec: KnifeSpec) => {
@@ -80,6 +92,15 @@ export const createDirector = (stage: Stage, { read, hand, walk, stance, sound }
   };
   // When each knife hit the ground, and how hard.
   const landings = new Map<Attempt, Landing>();
+  // The chalked edge of the thrower's reach, kept until their ground or the reach changes.
+  let reach: { fields: unknown; playerId: string; reach: number; dots: readonly Vec2[] } | null = null;
+  const reachOf = (state: StageSnapshot): readonly Vec2[] => {
+    if (reach?.fields !== state.fields || reach.playerId !== state.playerId || reach.reach !== state.reach) {
+      const own = state.fields.filter((field) => field.ownerId === state.playerId);
+      reach = { fields: state.fields, playerId: state.playerId, reach: state.reach, dots: reachDots(own, state.reach, state.arenaRadius) };
+    }
+    return reach.dots;
+  };
   // Whose ground the thrower was last put on — a new turn puts them on their own.
   let placedFor: string | null = null;
 
@@ -91,6 +112,10 @@ export const createDirector = (stage: Stage, { read, hand, walk, stance, sound }
     walker.place(feet);
     placedFor = state.playerId;
   };
+  // The legs' walk: where in the stride they are, eased in and out with the pace.
+  let stride: Stride = { phase: 0, amount: 0, along: [1, 0] };
+  // How fast the feet are going, eased so one uneven frame does not jolt the clips.
+  let pace = 0;
   let motion = RESTING_ARM;
   let raised = 0;
   // Where the arm was when the hand let go: the hand-off swings it from here.
@@ -141,6 +166,7 @@ export const createDirector = (stage: Stage, { read, hand, walk, stance, sound }
         : null;
 
     arena.showFields(state.fields, state.alive);
+    arena.showReach(state.showReach ? reachOf(state) : null, state.playerColor);
     arena.showCut(
       settled?.outcome?.kind === 'claimed' ? settled.outcome.cut : null,
       phase.kind === 'cutting' ? Math.min(1, Math.max(0, (intoPhase - IMPACT_BEAT) / CUT_DURATION)) : 1,
@@ -161,6 +187,8 @@ export const createDirector = (stage: Stage, { read, hand, walk, stance, sound }
     dust.update(now / 1000);
 
     const released = phase.kind !== 'ready';
+    // Where the feet went this frame; nowhere, unless walking.
+    let stepped: [Vec2, Vec2] = [stance.current.feet, stance.current.feet];
     const { aim, pitch, draw } = hand();
 
     // A new turn, or ground taken from under the thrower's feet: back home.
@@ -175,6 +203,7 @@ export const createDirector = (stage: Stage, { read, hand, walk, stance, sound }
       const allowed = keepOnOwnLand(state.board, state.playerId, feet, walked);
       if (allowed[0] !== walked[0] || allowed[1] !== walked[1]) walker.place(allowed);
       stance.current = { ...stance.current, feet: allowed };
+      stepped = [feet, allowed];
     }
     const feet: Vec2 = stance.current.feet;
     // The hand's own waver is drawn as well as thrown: what the player sees is
@@ -183,6 +212,11 @@ export const createDirector = (stage: Stage, { read, hand, walk, stance, sound }
       phase.kind === 'ready'
         ? stance.current.facing - (aim + handSway(now / 1000))
         : phase.attempt.flight.impact.heading;
+
+    // Swung along the way the feet went, in the terms of the way the body faces.
+    stride = strideFor(stride, stepped[0], stepped[1], heading, seconds);
+    const stepSpeed = seconds > 0 ? Math.hypot(stepped[1][0] - stepped[0][0], stepped[1][1] - stepped[0][1]) / seconds : 0;
+    pace = easeToward(pace, stepSpeed, PACE_EASE, seconds);
 
     if (handingOff) {
       // A fixed swing, not an eased one: the flight starts on a schedule, and
@@ -212,16 +246,47 @@ export const createDirector = (stage: Stage, { read, hand, walk, stance, sound }
         raised,
         spec: phase.kind === 'ready' ? state.knife : phase.attempt.knife,
         hands: state.hands,
+        stride,
       },
       motion.shown,
     );
-    body.show(
+    // The rigged character is the thrower in every view once it has loaded —
+    // through their own eyes too, head folded away — and the knife goes in its
+    // hand. Until then the drawn body stands in.
+    const view = state.cameraView;
+    // The game's own camera lifts over the circle after a throw; debug views hold still.
+    const lifted = view === 'eyes' ? overhead : view === 'arena';
+    const outside = lifted || view !== 'eyes';
+    const inHand = character.show({
+      feet,
+      heading,
+      speed: pace,
+      backwards: stride.along[0] < -0.5,
       pose,
+      hands: state.hands,
+      color: state.playerColor,
+      visible: true,
+      firstPerson: !outside,
+    });
+    // The knife's grip in the character's palm, pointing the way the drawn one does.
+    const heldSpec = phase.kind === 'ready' ? state.knife : phase.attempt.knife;
+    const along = bladeDirection(heading, pose.bladeAngle);
+    const toGrip = gripOffset(heldSpec);
+    const held = inHand
+      ? {
+          ...pose,
+          knifeAt: [inHand[0] - along[0] * toGrip, inHand[1] - along[1] * toGrip, inHand[2] - along[2] * toGrip] as Vec3,
+        }
+      : pose;
+    body.show(
+      held,
       {
         spec: phase.kind === 'ready' ? state.knife : phase.attempt.knife,
         hands: state.hands,
         heading,
         sleeve: state.playerColor,
+        head: outside,
+        drawn: inHand === null,
       },
       !released || handingOff,
     );
@@ -235,10 +300,18 @@ export const createDirector = (stage: Stage, { read, hand, walk, stance, sound }
         )
       : undefined;
     camera.follow(
-      cameraPose(feet, overhead, state.arenaRadius, look, eyeDip(engine.getRenderWidth() / Math.max(1, engine.getRenderHeight()))),
-      cameraEaseRate(overhead),
+      cameraPose(
+        feet,
+        overhead,
+        state.arenaRadius,
+        look,
+        eyeDip(engine.getRenderWidth() / Math.max(1, engine.getRenderHeight())),
+        view,
+        inHand ?? pose.throwingArm.end,
+      ),
+      cameraEaseRate(lifted),
       seconds,
-      (distance) => eyeLocks(overhead, distance),
+      (distance) => eyeLocks(lifted, distance),
       jolt,
     );
   };
@@ -254,7 +327,34 @@ export const createDirector = (stage: Stage, { read, hand, walk, stance, sound }
       dust.dispose();
       ground.dispose();
       walker.dispose();
+      character.dispose();
       flying?.model.dispose();
     },
+  };
+};
+
+/** How quickly the character's pace follows the feet, per second. */
+const PACE_EASE = 10;
+/** Below this pace, units per second, the legs are standing, not walking. */
+const WALKING_PACE = 0.3;
+/** How quickly the legs fall into and out of a walk, per second. */
+const STRIDE_EASE = 8;
+
+/**
+ * The legs after moving from `from` to `to` in `seconds`, facing `facing`: the
+ * stride advances by the distance walked, swings along the way it went, and
+ * eases in and out so starting and stopping is not a snap.
+ */
+const strideFor = (stride: Stride, from: Vec2, to: Vec2, facing: number, seconds: number): Stride => {
+  const [dx, dy] = [to[0] - from[0], to[1] - from[1]];
+  const distance = Math.hypot(dx, dy);
+  const walking = seconds > 0 && distance / seconds > WALKING_PACE;
+  const along: Stride['along'] = walking
+    ? [dx * Math.cos(facing) + dy * Math.sin(facing), dx * Math.sin(facing) - dy * Math.cos(facing)]
+    : stride.along;
+  return {
+    phase: strideAfter(stride.phase, distance),
+    amount: easeToward(stride.amount, walking ? 1 : 0, STRIDE_EASE, seconds),
+    along,
   };
 };

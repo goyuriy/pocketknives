@@ -37,10 +37,13 @@ describe('impactFeel', () => {
 
   it('tells a stick from a bounce from a drop', () => {
     expect(impactFeel(verdict, flight.impact, DEFAULT_CONFIG.knife).kind).toBe('stick');
-    const flat = { ...verdict, stuck: false, outcome: 'flat' as const, quality: 0, depth: 0 };
+    const flat = { ...verdict, stuck: false, planted: false, outcome: 'flat' as const, quality: 0, depth: 0 };
     expect(impactFeel(flat, flight.impact, DEFAULT_CONFIG.knife).kind).toBe('clatter');
     const slow = { ...flat, outcome: 'too_slow' as const };
     expect(impactFeel(slow, flight.impact, DEFAULT_CONFIG.knife).kind).toBe('tap');
+    // In the ground but too low to count: it still went in, and sounds like it.
+    const low = { ...verdict, stuck: false, outcome: 'handle_low' as const };
+    expect(impactFeel(low, flight.impact, DEFAULT_CONFIG.knife).kind).toBe('stick');
   });
 });
 
@@ -110,8 +113,8 @@ describe('quiver', () => {
   });
 
   it('pivots about the point in the ground, so the buried tip stays put', () => {
-    const still = stuckPlacement(flight, verdict.quality, verdict.depth);
-    const leaning = quiveringPlacement(flight, verdict.quality, verdict.depth, 0.2);
+    const still = stuckPlacement(flight, verdict.depth);
+    const leaning = quiveringPlacement(flight, verdict.depth, 0.2);
     const ground: Vec3 = [flight.impact.point[0], flight.impact.point[1], 0];
     expect(distance(leaning.position, ground)).toBeCloseTo(distance(still.position, ground), 9);
     expect(leaning.position).not.toEqual(still.position);

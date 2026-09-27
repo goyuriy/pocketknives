@@ -6,22 +6,22 @@ import { Quaternion } from '@babylonjs/core/Maths/math.vector';
 import { CreateSphere } from '@babylonjs/core/Meshes/Builders/sphereBuilder';
 import { CreateCapsule } from '@babylonjs/core/Meshes/Builders/capsuleBuilder';
 import { CreateCylinder } from '@babylonjs/core/Meshes/Builders/cylinderBuilder';
+import { CreateBox } from '@babylonjs/core/Meshes/Builders/boxBuilder';
 import type { ShadowGenerator } from '@babylonjs/core/Lights/Shadows/shadowGenerator';
 import type { StandardMaterial } from '@babylonjs/core/Materials/standardMaterial';
 import type { KnifeSpec, Vec3 } from '@pocketknives/core';
-import { alignUp, bladeQuaternion } from '../math/coords.js';
-import type { BodyPose } from '../math/bodyPose.js';
+import { alignUp, axisAngle, bladeQuaternion, compose, rotate } from '../math/coords.js';
+import type { BodyPose, Figure } from '../math/bodyPose.js';
 import type { Limb } from '../math/twoBoneIk.js';
 import { createKnifeModel, place, type KnifeModel } from './knifeModel.js';
 import { paint, repaint } from './materials.js';
 
 const SKIN = '#e9b48c';
-/**
- * A touch bigger than life — cartoon hands that read at a glance — but no
- * more: at eye level a hand is half a metre from the lens, and anything chunkier
- * fills the screen.
- */
-const FIST_SCALE = 0.65;
+const TROUSERS = '#3a3f4b';
+const SHOES = '#2b221c';
+const HAIR = '#3b2a1e';
+/** Life size: a fist about 10 cm across, as the world is in metres. */
+const FIST_SCALE = 0.45;
 
 export type BodyLook = {
   readonly spec: KnifeSpec;
@@ -30,10 +30,23 @@ export type BodyLook = {
   readonly heading: number;
   /** Shirt colour — the player's own. */
   readonly sleeve: string;
+  /**
+   * Whether the head is drawn. Not from the thrower's own eyes, which are
+   * inside it; yes from anywhere else.
+   */
+  readonly head: boolean;
+  /**
+   * Whether the drawn body is shown at all. Off while a rigged character
+   * stands in for it; the knife is drawn either way.
+   */
+  readonly drawn: boolean;
 };
 
 /**
- * The thrower as the player sees them: their own two arms.
+ * The thrower: their own two arms, and the body and legs they hang from.
+ *
+ * From the thrower's own eyes only the arms are in view, and the body's shadow
+ * on the ground; the rest is there for every other camera.
  *
  * The contract a character has to meet, kept small on purpose. Today it is
  * drawn from primitives; a rigged model from a character library can take its
@@ -67,6 +80,12 @@ export const createBodyView = (scene: Scene, playfield: TransformNode, shadows: 
   let arms: Arm[] = [];
   let knife: KnifeModel | null = null;
 
+  const trousers = paint(scene, 'trousers', TROUSERS, { shine: 0.05 });
+  const shoes = paint(scene, 'shoes', SHOES, { shine: 0.2 });
+  const hair = paint(scene, 'hair', HAIR);
+  const trunk = createTrunk(scene, playfield, { shirt: sleeve, skin, trousers, shoes, hair });
+  trunk.meshes.forEach((mesh) => shadows.addShadowCaster(mesh));
+
   const casters = (arm: Arm): AbstractMesh[] =>
     [arm.upper, arm.lower, arm.elbow, ...arm.fist.getChildMeshes(), ...(arm.finger ? [arm.finger] : [])];
 
@@ -87,9 +106,9 @@ export const createBodyView = (scene: Scene, playfield: TransformNode, shadows: 
     knife.root.parent = playfield;
     const make = (name: string, pointer: boolean): Arm => {
       const arm: Arm = {
-        upper: limb(scene, `${name}-upper`, sleeve, playfield, 0.14, 0.12),
-        lower: limb(scene, `${name}-lower`, skin, playfield, 0.1, 0.085),
-        elbow: joint(scene, `${name}-elbow`, sleeve, playfield, 0.13),
+        upper: limb(scene, `${name}-upper`, sleeve, playfield, 0.11, 0.09),
+        lower: limb(scene, `${name}-lower`, skin, playfield, 0.08, 0.06),
+        elbow: joint(scene, `${name}-elbow`, sleeve, playfield, 0.1),
         fist: fist(scene, `${name}-fist`, skin, playfield),
         finger: null,
       };
@@ -115,6 +134,11 @@ export const createBodyView = (scene: Scene, playfield: TransformNode, shadows: 
         place(knife.root, { position: pose.knifeAt, heading: look.heading, bladeAngle: pose.bladeAngle });
       }
 
+      trunk.show(pose.figure, look.heading, look.head);
+      trunk.meshes.forEach((mesh) => mesh.setEnabled(look.drawn));
+      trunk.head.setEnabled(look.drawn && look.head);
+      arms.forEach((arm) => [arm.upper, arm.lower, arm.elbow, arm.fist].forEach((node) => node.setEnabled(look.drawn)));
+
       const [throwing, other] = arms;
       if (throwing) posed(throwing, pose.throwingArm, bladeQuaternion(look.heading, pose.bladeAngle));
       if (other) {
@@ -127,8 +151,12 @@ export const createBodyView = (scene: Scene, playfield: TransformNode, shadows: 
     },
     dispose: () => {
       teardown();
-      skin.dispose();
-      sleeve.dispose();
+      trunk.meshes.forEach((mesh) => {
+        shadows.removeShadowCaster(mesh);
+        mesh.dispose();
+      });
+      trunk.head.dispose();
+      [skin, sleeve, trousers, shoes, hair].forEach((material) => material.dispose());
     },
   };
 };
@@ -198,4 +226,115 @@ const span = (mesh: Mesh, from: Vec3, to: Vec3): void => {
   mesh.position.set((from[0] + to[0]) / 2, (from[1] + to[1]) / 2, (from[2] + to[2]) / 2);
   mesh.rotationQuaternion!.set(...alignUp(along));
   mesh.scaling.y = Math.max(Math.hypot(...along), 1e-3);
+};
+
+type Wardrobe = {
+  readonly shirt: StandardMaterial;
+  readonly skin: StandardMaterial;
+  readonly trousers: StandardMaterial;
+  readonly shoes: StandardMaterial;
+  readonly hair: StandardMaterial;
+};
+
+type Trunk = {
+  readonly show: (figure: Figure, heading: number, head: boolean) => void;
+  readonly meshes: readonly Mesh[];
+  readonly head: TransformNode;
+};
+
+type LegMeshes = { readonly thigh: Mesh; readonly shin: Mesh; readonly knee: Mesh; readonly shoe: Mesh };
+
+/**
+ * Chest, hips, head and legs, from the same simple shapes as the arms: a
+ * squashed capsule for the chest in the player's colour, trousers and shoes,
+ * and a round head with hair and a nose, so which way it faces reads from
+ * behind and from above.
+ */
+const createTrunk = (scene: Scene, parent: TransformNode, wear: Wardrobe): Trunk => {
+  const chest = CreateCapsule('chest', { radius: 0.5, height: 1.6, tessellation: 16 }, scene);
+  chest.material = wear.shirt;
+  chest.parent = parent;
+  chest.rotationQuaternion = Quaternion.Identity();
+
+  const pelvis = CreateSphere('pelvis', { diameter: 1, segments: 12 }, scene);
+  pelvis.scaling.set(0.22, 0.18, 0.32);
+  pelvis.material = wear.trousers;
+  pelvis.parent = parent;
+  pelvis.rotationQuaternion = Quaternion.Identity();
+
+  const neck = limb(scene, 'neck', wear.skin, parent, 0.11, 0.1);
+
+  const head = new TransformNode('head', scene);
+  head.parent = parent;
+  head.rotationQuaternion = Quaternion.Identity();
+  const skull = CreateSphere('skull', { diameter: 0.22, segments: 16 }, scene);
+  skull.material = wear.skin;
+  skull.parent = head;
+  const cap = CreateSphere('hair', { diameter: 0.235, segments: 16, slice: 0.55 }, scene);
+  cap.material = wear.hair;
+  cap.parent = head;
+  // Built round +y, which is game up once the head is placed.
+  cap.rotationQuaternion = Quaternion.FromArray([...alignUp([0, 0, 1])]);
+  cap.position.set(-0.015, 0, 0.015);
+  const nose = CreateSphere('nose', { diameter: 0.04, segments: 8 }, scene);
+  nose.material = wear.skin;
+  nose.parent = head;
+  nose.position.set(0.11, 0, -0.01);
+
+  const leg = (name: string): LegMeshes => {
+    const shoe = CreateBox(`${name}-shoe`, { width: 0.27, height: 0.08, depth: 0.1 }, scene);
+    shoe.material = wear.shoes;
+    shoe.parent = parent;
+    shoe.rotationQuaternion = Quaternion.Identity();
+    return {
+      thigh: limb(scene, `${name}-thigh`, wear.trousers, parent, 0.15, 0.11),
+      shin: limb(scene, `${name}-shin`, wear.trousers, parent, 0.1, 0.08),
+      knee: joint(scene, `${name}-knee`, wear.trousers, parent, 0.11),
+      shoe,
+    };
+  };
+  const legs = [leg('throwing-leg'), leg('other-leg')] as const;
+
+  return {
+    meshes: [chest, pelvis, neck, skull, cap, nose, ...legs.flatMap((l) => [l.thigh, l.shin, l.knee, l.shoe])],
+    head,
+    show: (figure, heading, showHead) => {
+      const turned = axisAngle([0, 0, 1], heading);
+      // From a little below the hips to the base of the neck, flatter front to back than side to side.
+      const bottom: Vec3 = [figure.hips[0], figure.hips[1], figure.hips[2] - 0.05];
+      upright(chest, bottom, figure.neck, heading);
+      chest.scaling.set(0.24, Math.hypot(...sub(figure.neck, bottom)) / 1.6 + 0.02, 0.38);
+      pelvis.position.set(...figure.hips);
+      pelvis.rotationQuaternion!.set(...turned);
+      span(neck, figure.neck, [figure.neck[0], figure.neck[1], figure.neck[2] + 0.1]);
+
+      head.setEnabled(showHead);
+      head.position.set(...figure.head);
+      head.rotationQuaternion!.set(...turned);
+
+      [figure.throwingLeg, figure.otherLeg].forEach((solved, i) => {
+        const meshes = legs[i]!;
+        span(meshes.thigh, solved.root, solved.joint);
+        span(meshes.shin, solved.joint, solved.end);
+        meshes.knee.position.set(...solved.joint);
+        // The shoe's toe a little ahead of the ankle, its sole on the ground under it.
+        const toe = rotate(turned, [0.06, 0, 0]);
+        meshes.shoe.position.set(solved.end[0] + toe[0], solved.end[1] + toe[1], solved.end[2] - 0.03);
+        meshes.shoe.rotationQuaternion!.set(...turned);
+      });
+    },
+  };
+};
+
+const sub = (a: Vec3, b: Vec3): Vec3 => [a[0] - b[0], a[1] - b[1], a[2] - b[2]];
+
+/**
+ * Stands a mesh built along `+y` between two points, with its own `+x` facing
+ * `heading` — so a flattened chest is flat front to back, not at some angle
+ * the shortest-arc turn happened to leave it at.
+ */
+const upright = (mesh: Mesh, from: Vec3, to: Vec3, heading: number): void => {
+  const along = rotate(axisAngle([0, 0, 1], -heading), sub(to, from));
+  mesh.position.set((from[0] + to[0]) / 2, (from[1] + to[1]) / 2, (from[2] + to[2]) / 2);
+  mesh.rotationQuaternion!.set(...compose(axisAngle([0, 0, 1], heading), alignUp(along)));
 };

@@ -10,14 +10,17 @@ Status: 💡 design — nothing here is built yet. The knives it refers to exist
 
 ## Principles
 
-1. **Sidegrades, never upgrades.** Nothing unlocked throws better, only
-   differently. Every knife and every grip is a trade — reach against
+1. **What you choose is a sidegrade; your character grows.** No knife or grip
+   throws better, only differently. Every one is a trade — reach against
    forgiveness, precision against power — the same rule the knife rack already
-   follows ([RULES.md](../RULES.md), *The knife*). A new player with the
-   starting kit can beat a veteran; the veteran just has more ways to try.
-2. **Unlock by doing, not by grinding.** The big unlocks are *trials* — a short
-   feat that uses the thing being unlocked, or the skill it needs. Earning a
-   grip is learning it. Experience points exist, but only buy looks.
+   follows ([RULES.md](../RULES.md), *The knife*). The character is different:
+   it gets slightly better the more you play, through passive skills bought
+   with character levels (see *Skills*). That growth is small and always
+   visible, so a new player can still beat a veteran.
+2. **Unlock by doing, not by grinding.** Grips and the Greatsword are unlocked
+   by *trials* — a short feat that uses the thing being unlocked, or the skill
+   it needs. Earning a grip is learning it. Experience raises your character
+   level, and levels buy looks and skill points.
 3. **Real throwing first.** Grips are the ones knife throwers actually use, and
    they behave in the game the way they behave in a yard: a hammer grip is where
    everyone starts, a no-spin throw is the thing people practise for years.
@@ -28,7 +31,7 @@ Status: 💡 design — nothing here is built yet. The knives it refers to exist
 
 ## Shape of the tree
 
-Three branches that grow side by side. Levels come from playing; each branch
+Four branches that grow side by side. Levels come from playing; each branch
 has its own gates.
 
 ```
@@ -40,7 +43,10 @@ has its own gates.
   start ──►  Thrower ──► Kitchen ──► Cleaver ──► Needle
                                         └────► Greatsword
 
-             ┌─ Looks (experience levels) ─────────────────────────┐
+             ┌─ Skills (passive, character levels 3–20) ───────────┐
+  start ──►  Long hands 1 ──► 2 ──► 3 ──► 4 ──► 5
+
+             ┌─ Looks (character levels) ──────────────────────────┐
   start ──►  blade finishes · handle wraps · sleeves · trails · titles
 ```
 
@@ -80,7 +86,7 @@ tuning, not final.
 
 | Grip | Real life | What it does in the game | Learning (real) | Unlock trial |
 | --- | --- | --- | --- | --- |
-| **Hammer** | Handle, whole hand. Full turns. | The baseline — today's throw. | ★☆☆☆ easiest | Start |
+| **Hammer** | Handle, whole hand: the handle diagonally across the palm, fingers round it, thumb along its side, the knife standing up out of the fist. Full turns. | The baseline — today's throw, and the grip the character holds. | ★☆☆☆ easiest | Start |
 | **Blade grip** | By the blade, half turns, close range. | Knife starts reversed and lands after odd half-turns. Short throws forgive more (≈ +30% stick window below 40% draw); long throws lose reach (≈ −15% top speed). A close-quarters specialist. | ★☆☆☆ the usual first lesson | Stick 3 throws in a row with under 40% draw |
 | **Pinch** | Thumb and finger. Light blades, precision. | Half the hand's sway, a straighter push (drift pull ×0.6), a little less power (≈ −10% speed). Heavy knives (mass above 0.3) wobble more in a pinch. | ★★☆☆ | Stick 5 throws with the push under 5° of drift |
 | **Two-handed** | Overhead with both hands — how heavy blades are thrown. | For heavy knives only: halves the weight penalty on reach, slower to draw back fully. Makes the Cleaver a long-range threat. | ★★☆☆ | Win a match with the Cleaver |
@@ -105,6 +111,60 @@ Specialist"). They never touch the numbers above.
 
 ---
 
+## Character level
+
+Experience comes from playing matches: some for every stick, more for every
+claim, most for winning. It fills the character's level. Every level unlocks
+something to wear (see *Looks*), and some levels also give a **skill point**:
+
+| Character level | 3 | 6 | 10 | 15 | 20 |
+| --- | --- | --- | --- | --- | --- |
+| Skill point | 1st | 2nd | 3rd | 4th | 5th |
+
+The gaps widen on purpose. The first point comes in the first evening of play;
+the fifth is weeks away.
+
+---
+
+## Skills
+
+Passive skills are always on and never chosen per throw. Each has five levels,
+and a skill point raises one skill by one level. There is one skill so far, so
+every point goes to it; once there are more, the player chooses where each
+point goes.
+
+### Long hands
+
+You can reach further from your own ground to draw the line. The reach rule
+([RULES.md](../RULES.md), *Within reach*) says a knife only claims ground if it
+lands within `reach` of land you hold. Long hands adds to that reach. Each level
+adds a little more than the one before it, so the last levels are the ones
+worth chasing.
+
+| Level | Adds | Reach (from 5) | Earliest at character level |
+| --- | --- | --- | --- |
+| 1 | +2% | 5.10 | 3 |
+| 2 | +3% | 5.25 | 6 |
+| 3 | +4% | 5.45 | 10 |
+| 4 | +5% | 5.70 | 15 |
+| 5 | +6% | 6.00 | 20 |
+
+Numbers are starting points for tuning, not final. The percentages are of the
+base reach, so level 5 is +20% altogether.
+
+**How it is built.** `RuleSet.reach` stays the base, the same for everyone. A
+player's reach is the base times their Long hands factor, and `resolveThrow`
+and the chalked reach line both read the player's own reach. Everyone can see
+that line, so an opponent's longer arms are always visible, never a surprise.
+
+**Why this shape.** Getting slightly better over time is the point: it is
+what a returning player has to show for coming back. It stays small, and it
+only moves a line everyone can see. It never touches the throw itself:
+sticking, spin, wobble and power are all unchanged. And it is never sold
+(principle 4); only playing raises it.
+
+---
+
 ## Knives
 
 The five knives already built, each measured in [RULES.md](../RULES.md). The
@@ -117,15 +177,15 @@ first, most specialised last.
 | Kitchen | Level 2 | More forgiving, less reach — a first taste of the trade-off. |
 | Cleaver | Level 4 | Heavy: short, steady, buries itself. Opens the Two-handed grip. |
 | Needle | Level 6 | Longest reach, forgives nothing — wants the Pinch grip. |
-| Greatsword | Trial: claim half the circle in a single match | A showpiece. Earned, not reached by waiting. |
+| Greatsword | Character level 30, then a trial: claim half the circle in a single match | A showpiece, and the one two-handed weapon. Held back until much later: two-handed throwing is not finished, and it should arrive as an event, not a starter. Shown locked in the rack until then. |
 
 ---
 
 ## Looks
 
-Experience comes from playing matches (more for winning, some for every stick),
-and each level unlocks something cosmetic: blade finishes, handle wraps, sleeve
-colours, throw trails, stuck-knife flourishes, titles. This is the branch the
+Every character level (see *Character level*) unlocks something cosmetic:
+blade finishes, handle wraps, sleeve colours, throw trails, stuck-knife
+flourishes, titles. This is the branch the
 **Season pass** extends later. It is the only branch money can touch.
 
 ---

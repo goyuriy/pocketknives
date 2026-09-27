@@ -83,16 +83,32 @@ export type StickOutcome =
   /** Tip was above horizontal, so the butt struck first. A fault of the tumble. */
   | 'handle_first'
   /** Nothing left in it to bury the point. */
-  | 'too_slow';
+  | 'too_slow'
+  /**
+   * Went in, but lies too low to get your fingers under the handle — so by the
+   * yard's rule it does not count. Under-turned, like `handle_first`, only not
+   * so badly.
+   */
+  | 'handle_low';
 
 export type StickVerdict = {
+  /** Whether it counts: stuck, and standing up well enough to be pulled out by the handle. */
   readonly stuck: boolean;
+  /**
+   * Whether the point went into the ground at all. True for every knife that
+   * counts, and for one lying too low to (`handle_low`): that knife stays
+   * standing where it went in, it just claims nothing.
+   */
+  readonly planted: boolean;
   readonly outcome: StickOutcome;
   /**
    * How cleanly, from 0 to 1. Drives how the landing reads: a bare stick
    * shudders and leans, a perfect one goes in dead straight and rings.
    */
   readonly quality: number;
-  /** How far the point buried itself, in arena units. Zero when it skipped. */
+  /**
+   * How far the point buried itself along the blade, in arena units. Zero when
+   * it skipped. A scrappy stick goes in shallower than a clean one.
+   */
   readonly depth: number;
 };

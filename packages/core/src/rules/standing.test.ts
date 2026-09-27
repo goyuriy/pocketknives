@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import type { Vec2 } from '../types.js';
 import { createBoard } from './board.js';
 import { resolveThrow } from './cut.js';
-import { homeSpot, isOnOwnLand, keepOnOwnLand } from './standing.js';
+import { distanceToLand, homeSpot, isOnOwnLand, keepOnOwnLand } from './standing.js';
 
 const RADIUS = 10;
 // Four wedges: 'a' holds the upper right quarter (x > 0, y > 0).
@@ -13,6 +13,18 @@ describe('isOnOwnLand', () => {
     expect(isOnOwnLand(board, 'a', [3, 3])).toBe(true);
     expect(isOnOwnLand(board, 'a', [-3, 3])).toBe(false);
     expect(isOnOwnLand(board, 'a', [30, 30])).toBe(false);
+  });
+});
+
+describe('distanceToLand', () => {
+  it('is zero on your ground and the gap to your nearest border off it', () => {
+    expect(distanceToLand(board, 'a', [3, 3])).toBe(0);
+    expect(distanceToLand(board, 'a', [-2, 5])).toBeCloseTo(2, 9); // across the y axis
+    expect(distanceToLand(board, 'a', [-3, -4])).toBeCloseTo(5, 9); // to the centre corner
+  });
+
+  it('is endless for a player who holds nothing', () => {
+    expect(distanceToLand(board, 'nobody', [0, 0])).toBe(Infinity);
   });
 });
 

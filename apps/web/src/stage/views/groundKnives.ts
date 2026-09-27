@@ -45,6 +45,10 @@ type Lying = {
  * about afterwards. None of this decides anything; a knife that did not stick
  * claimed nothing, and one that stuck has already cut.
  *
+ * A knife that went in but lies too low to be grabbed by the handle stands
+ * where it went in, like any stuck knife — it is dimmed, because it does not
+ * count, but it is not knocked flat, because it did not skip.
+ *
  * Before physics has loaded, knives settle on a scripted bounce instead, and
  * nothing is solid.
  */
@@ -64,7 +68,7 @@ export const createGroundKnives = (scene: Scene, shadows: ShadowGenerator): Grou
     const model = createKnifeModel(scene, `ground-knife-${lying.size}`, attempt.knife, shadows);
     model.setDimmed(!attempt.verdict.stuck);
     const knife: Lying = { model, collider: null, collision: null, body: null };
-    if (!attempt.verdict.stuck && physicsOn()) {
+    if (!attempt.verdict.planted && physicsOn()) {
       placeInWorld(model.root, { ...attempt.flight.samples.at(-1)!, heading: attempt.flight.impact.heading });
       knife.body = tumble(model, attempt, landing);
     }
@@ -82,10 +86,10 @@ export const createGroundKnives = (scene: Scene, shadows: ShadowGenerator): Grou
         const since = (now - landing.at) / 1000;
         const { flight, verdict } = attempt;
 
-        if (verdict.stuck) {
+        if (verdict.planted) {
           placeInWorld(
             knife.model.root,
-            quiveringPlacement(flight, verdict.quality, verdict.depth, quiverLean(since, landing.feel.strength, landing.feel.clean)),
+            quiveringPlacement(flight, verdict.depth, quiverLean(since, landing.feel.strength, landing.feel.clean)),
           );
           if (!knife.collision && physicsOn()) solidify(scene, knife, attempt);
         } else if (!knife.body) {
@@ -100,7 +104,7 @@ export const createGroundKnives = (scene: Scene, shadows: ShadowGenerator): Grou
 };
 
 /** The box a knife fills, in its own frame: along the blade, through its thickness, across its width. */
-const extentsOf = (spec: KnifeSpec): Vector3 => new Vector3(knifeLength(spec), 0.06, 0.14);
+const extentsOf = (spec: KnifeSpec): Vector3 => new Vector3(knifeLength(spec), 0.02, 0.045);
 /** The box's middle, measured from the balance point the model is built around. */
 const centreOf = (spec: KnifeSpec): Vector3 => new Vector3(knifeLength(spec) * (0.5 - spec.balance), 0, 0);
 
@@ -135,7 +139,7 @@ const solidify = (scene: Scene, knife: Lying, attempt: Attempt) => {
   box.isVisible = false;
   box.isPickable = false;
   box.scaling = extentsOf(spec);
-  placeInWorld(box, stuckPlacement(flight, verdict.quality, verdict.depth));
+  placeInWorld(box, stuckPlacement(flight, verdict.depth));
   // The model's box is centred off its balance point; shift the stand-in to match.
   box.position.addInPlace(centreOf(spec).applyRotationQuaternion(box.rotationQuaternion ?? Quaternion.Identity()));
   knife.collider = box;

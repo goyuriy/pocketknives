@@ -17,7 +17,7 @@ Every epic is placed twice:
 in physics, so a knife is a way to play, never a purchase that wins. Money buys
 looks, convenience and support — not reach or forgiveness.
 
-Status: ✅ done · 🔨 in progress · 📋 ready · 💡 idea
+Status: ✅ done · 🔨 in progress · 📋 ready · 💡 idea · ⏸ parked
 
 ---
 
@@ -25,7 +25,7 @@ Status: ✅ done · 🔨 in progress · 📋 ready · 💡 idea
 
 | | **Acquisition** — brings new players in | **Engagement** — makes a session better | **Retention** — brings players back | **Monetization** — earns without spoiling it |
 | --- | --- | --- | --- | --- |
-| **Core** — the throw and the match | Slow-motion release ✅ · Impact juice ✅ · Throw replay · Physics comedy · First three throws | Slow-motion release · Impact juice · Walking · Cut reveal · Reach rule · Match flow · Bots · Physics comedy · Grounds · Wind | Match flow · First three throws · Bots · Grounds | Nothing, on purpose — the throw is never for sale |
+| **Core** — the throw and the match | Slow-motion release ✅ · Impact juice ✅ · Throw replay · Physics comedy · First three throws | Slow-motion release · Impact juice · Walking · Cut reveal · Reach rule ✅ · Match flow · Bots · Physics comedy · Grounds · Wind | Match flow · First three throws · Bots · Grounds | Nothing, on purpose — the throw is never for sale |
 | **Meta** — what you carry between matches | Daily board | Knife collection · Progression tree · Knife mastery | Knife collection · Progression tree · Daily board · Knife mastery · Season pass | Cosmetics · Season pass · Character & hands |
 | **Social** — playing with other people | Link rooms · Reactions · Clip share · Party mode | Link rooms · Reactions · Party mode · Tournaments | Leaderboards · Friends & rivals · Crews · Tournaments | Supporter pack |
 
@@ -93,10 +93,17 @@ left stick on a gamepad.
 - 📋 Footsteps and a little head bob, so walking is felt.
 - 💡 A run-up: a few quick steps into the throw for extra reach.
 
-### Reach rule — 💡 · E
+### Reach rule — ✅ first pass · E
 From the yard game: you must reach the knife while keeping a foot on your own
-land, which caps how deep one throw can claim. Currently open in RULES.md.
-Makes deep throws a decision instead of always the best move.
+land, which caps how deep one throw can claim. Makes deep throws a decision
+instead of always the best move. See RULES.md, *Within reach*.
+- ✅ A knife claims only if it lands within `reach` (5) of your own ground;
+  otherwise `out_of_reach`, no line.
+- ✅ The edge of your reach chalked on the ground as a dotted line in your
+  colour, with a debug switch to hide it.
+- 📋 Tune the reach against play, and the draw's power range with it: most of
+  a full draw now lands out of reach.
+- 💡 Per-player reach, for the **Long hands** skill (**Progression tree**).
 
 ### Match flow — 📋 · E, R
 A complete match: turn order shown, elimination moment, winner screen,
@@ -138,10 +145,11 @@ Which knives are open, and when, is decided by the knife branch of the
 **Progression tree**.
 
 ### Progression tree — 💡 · R, E
-What a player unlocks over time: three branches side by side — **grips**,
-**knives**, **looks**. Designed in [docs/progression-tree.md](docs/progression-tree.md).
-Rules: sidegrades not upgrades, unlock by doing (trials) not by grinding,
-real throwing first, nothing sold changes where a knife lands.
+What a player unlocks over time: four branches side by side — **grips**,
+**knives**, **skills**, **looks**. Designed in [docs/progression-tree.md](docs/progression-tree.md).
+Rules: knives and grips are sidegrades while the character grows slightly with
+experience, unlock by doing (trials) not by grinding, real throwing first,
+nothing sold changes where a knife lands.
 - 💡 **Grips** — how the knife is held, each a real throwing technique with its
   own trade-off, unlocked by a trial that practises it:
   - Hammer (start) — the baseline throw.
@@ -151,9 +159,18 @@ real throwing first, nothing sold changes where a knife lands.
   - No-spin — the knife barely turns: most reach, flattest flight, least stable.
     The mastery grip.
 - 💡 **Knives** — the five that exist, met in order: Thrower, Kitchen, Cleaver,
-  Needle; the Greatsword earned by a trial.
+  Needle; the Greatsword much later (character level 30, then a trial). It is
+  in the rack now but locked, since two-handed throwing is parked: see
+  **Character & hands**.
 - 💡 **Grip mastery** — three ranks per grip, for sticks thrown with it; looks
   only.
+- 💡 **Character level** — experience from sticks, claims and wins fills it;
+  every level buys a look, levels 3, 6, 10, 15 and 20 each give a skill point.
+- 💡 **Skills** — passive, always on, five levels each, raised with skill points:
+  - Long hands (1–5) — reach further from your ground to draw the line. Each
+    level adds a little more than the last: +2%, +3%, +4%, +5%, +6% of the base
+    reach, so +20% at level 5. The character getting slightly better over time,
+    on purpose; small, visible (the reach line shows it), never sold.
 - 💡 **Looks** — experience levels unlock cosmetics; the branch the **Season pass** extends.
 
 ### Daily board — 💡 · R, A
@@ -173,10 +190,51 @@ physics, different look — the first thing to sell.
 Free and paid tracks of cosmetics over a season of play. Only once **Progression tree** and **Cosmetics**
 exist.
 
-### Character & hands — 💡 · M, E
-Replace the primitive arms with a rigged character (KayKit Barbarian was
+### Character & hands — 🔨 · M, E
+Replace the primitive body with a rigged character (KayKit Barbarian was
 shortlisted: CC0, chunky, big hands). The `BodyView` contract is ready for it.
 Later: sleeves, gloves, tattoos as cosmetics.
+- ✅ A whole body from primitives: chest in the player's colour, hips, head
+  with hair and a nose, legs solved hip to ankle, shoes. The feet stand in a
+  thrower's stance, walk in stride the way the body moves, and the chest
+  leans into the throw.
+- ✅ One character in every view, the thrower's own eyes included: seen from
+  inside, its head is folded away to nothing (the usual first-person trick),
+  so the hands, the grip and the free arm pointing are the same ones every
+  other camera sees. The drawn body is only a stand-in until it loads.
+- ✅ Debug cameras: `behind`, `side`, `front`, `hand` (close on the throwing
+  hand), `top` and `arena`, besides the game's own `eyes`. Picked in the debug
+  row or with `?camera=side` in the address; they hold still through a throw.
+  `pnpm --filter @pocketknives/web shots` screenshots every one of them from
+  a running preview (options in `apps/web/scripts/shots.mjs`).
+- ✅ Real-world sizes: the world is in metres, the thrower 1.75 m, the knives
+  their real length (the Thrower 30 cm) with life-size hands to hold them;
+  the physics constants that depend on size were scaled with them, so throws
+  land as before (the Thrower's identically; the others within a few throws
+  in 3,000, from rounding their lengths to the millimetre). The Greatsword is
+  scaled the same way for now, to 55 cm: its real length waits on two-handed
+  throwing.
+- ✅ A rigged character from Mixamo — X Bot, with Mixamo's idle, walk and
+  run — for every camera but the thrower's own eyes. The clips are blended by
+  pace and played at the speed the feet are really moving, backwards for
+  walking backwards; the arms are turned each frame to reach where the drawn
+  arms would, so the knife is in its hand. Loaded after the first frame; the
+  drawn body stands in until it arrives. How to swap in other Mixamo exports:
+  `apps/web/public/characters/README.md`.
+- 📋 Strafing clips (Mixamo "Left/Right Strafe Walk"): a sidestep still plays
+  the walk forward.
+- ✅ The hand closes on the handle: turned so the fingers run across it and
+  the thumb is on the blade side (a hammer grip), fingers curled round, the
+  grip seated in the palm. Hands drawn twice life size, like the drawn fists,
+  since a life-size hand cannot close round the game's chunky handles. Two
+  hands on a sword sit side by side, the grip brought in until both reach.
+- 📋 A throw clip for the body (the arms stay on the reach).
+- ⏸ Two-handed throwing, parked for later. What exists: both hands on the
+  sword's handle, side by side. Still to do: a two-handed throw of its own
+  (overhead, both arms), the sword at its full real length and retuned for it,
+  the Two-handed grip. The Greatsword stays locked in the rack until then.
+- 📋 The rig's arms are shorter than the drawn ones, so from behind the knife
+  jumps a little forward as it leaves the hand.
 
 ---
 

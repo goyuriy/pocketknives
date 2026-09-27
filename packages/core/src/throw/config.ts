@@ -14,7 +14,10 @@ import type { FlightTuning } from './types.js';
  * definition of how a heavier knife behaves.
  */
 
-/** A knife, as a physical object. Lengths in arena units, mass in arbitrary but consistent units. */
+/**
+ * A knife, as a physical object. Lengths in metres, which are arena units, and
+ * mass in kilograms: a throwing knife is about 30 cm and 200 g.
+ */
 export type KnifeSpec = {
   readonly bladeLength: number;
   readonly handleLength: number;
@@ -101,6 +104,15 @@ export type StickTuning = {
   readonly minMomentum: number;
   /** How hard the ground is. Higher means shallower bites. */
   readonly soilResistance: number;
+  /**
+   * How high the butt of the handle must stand off the ground for the knife to
+   * count — room to get two fingers under the handle and pull it out.
+   *
+   * The yard's rule, and the one every argument over a throw came down to. A
+   * knife that went in but lies nearly flat has not stood up in the ground; it
+   * is left where it is, and claims nothing.
+   */
+  readonly grabClearance: number;
 };
 
 /**
@@ -138,22 +150,22 @@ export type ThrowConfig = {
 
 export const DEFAULT_CONFIG: ThrowConfig = {
   knife: {
-    bladeLength: 0.42,
-    handleLength: 0.48,
+    bladeLength: 0.14,
+    handleLength: 0.16,
     mass: 0.2,
     // Tip-heavy, as a throwing knife is. This is not decoration: weight forward
     // raises the moment of inertia, which slows the tumble, which pushes the
     // first blade-first arrival further downrange — and that is what makes the
     // short band land on someone else's ground instead of your own.
     balance: 0.62,
-    edgeWidth: 0.03,
+    edgeWidth: 0.01,
   },
   style: {
     pitch: 0.35,
     releaseHeight: 1.4,
     // The knife's natural tumble; the wrist settles on the sticking rate nearest
     // it, so this sets how many turns a throw makes rather than whether it sticks.
-    spinImpulse: 0.475, // 30 rad/s with the knife above
+    spinImpulse: 0.0528, // 30 rad/s with the knife above
     // Tip up, as the knife sits in the hand — the tumble carries it forward from
     // there, so the throw begins where the held knife was left.
     startingBladeAngle: 0.8,
@@ -194,14 +206,19 @@ export const DEFAULT_CONFIG: ThrowConfig = {
      * `minEntryAngle` came down at the same time.
      */
     baseMisalignment: (Math.PI * 55) / 180,
-    referenceBladeLength: 0.42,
+    referenceBladeLength: 0.14,
     // Just under 3°. All that is truly required is that the tip be lower than
     // the butt — anything above zero means the point lands first. The old 0.15
     // was caution rather than physics, and it was quietly the tightest
     // constraint on the whole throw.
     minEntryAngle: 0.05,
     minMomentum: 1.2,
-    soilResistance: 14,
+    // Set with the knife in metres: three times the old 14, which was for knives
+    // three times life size, so they bite the same share of the blade.
+    soilResistance: 42,
+    // Two fingers, 4 cm. A Thrower sunk to its usual depth has to stand at
+    // better than 10° to clear it.
+    grabClearance: 0.04,
   },
   gesture: {
     // A third of the screen: long enough that power is a thing a player sets
@@ -293,3 +310,21 @@ export const biteDepth = (config: ThrowConfig, impactSpeed: number): number => {
   const edgeFactor = config.stick.referenceBladeLength / Math.max(config.knife.edgeWidth, 1e-6) / 14;
   return Math.min(config.knife.bladeLength, Math.max(0, drive * edgeFactor));
 };
+
+/**
+ * The shallowest a knife sunk `depth` into the ground can stand and still have
+ * its handle clear the ground by `grabClearance`, radians above level.
+ *
+ * What stands above the ground is the knife less what went in, and its butt
+ * rises by that length times the sine of the angle it stands at. A deeper bite
+ * leaves less knife to lift the handle, so a knife buried to the hilt has to
+ * stand steeper to be grabbed than one that barely went in.
+ */
+export const grabAngle = (config: ThrowConfig, depth: number): number => {
+  const standing = Math.max(1e-6, knifeLength(config.knife) - depth);
+  return Math.asin(Math.min(1, Math.max(0, config.stick.grabClearance) / standing));
+};
+
+/** How far the butt of a knife sunk `depth` at `entryAngle` stands off the ground. */
+export const handleClearance = (config: ThrowConfig, entryAngle: number, depth: number): number =>
+  (knifeLength(config.knife) - depth) * Math.sin(entryAngle);

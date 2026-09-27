@@ -1,5 +1,14 @@
 import { describe, expect, it } from 'vitest';
-import { cameraPose, easeHeading, EYE_LOCK_DISTANCE, eyeDip, eyeLocks, fieldOfView } from './cameraPose.js';
+import {
+  CAMERA_VIEWS,
+  cameraPose,
+  easeHeading,
+  EYE_LOCK_DISTANCE,
+  eyeDip,
+  eyeLocks,
+  fieldOfView,
+  isCameraView,
+} from './cameraPose.js';
 import { EYE_HEIGHT } from './bodyPose.js';
 
 describe('cameraPose', () => {
@@ -9,6 +18,31 @@ describe('cameraPose', () => {
     expect(pose.eye).toEqual([0, -8, EYE_HEIGHT]);
     expect(pose.focus[0]).toBeGreaterThan(pose.eye[0]); // pointing right, looking right
     expect(pose.focus[2]).toBeLessThan(pose.eye[2]);
+  });
+
+  it('watches from behind and above when asked, looking out the way the thrower faces', () => {
+    const pose = cameraPose([0, -8], false, 10, Math.PI / 2, undefined, 'behind');
+    expect(pose.eye[1]).toBeLessThan(-10); // behind, to the south
+    expect(pose.eye[2]).toBeGreaterThan(EYE_HEIGHT); // over the head
+    expect(pose.focus[1]).toBeGreaterThan(-8); // at the ground ahead
+  });
+
+  it('holds each debug view on the thrower, through a throw too, and never inside them', () => {
+    const feet: [number, number] = [0, -8];
+    const hand: [number, number, number] = [0.2, -7.5, 1.4];
+    for (const view of CAMERA_VIEWS.filter((v) => v !== 'eyes' && v !== 'arena')) {
+      const pose = cameraPose(feet, true, 10, Math.PI / 2, undefined, view, hand);
+      // Looks at the thrower (or their hand), not the circle's middle.
+      const subject: readonly number[] = view === 'hand' ? hand : [feet[0], feet[1], pose.focus[2]];
+      expect(Math.hypot(pose.focus[0] - subject[0]!, pose.focus[1] - subject[1]!), view).toBeLessThan(2.1);
+      // From outside the body.
+      expect(Math.hypot(pose.eye[0] - feet[0], pose.eye[1] - feet[1], pose.eye[2] - 1) > 0.4, view).toBe(true);
+    }
+    expect(cameraPose(feet, false, 10, Math.PI / 2, undefined, 'side').eye[0]).toBeGreaterThan(2); // the throwing side, east
+    expect(cameraPose(feet, false, 10, Math.PI / 2, undefined, 'front').eye[1]).toBeGreaterThan(-6); // ahead, north
+    expect(cameraPose(feet, false, 10, Math.PI / 2, undefined, 'arena')).toEqual(cameraPose(feet, true, 10, Math.PI / 2));
+    expect(isCameraView('side')).toBe(true);
+    expect(isCameraView('sideways')).toBe(false);
   });
 
   it('lifts over the circle once the knife has landed', () => {
@@ -49,7 +83,7 @@ describe('fieldOfView', () => {
   it('holds the angle across on a phone held upright, so both hands and the circle fit', () => {
     const phone = fieldOfView(375 / 700);
     expect(phone.held).toBe('horizontal');
-    expect((phone.radians * 180) / Math.PI).toBeCloseTo(56, 6);
+    expect((phone.radians * 180) / Math.PI).toBeCloseTo(64, 6);
   });
 });
 
