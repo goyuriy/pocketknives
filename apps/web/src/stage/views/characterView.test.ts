@@ -57,7 +57,7 @@ describe('the character', () => {
     expect(worldToGame(wrist.getAbsolutePosition())[0]).toBeGreaterThan(0); // on the throwing side
   });
 
-  it('closes its hand round the handle: fingers across it, thumb on the blade side, the grip in the palm', async () => {
+  it('closes its hand round the handle in a hammer grip: diagonal across the palm, thumb on the blade side', async () => {
     const { scene, character } = await loadCharacter();
     const grip = character.show(frame)!;
     const at = (name: string): Vec3 => {
@@ -74,7 +74,9 @@ describe('the character', () => {
     const along = bladeDirection(heading, pose.bladeAngle);
     const hand = at('RightHand');
 
-    expect(Math.abs(dot(unit(minus(at('RightHandMiddle1'), hand)), along))).toBeLessThan(0.05);
+    // A hammer grip: the handle diagonally across the palm, its blade end
+    // towards the knuckles, so the knife leaves the fist between thumb and index.
+    expect(dot(unit(minus(at('RightHandMiddle1'), hand)), along)).toBeCloseTo(Math.cos((55 * Math.PI) / 180), 1);
     expect(dot(minus(at('RightHandThumb1'), hand), along)).toBeGreaterThan(0);
     expect(Math.hypot(...minus(grip, hand))).toBeLessThan(0.15);
 

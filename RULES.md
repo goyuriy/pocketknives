@@ -62,8 +62,11 @@ pointing. Three decisions make a throw, and none of them is a reflex:
    there. But a knife only claims ground if it lands within reach of your own
    (see *Within reach*), so how far you can throw matters much less than how
    near you can land it.
-2. **Draw.** Hold the button and pull back towards you. The knife cocks up by
-   your ear, point still forward, like a dart. How far back is how hard it is
+2. **Draw.** Hold the button and pull back towards you. The knife is held in a
+   hammer grip, the first grip every thrower learns: the handle diagonally
+   across the palm, fingers round it, the thumb along its side, the knife
+   standing up out of the fist. Drawn back, the fist goes up by your ear and
+   the knife stands nearly upright, its tip still just in view. How far back is how hard it is
    thrown — a position, not a speed, so it means the same on a
    mouse, a trackpad and a thumb. The hand keeps turning with the mouse while
    the arm is back, so the line can be settled at full draw.

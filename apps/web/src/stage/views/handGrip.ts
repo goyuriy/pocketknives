@@ -36,10 +36,24 @@ type Curl = {
  */
 export const HAND_SCALE = 1;
 
+/**
+ * The angle between the handle and the line from wrist to knuckles, radians.
+ *
+ * A hammer grip does not hold the handle square across the palm, the way a
+ * hammer is held to strike: the handle lies diagonally, from the heel of the
+ * hand under the little finger up to the root of the index finger, so the
+ * knife leaves the fist between thumb and index pointing up the line of the
+ * forearm rather than out to the side of it.
+ */
+const HANDLE_ACROSS_PALM = (55 * Math.PI) / 180;
+
 /** How far each finger joint closes round the handle, knuckle first, radians. */
-const FINGER_CURL = [1.25, 1.35, 0.9];
-/** And the thumb, which folds across rather than curls. */
-const THUMB_CURL = [0.35, 0.55, 0.5];
+const FINGER_CURL = [1.2, 1.35, 0.95];
+/**
+ * And the thumb, which in a throwing grip is not wrapped over the fingers but
+ * rests along the side of the handle, pointing towards the blade.
+ */
+const THUMB_CURL = [-0.35, -0.25, -0.15];
 const FINGERS = ['Index', 'Middle', 'Ring', 'Pinky'];
 
 const worldRotation = (node: TransformNode): Quaternion => {
@@ -106,10 +120,11 @@ export const measureHand = (bone: (name: string) => TransformNode | undefined, s
  * Closes the hand on a handle running along `handle` (world space, towards the
  * blade), and says where in the palm the handle sits.
  *
- * The hand turns as little off the forearm as a grip allows: its fingers run
- * square across the handle, as near the forearm's own line as that permits,
- * the palm faces the handle, and the thumb is on the blade's side — a hammer
- * grip. Then every finger closes round it.
+ * A hammer grip, the first grip every thrower learns: the handle lies
+ * diagonally across the palm (`HANDLE_ACROSS_PALM`), the fingers closed round
+ * it, the thumb along its side on the blade's end. Of all the ways the hand
+ * could sit round the handle like that, it takes the one that bends the wrist
+ * least off the forearm. Then every finger closes round it.
  *
  * Call after the arm has been posed, since the hand turns from where the
  * forearm left it.
@@ -120,9 +135,15 @@ export const closeOnHandle = (shape: HandShape, forearm: TransformNode, handle: 
   hand.computeWorldMatrix(true);
   const along = handle.normalizeToNew();
   const reach = hand.getAbsolutePosition().subtract(forearm.getAbsolutePosition()).normalize();
-  let fingers = reach.subtract(along.scale(Vector3.Dot(reach, along)));
-  if (fingers.lengthSquared() < 1e-8) fingers = Vector3.Cross(along, Vector3.Up());
-  fingers.normalize();
+  // The wrist-to-knuckles line at the grip's angle to the handle, turned about
+  // the handle to lie as near the forearm's line as it can.
+  let square = reach.subtract(along.scale(Vector3.Dot(reach, along)));
+  if (square.lengthSquared() < 1e-8) square = Vector3.Cross(along, Vector3.Up());
+  square.normalize();
+  const fingers = along
+    .scale(Math.cos(HANDLE_ACROSS_PALM))
+    .add(square.scale(Math.sin(HANDLE_ACROSS_PALM)))
+    .normalize();
 
   const facing = (sign: number): Quaternion => {
     const palm = Vector3.Cross(fingers, along).scale(sign).normalize();
@@ -143,10 +164,10 @@ export const closeOnHandle = (shape: HandShape, forearm: TransformNode, handle: 
   hand.computeWorldMatrix(true);
   shape.knuckle.computeWorldMatrix(true);
 
-  // The handle sits across the palm: part way to the knuckles, and in off the
-  // palm by about the thickness of the curled fingers.
+  // The handle crosses the middle of the palm, in off it by about the
+  // thickness of the curled fingers.
   const at = hand.getAbsolutePosition();
   const size = Vector3.Distance(at, shape.knuckle.getAbsolutePosition());
   const palm = shape.palm.applyRotationQuaternion(turned);
-  return at.add(shape.fingers.applyRotationQuaternion(turned).scale(size * 0.75)).add(palm.scale(size * 0.35));
+  return at.add(shape.fingers.applyRotationQuaternion(turned).scale(size * 0.6)).add(palm.scale(size * 0.35));
 };

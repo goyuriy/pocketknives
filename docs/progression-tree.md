@@ -86,7 +86,7 @@ tuning, not final.
 
 | Grip | Real life | What it does in the game | Learning (real) | Unlock trial |
 | --- | --- | --- | --- | --- |
-| **Hammer** | Handle, whole hand. Full turns. | The baseline — today's throw. | ★☆☆☆ easiest | Start |
+| **Hammer** | Handle, whole hand: the handle diagonally across the palm, fingers round it, thumb along its side, the knife standing up out of the fist. Full turns. | The baseline — today's throw, and the grip the character holds. | ★☆☆☆ easiest | Start |
 | **Blade grip** | By the blade, half turns, close range. | Knife starts reversed and lands after odd half-turns. Short throws forgive more (≈ +30% stick window below 40% draw); long throws lose reach (≈ −15% top speed). A close-quarters specialist. | ★☆☆☆ the usual first lesson | Stick 3 throws in a row with under 40% draw |
 | **Pinch** | Thumb and finger. Light blades, precision. | Half the hand's sway, a straighter push (drift pull ×0.6), a little less power (≈ −10% speed). Heavy knives (mass above 0.3) wobble more in a pinch. | ★★☆☆ | Stick 5 throws with the push under 5° of drift |
 | **Two-handed** | Overhead with both hands — how heavy blades are thrown. | For heavy knives only: halves the weight penalty on reach, slower to draw back fully. Makes the Cleaver a long-range threat. | ★★☆☆ | Win a match with the Cleaver |

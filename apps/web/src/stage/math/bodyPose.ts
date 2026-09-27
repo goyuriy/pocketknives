@@ -74,18 +74,19 @@ const BLADE_LIFT = 0.8;
  * The throwing hand's path through a swing, as grip positions relative to the
  * throwing shoulder `[forward, right, up]` and the knife's tilt at each.
  *
- * Laid out for a first-person camera, which is the reason it is not anatomy:
- * held, the knife sits out in front and right of centre, tipped towards the
- * circle, where the player can see it against what they are aiming at; drawn
- * back, it is cocked up by the ear the way a dart is, point still forward, so
- * the tip stays in the top corner of the view — a knife drawn clean out of shot
- * leaves the player nothing to read the draw from; at release it is out in
- * front at eye level; after, it carries down across the body. The release
+ * A hammer grip's throw, laid out so the first-person camera can follow it:
+ * held, the fist is raised in front of the throwing shoulder with the knife
+ * standing up out of it, point up and a little forward, the way a thrower
+ * holds it before the throw; drawn back, the fist goes up by the ear and the
+ * knife stands nearly upright, still a little ahead of the eyes so its tip
+ * stays in the top corner of the view — a knife drawn clean out of shot leaves
+ * the player nothing to read the draw from; at release it is out in front at
+ * eye level; after, it carries down across the body. The release
  * keyframe is not listed — it is wherever the flight begins, worked out per
  * throw.
  */
-const DRAWN: Keyframe = { at: [0.24, 0.09, 0.24], bladeAngle: 0.35 };
-const HELD: Keyframe = { at: [0.46, -0.05, 0.03], bladeAngle: 0.3 };
+const DRAWN: Keyframe = { at: [0.2, 0.08, 0.3], bladeAngle: 1.0 };
+const HELD: Keyframe = { at: [0.4, -0.04, 0.14], bladeAngle: 0.95 };
 const FOLLOWED: Keyframe = { at: [0.34, -0.19, -0.41], bladeAngle: -1.0 };
 
 type Keyframe = { readonly at: Vec3; readonly bladeAngle: number };
