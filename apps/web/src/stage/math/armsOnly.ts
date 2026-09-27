@@ -70,3 +70,11 @@ export const armsFirst = (
  * the arm swings into view. Not the shoulder, which sits beside the eyes.
  */
 export const isArmBoneName = (name: string): boolean => /^(Left|Right)(Arm|ForeArm|Hand)/.test(name);
+
+/**
+ * The same, for a mannequin's joint balls. The shoulder ball rides the upper
+ * arm bone but sits right under the eyes, a dark disc filling each bottom
+ * corner whenever the view looks down; the elbow ball rides the forearm and
+ * stays.
+ */
+export const isArmJointBoneName = (name: string): boolean => /^(Left|Right)(ForeArm|Hand)/.test(name);

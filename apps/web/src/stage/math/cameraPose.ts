@@ -49,6 +49,12 @@ const TALL_EXTRA_DIP = 0.16;
 export const eyeDip = (aspect: number, pitch = 0): number =>
   Math.min(MOST_DIP, Math.max(LEAST_DIP, EYE_DIP - DIP_PER_PITCH * pitch)) +
   TALL_EXTRA_DIP * Math.min(1, Math.max(0, (0.9 - aspect) / 0.4));
+/**
+ * How far in front of the middle of the head the eyes are, metres. Real eyes
+ * sit well forward of the shoulders; from the middle of the head, looking down
+ * puts the tops of both arms right under the lens.
+ */
+const EYE_FORWARD = 0.1;
 const OVER_HEIGHT = 30;
 const OVER_SETBACK = 4;
 /**
@@ -123,7 +129,7 @@ export const cameraPose = (
       focus: [0, 0, 0],
     };
   }
-  const eye: Vec3 = [feet[0], feet[1], EYE_HEIGHT];
+  const eye: Vec3 = [feet[0] + Math.cos(look) * EYE_FORWARD, feet[1] + Math.sin(look) * EYE_FORWARD, EYE_HEIGHT];
   const ahead: Vec2 = [Math.cos(look) * Math.cos(dip), Math.sin(look) * Math.cos(dip)];
   return {
     eye,

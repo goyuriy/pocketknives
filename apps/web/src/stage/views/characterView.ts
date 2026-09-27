@@ -14,7 +14,7 @@ import type { BodyPose } from '../math/bodyPose.js';
 import { bladeDirection, toWorld } from '../math/coords.js';
 import { mixHex } from '../math/color.js';
 import { locomotion, type ClipSpeeds } from '../math/locomotion.js';
-import { armsFirst, isArmBoneName } from '../math/armsOnly.js';
+import { armsFirst, isArmBoneName, isArmJointBoneName } from '../math/armsOnly.js';
 import type { Limb } from '../math/twoBoneIk.js';
 import { reachArm, type ArmBones } from './boneAim.js';
 import { closeOnHandle, HAND_SCALE, measureHand, type HandShape } from './handGrip.js';
@@ -387,7 +387,9 @@ const splitOffArms = (mesh: Mesh): ((body: boolean) => void) | null => {
   const weights = mesh.getVerticesData(VertexBuffer.MatricesWeightsKind);
   if (!mesh.skeleton || mesh.subMeshes?.length !== 1 || !indices || !influences || !weights) return null;
 
-  const armBones = mesh.skeleton.bones.map((bone) => isArmBoneName(boneName(bone.name)));
+  // X Bot is a mannequin: closed limb pieces, with a ball at every joint.
+  const drawn = /joint/i.test(mesh.material?.name ?? '') ? isArmJointBoneName : isArmBoneName;
+  const armBones = mesh.skeleton.bones.map((bone) => drawn(boneName(bone.name)));
   const sorted = armsFirst(indices, influences, weights, (index) => armBones[index] ?? false);
   const material = mesh.subMeshes[0]!.materialIndex;
   const vertices = mesh.getTotalVertices();

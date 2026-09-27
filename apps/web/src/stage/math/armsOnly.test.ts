@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { armsFirst, isArmBoneName } from './armsOnly.js';
+import { armsFirst, isArmBoneName, isArmJointBoneName } from './armsOnly.js';
 
 // Bone 0 is the chest, bone 1 an arm. Vertices 0–2 ride the arm, 3–5 the chest,
 // and vertex 6 is on the shoulder, mostly chest.
@@ -32,5 +32,13 @@ describe('isArmBoneName', () => {
   it('draws the whole arm, elbow and all, but not the shoulder or the rest', () => {
     for (const name of ['RightArm', 'LeftForeArm', 'RightHand', 'RightHandIndex2']) expect(isArmBoneName(name)).toBe(true);
     for (const name of ['RightShoulder', 'Spine2', 'Head', 'LeftUpLeg']) expect(isArmBoneName(name)).toBe(false);
+  });
+});
+
+describe('isArmJointBoneName', () => {
+  it('keeps the elbow ball and drops the shoulder ball', () => {
+    expect(isArmJointBoneName('RightForeArm')).toBe(true);
+    expect(isArmJointBoneName('LeftHand')).toBe(true);
+    expect(isArmJointBoneName('RightArm')).toBe(false);
   });
 });

@@ -12,10 +12,12 @@ import {
 import { EYE_HEIGHT } from './bodyPose.js';
 
 describe('cameraPose', () => {
-  it('looks out from right above the feet, a little down, the way the hand points', () => {
+  it('looks out from above the feet, eyes a little forward of them, a little down, the way the hand points', () => {
     // Stood in the south, pointing a little right of north.
     const pose = cameraPose([0, -8], false, 10, Math.PI / 2 - 0.4);
-    expect(pose.eye).toEqual([0, -8, EYE_HEIGHT]);
+    expect(pose.eye[2]).toBe(EYE_HEIGHT);
+    expect(Math.hypot(pose.eye[0], pose.eye[1] + 8)).toBeCloseTo(0.1, 9);
+    expect(pose.eye[1]).toBeGreaterThan(-8); // forward, towards the north
     expect(pose.focus[0]).toBeGreaterThan(pose.eye[0]); // pointing right, looking right
     expect(pose.focus[2]).toBeLessThan(pose.eye[2]);
   });
