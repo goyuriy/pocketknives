@@ -87,7 +87,7 @@ left stick on a gamepad.
 - ✅ Mouse-look (Pointer Lock), angle from looking up and down.
 - ✅ Look from your feet to the sky with the mouse or gamepad; the throw goes
   where you look, up to a 45° lob. A gentler mouse draw (half a window for a
-  full draw). Forearms and hands only from your own eyes.
+  full draw). Only the arms from your own eyes, elbows included.
 - 📋 A sky: looking up shows black.
 - 📋 In first person, hide the free hand while it hangs at the side — looking
   straight down it shows as a forearm cut off at the elbow.

@@ -65,8 +65,8 @@ export const armsFirst = (
 };
 
 /**
- * The bones drawn from the thrower's own eyes, by Mixamo's names: the forearms,
- * hands and fingers. Not the upper arms — from inside the head they are two
- * great shoulders filling the corners of the view whenever it looks down.
+ * The bones drawn from the thrower's own eyes, by Mixamo's names: the whole
+ * arm — upper arm, forearm, hand and fingers — so the elbow is there whenever
+ * the arm swings into view. Not the shoulder, which sits beside the eyes.
  */
-export const isArmBoneName = (name: string): boolean => /^(Left|Right)(ForeArm|Hand)/.test(name);
+export const isArmBoneName = (name: string): boolean => /^(Left|Right)(Arm|ForeArm|Hand)/.test(name);

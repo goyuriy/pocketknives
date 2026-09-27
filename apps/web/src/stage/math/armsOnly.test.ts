@@ -29,8 +29,8 @@ describe('armsFirst', () => {
 });
 
 describe('isArmBoneName', () => {
-  it('draws forearms and hands, not upper arms, shoulders or the rest', () => {
-    for (const name of ['LeftForeArm', 'RightHand', 'RightHandIndex2']) expect(isArmBoneName(name)).toBe(true);
-    for (const name of ['RightArm', 'RightShoulder', 'Spine2', 'Head', 'LeftUpLeg']) expect(isArmBoneName(name)).toBe(false);
+  it('draws the whole arm, elbow and all, but not the shoulder or the rest', () => {
+    for (const name of ['RightArm', 'LeftForeArm', 'RightHand', 'RightHandIndex2']) expect(isArmBoneName(name)).toBe(true);
+    for (const name of ['RightShoulder', 'Spine2', 'Head', 'LeftUpLeg']) expect(isArmBoneName(name)).toBe(false);
   });
 });

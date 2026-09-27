@@ -244,9 +244,9 @@ window-heights (and never less than the window, however small the stage), so a
 full draw is about half the window's height of travel — a flick of the wrist is
 a flick, not a full-power throw. A finger's is still measured against the stage.
 
-From your own eyes you see only your forearms and hands, as in any
-first-person game; from every other camera — and to every other player — the
-whole thrower.
+From your own eyes you see only your arms — upper arm, elbow, forearm and
+hand — as in any first-person game; from every other camera, and to every
+other player, the whole thrower.
 
 Some browsers will not capture the mouse — embedded ones, an iPad with a
 trackpad. There the first refusal switches the game to the free cursor for the
