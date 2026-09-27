@@ -85,6 +85,9 @@ pointer and WASD/arrows on desktop, a floating left-thumb stick on touch, the
 left stick on a gamepad.
 - ✅ Walk within your own land, sliding along its border.
 - ✅ Mouse-look (Pointer Lock), angle from looking up and down.
+- ✅ Turn all the way round without Pointer Lock: Q / E, or hold the cursor at
+  the edge of the screen. A browser that refuses to capture the mouse drops to
+  the free cursor instead of swallowing every click.
 - ✅ Floating touch stick; gamepad left stick.
 - ✅ Knives stay on the ground; stuck ones are solid, missed ones are physics.
 - ✅ Gamepad aiming and throwing: right stick looks; with the right trigger

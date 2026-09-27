@@ -54,4 +54,9 @@ export type HandInput = {
   readonly pitch: number;
   /** How far the arm is drawn, as a fraction of a full draw; null when not gripping. */
   readonly draw: number | null;
+  /**
+   * How hard the hand is pulling the body round, -1 to 1, positive right: a
+   * free cursor held out at the edge of the screen. Absent is zero.
+   */
+  readonly turn?: number;
 };

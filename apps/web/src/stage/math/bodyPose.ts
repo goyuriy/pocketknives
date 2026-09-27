@@ -75,6 +75,14 @@ const HAND_LIFT = 0.22;
  */
 const HAND_DROP = 0.05;
 const BLADE_LIFT = 0.8;
+/**
+ * And the knife barely tips for it. Before an overhand throw into the ground
+ * the knife stands up out of the fist as it does for any other — it only turns
+ * point-down as the arm comes over. Tipping it down in the held pose would
+ * need the wrist bent back further than a wrist goes, and the hand closed on it
+ * that way reads as holding it upside down.
+ */
+const BLADE_DIP = 0.2;
 
 /**
  * The throwing hand's path through a swing, as grip positions relative to the
@@ -371,7 +379,7 @@ const figureAt = (frame: BodyFrame, swing: number, stride: Stride): Figure => {
 const keyframeAt = (swing: number, released: Keyframe, loft: number): Keyframe => {
   const lifted = ({ at, bladeAngle }: Keyframe): Keyframe => ({
     at: [at[0], at[1], at[2] + loft * (loft > 0 ? HAND_LIFT : HAND_DROP)],
-    bladeAngle: bladeAngle + loft * BLADE_LIFT,
+    bladeAngle: bladeAngle + loft * (loft > 0 ? BLADE_LIFT : BLADE_DIP),
   });
   const between = (a: Keyframe, b: Keyframe, t: number): Keyframe => ({
     at: lerp3(a.at, b.at, t),

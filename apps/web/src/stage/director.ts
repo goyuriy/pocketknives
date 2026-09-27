@@ -11,6 +11,7 @@ import {
 import type { MutableRefObject } from 'react';
 import { CUT_DURATION, IMPACT_BEAT, type Attempt, type Stance } from '../state/useSandbox.js';
 import { walkStep, type WalkInput } from '../input/walk.js';
+import { turnedFacing } from '../input/turn.js';
 import type { ImpactSound } from '../audio/impactSound.js';
 import { impactFeel, type ImpactFeel } from './math/impactFeel.js';
 import { shakeAmplitude, shakeDuration, shakeOffset } from './math/shake.js';
@@ -72,13 +73,15 @@ export type DirectorInputs = {
   readonly hand: () => HandInput;
   /** Which way the player is asking to walk right now. */
   readonly walk: () => WalkInput;
+  /** How hard the player is asking to turn right now, -1 to 1, positive right. */
+  readonly turn: () => number;
   /** Where the thrower stands and faces. The director moves the feet; the controls turn the facing. */
   readonly stance: MutableRefObject<Stance>;
   /** Where impacts are heard. */
   readonly sound: ImpactSound;
 };
 
-export const createDirector = (stage: Stage, { read, hand, walk, stance, sound }: DirectorInputs): Director => {
+export const createDirector = (stage: Stage, { read, hand, walk, turn, stance, sound }: DirectorInputs): Director => {
   const { scene, playfield, shadows, engine } = stage;
   const first = read();
 
@@ -206,13 +209,16 @@ export const createDirector = (stage: Stage, { read, hand, walk, stance, sound }
       if (placedFor !== state.playerId || !isOnOwnLand(state.board, state.playerId, stance.current.feet)) {
         placeAtHome(state);
       }
+      // Turning, for when nothing captures the mouse: the keys, or a cursor
+      // held out at the edge of the screen pulling the body round after it.
+      const facing = turnedFacing(stance.current.facing, turn(), seconds);
       // Walking: wherever the player asks, as far as solid things allow, and
       // never off their own ground. Feet stay planted through a throw.
-      const { feet, facing } = stance.current;
+      const { feet } = stance.current;
       const walked = walker.step(feet, walkStep(feet, walk(), facing, seconds), seconds);
       const allowed = keepOnOwnLand(state.board, state.playerId, feet, walked);
       if (allowed[0] !== walked[0] || allowed[1] !== walked[1]) walker.place(allowed);
-      stance.current = { ...stance.current, feet: allowed };
+      stance.current = { feet: allowed, facing };
       stepped = [feet, allowed];
     }
     const feet: Vec2 = stance.current.feet;

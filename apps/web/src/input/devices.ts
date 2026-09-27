@@ -1,13 +1,17 @@
 import { combineWalks, isWalkKey, walkFromKeys, walkFromStick, STANDING_STILL, type WalkInput } from './walk.js';
+import { isTurnKey, turnFromKeys } from './turn.js';
 
 export type WalkDevices = {
   /** The walk every connected device is asking for right now. Cheap: call it once a frame. */
   readonly read: () => WalkInput;
+  /** How hard the keys ask the body to turn right now, -1 to 1, positive right — see `turn.ts`. */
+  readonly turn: () => number;
   readonly dispose: () => void;
 };
 
 /**
- * The keyboard and any gamepad, as one source of walking.
+ * The keyboard and any gamepad, as one source of walking — and the keyboard's
+ * Q and E, for turning.
  *
  * Effectful: listens to key events on the window and polls the Gamepad API.
  * Keys are ignored while a form control has focus — the HUD's sliders take the
@@ -20,7 +24,7 @@ export const createWalkDevices = (target: Window = window): WalkDevices => {
     event.target instanceof HTMLElement && event.target.closest('input, select, textarea') !== null;
 
   const down = (event: KeyboardEvent) => {
-    if (!isWalkKey(event.code) || typing(event)) return;
+    if (!(isWalkKey(event.code) || isTurnKey(event.code)) || typing(event)) return;
     held.add(event.code);
     // Arrows would otherwise scroll the page.
     event.preventDefault();
@@ -35,6 +39,7 @@ export const createWalkDevices = (target: Window = window): WalkDevices => {
 
   return {
     read: () => combineWalks(walkFromKeys(held), gamepadWalk(target.navigator)),
+    turn: () => turnFromKeys(held),
     dispose: () => {
       target.removeEventListener('keydown', down);
       target.removeEventListener('keyup', up);

@@ -5,6 +5,14 @@ import { colorOf } from './theme.js';
 import { DrawMeter } from './DrawMeter.js';
 import { KnifePicker } from './KnifePicker.js';
 
+/**
+ * Gives the keyboard back to the game once a choice is made. A dropdown keeps
+ * focus after it is used, and while it has it the walking keys are ignored —
+ * and worse, typing a letter picks the option starting with it, so walking
+ * back with S jumps the camera to "side".
+ */
+const handBackTheKeys = (event: React.ChangeEvent<HTMLSelectElement>) => event.currentTarget.blur();
+
 const MISS_TEXT: Record<MissReason, string> = {
   outside_arena: 'Outside the circle.',
   own_territory: 'That was your own ground.',
@@ -131,7 +139,10 @@ export const SandboxHud = ({
           </button>
           <select
             value={game.playerCount}
-            onChange={(event) => game.reset(Number(event.target.value))}
+            onChange={(event) => {
+              game.reset(Number(event.target.value));
+              handBackTheKeys(event);
+            }}
             aria-label="Number of players"
           >
             {[2, 3, 4].map((n) => (
@@ -160,7 +171,10 @@ export const SandboxHud = ({
             camera
             <select
               value={game.cameraView}
-              onChange={(event) => game.setCameraView(event.target.value as CameraView)}
+              onChange={(event) => {
+                game.setCameraView(event.target.value as CameraView);
+                handBackTheKeys(event);
+              }}
               aria-label="Camera"
             >
               {CAMERA_VIEWS.map((view) => (

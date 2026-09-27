@@ -215,7 +215,8 @@ circle. If the ground under your feet is taken, you are put back home.
 
 | | Walk | Turn and aim | Angle | Throw |
 | --- | --- | --- | --- | --- |
-| Mouse and keys | WASD or arrow keys | Mouse across (click to capture the mouse, Esc to release) | Mouse up and down | Hold, pull back, push through — across still turns while drawn |
+| Mouse and keys | WASD or arrow keys | Mouse across (click to capture the mouse, Esc to release); Q / E turn too | Mouse up and down | Hold, pull back, push through — across still turns while drawn |
+| Mouse, not captured | WASD or arrow keys | The cursor points the hand; hold it out at the left or right edge of the screen and the body turns after it; Q / E | Cursor up and down | The same |
 | Gamepad | Left stick | Right stick across | Right stick up and down | Hold the right trigger (or bumper): the right stick becomes a swing stick — pull back, push up past the grip point. Across still turns. |
 | Touch | A floating stick: put a thumb down on the left of the screen | Drag sideways from wherever the finger lands on the right — never where it lands | Where the finger comes down | The same drag: pull back, flick forward and let go |
 
@@ -228,6 +229,15 @@ that floats to wherever the thumb lands is the one players find easiest to learn
 Your feet stay planted while the button is held, so the grip point means
 something.
 
+Some browsers will not capture the mouse — embedded ones, an iPad with a
+trackpad. There the first refusal switches the game to the free cursor for the
+rest of the visit, so no click is spent asking again, and the hint says how to
+turn. A cursor stops at the edge of the screen, so the edge is where you turn:
+across the outer tenth of the screen on either side, the body follows the hand
+round, faster the further out it is, a full circle in about three seconds.
+Q and E turn at that pace on any setup. You never turn with the button held —
+the throw's line is set when you grip.
+
 The gamepad's grip point sits a quarter of the way *up* the stick, not at its
 centre. A stick springs back to centre when it is let go, and a grip point at
 the centre would turn every released pull into a throw; this way a throw has to
@@ -235,6 +245,7 @@ be pushed through on purpose.
 
 > `isOnOwnLand`, `keepOnOwnLand`, `homeSpot` — [standing.ts](packages/core/src/rules/standing.ts)
 > `walkStep`, `walkFromStick` — [walk.ts](apps/web/src/input/walk.ts)
+> `edgeTurn`, `turnFromKeys`, `turnedFacing` — [turn.ts](apps/web/src/input/turn.ts)
 > `useThrowControls` — [useThrowControls.ts](apps/web/src/stage/useThrowControls.ts)
 > `useGamepadThrow`, `padSample` — [useGamepadThrow.ts](apps/web/src/stage/useGamepadThrow.ts), [gamepadSwing.ts](apps/web/src/input/gamepadSwing.ts)
 

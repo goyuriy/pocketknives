@@ -17,6 +17,7 @@ import { STANDING_STILL, walkFromStick, type WalkInput } from '../input/walk.js'
 import type { ImpactSound } from '../audio/impactSound.js';
 import type { HandInput } from './snapshot.js';
 import { handSway } from '../input/handSway.js';
+import { edgeTurn } from '../input/turn.js';
 
 /**
  * Whether the mouse is captured for mouse-look right now.
@@ -46,12 +47,26 @@ export type ThrowControls = {
     readonly onPointerMove: (event: React.PointerEvent<HTMLElement>) => void;
     readonly onPointerUp: (event: React.PointerEvent<HTMLElement>) => void;
     readonly onPointerCancel: (event: React.PointerEvent<HTMLElement>) => void;
+    readonly onPointerLeave: (event: React.PointerEvent<HTMLElement>) => void;
   };
   /** The walking stick to draw, while a thumb is on it. */
   readonly stick: StickView | null;
   /** Whether the mouse is captured for mouse-look. */
   readonly looking: boolean;
+  /**
+   * Whether the browser refused to capture the mouse. The cursor then aims as
+   * it is, and turning is done at the edge of the screen or with the keys.
+   */
+  readonly lockRefused: boolean;
 };
+
+/**
+ * How soon after the mouse was let go a refused capture is the browser's
+ * cool-down rather than a real refusal. Chrome turns down a capture asked for
+ * within about a second of Escape; that must not cost the player mouse-look
+ * for good.
+ */
+const LOCK_COOL_DOWN = 1500;
 
 /**
  * The player's hands on the stage — every way of pointing, walking and throwing.
@@ -63,7 +78,9 @@ export type ThrowControls = {
  *   cursor stops turning dead at the edge of the screen. Across turns you, up
  *   and down sets the angle, and holding the button turns up and down into the
  *   draw, as a golf game's swing does on PC. Across still turns you while drawn.
- *   Escape gives the mouse back.
+ *   Escape gives the mouse back. Where the browser will not capture it (some
+ *   embedded browsers, an iPad with a trackpad) the cursor aims as it is, and
+ *   holding it out at the edge of the screen turns you — see `edgeTurn`.
  * - **Touch:** Brawl Stars' split. A thumb landing on the left of the stage
  *   becomes a walking stick, floating wherever it landed; anywhere else aims and
  *   throws with the drag gesture — aiming by how far it drags sideways, never
@@ -106,11 +123,34 @@ export const useThrowControls = ({
   const stickOrigin = useRef<readonly [number, number]>([0, 0]);
   const [stick, setStick] = useState<StickView | null>(null);
   const [looking, setLooking] = useState(false);
+  const [lockRefused, setLockRefused] = useState(false);
+  const refused = useRef(false);
+  const unlockedAt = useRef(-Infinity);
   const canThrow = phase.kind === 'ready';
 
-  const point = (aim: number, pitch: number, draw: number | null) => {
-    hand.current = { aim, pitch, draw };
+  const point = (aim: number, pitch: number, draw: number | null, turn = 0) => {
+    hand.current = { aim, pitch, draw, turn };
     setPitch(pitch);
+  };
+
+  const refuseLock = () => {
+    if (performance.now() - unlockedAt.current < LOCK_COOL_DOWN) return;
+    refused.current = true;
+    setLockRefused(true);
+  };
+
+  /**
+   * Asks the browser to capture the mouse. Effectful. A refusal — a rejected
+   * promise, a thrown error or a `pointerlockerror` — switches to the free
+   * cursor for the rest of the visit, so no later click is spent asking again.
+   */
+  const askForTheMouse = (target: HTMLCanvasElement) => {
+    try {
+      const asked: unknown = target.requestPointerLock();
+      if (asked instanceof Promise) asked.catch(refuseLock);
+    } catch {
+      refuseLock();
+    }
   };
 
   /**
@@ -131,11 +171,16 @@ export const useThrowControls = ({
     const changed = () => {
       const captured = document.pointerLockElement === canvas.current;
       setLooking(captured);
+      if (!captured) unlockedAt.current = performance.now();
       if (!captured && stroke.current) letGo();
       if (!captured) hand.current = { ...hand.current, aim: 0 };
     };
     document.addEventListener('pointerlockchange', changed);
-    return () => document.removeEventListener('pointerlockchange', changed);
+    document.addEventListener('pointerlockerror', refuseLock);
+    return () => {
+      document.removeEventListener('pointerlockchange', changed);
+      document.removeEventListener('pointerlockerror', refuseLock);
+    };
   });
 
   /** Every pointer update in this event, including the ones the browser batched into it. */
@@ -184,8 +229,13 @@ export const useThrowControls = ({
     if (!canThrow || event.button > 0) return;
     // The first click takes the mouse; it does not also throw. Where there is no
     // Pointer Lock (an iPad with a trackpad), the cursor aims as it is.
-    if (event.pointerType === 'mouse' && !mouseCaptured() && typeof canvas.current?.requestPointerLock === 'function') {
-      void canvas.current.requestPointerLock();
+    if (
+      event.pointerType === 'mouse' &&
+      !mouseCaptured() &&
+      !refused.current &&
+      typeof canvas.current?.requestPointerLock === 'function'
+    ) {
+      askForTheMouse(canvas.current);
       return;
     }
 
@@ -239,10 +289,12 @@ export const useThrowControls = ({
         point(0, pitch, null);
       } else if (event.pointerType !== 'touch') {
         const area = box(event);
+        const aim = aimFromPointer(event.clientX, area.left, area.width, game.config);
         point(
-          aimFromPointer(event.clientX, area.left, area.width, game.config),
+          aim,
           pitchFromPointer(event.clientY, area.top, area.height, game.config),
           null,
+          edgeTurn(aim, game.config.gesture.maxAim),
         );
       }
       return;
@@ -272,6 +324,11 @@ export const useThrowControls = ({
     letGo();
   };
 
+  /** A cursor that has left the stage is not held out at its edge. */
+  const onPointerLeave = () => {
+    hand.current = { ...hand.current, turn: 0 };
+  };
+
   const onPointerUp = (event: React.PointerEvent<HTMLElement>) => {
     if (stickId.current === event.pointerId) return endStick();
     // Letting go in the middle of a push throws — the phone flick.
@@ -295,8 +352,9 @@ export const useThrowControls = ({
   };
 
   return {
-    handlers: { onPointerDown, onPointerMove, onPointerUp, onPointerCancel },
+    handlers: { onPointerDown, onPointerMove, onPointerUp, onPointerCancel, onPointerLeave },
     stick,
     looking,
+    lockRefused,
   };
 };

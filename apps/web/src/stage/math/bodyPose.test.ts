@@ -76,6 +76,14 @@ describe('bodyPose', () => {
     expect(lob.otherArm.end[2]).toBeGreaterThan(flat.otherArm.end[2]);
   });
 
+  it('keeps the knife standing up out of the fist when the throw is aimed straight down', () => {
+    // Straight down is a loft of about −1.9 from the resting angle the poses are drawn for.
+    const down = bodyPose({ ...setup('thrower'), loft: -1.9 }, READY_SWING);
+    const drawn = bodyPose({ ...setup('thrower'), loft: -1.9 }, -1);
+    expect(down.bladeAngle).toBeGreaterThan(0.3);
+    expect(drawn.bladeAngle).toBeGreaterThan(0.3);
+  });
+
   it('leaves the release where the flight begins, however steep the throw', () => {
     const lob = bodyPose({ ...setup('thrower'), loft: 0.45 }, 0);
     expect(distance(lob.knifeAt, [0, -12, 1.4])).toBeLessThan(1e-9);

@@ -4,6 +4,7 @@ import { ARENA_RADIUS } from '../state/useSandbox.js';
 import { colorOf } from '../ui/theme.js';
 import { createWalkDevices } from '../input/devices.js';
 import { combineWalks, STANDING_STILL, type WalkInput } from '../input/walk.js';
+import { combineTurns } from '../input/turn.js';
 import { createImpactSound, type ImpactSound } from '../audio/impactSound.js';
 import { createStage } from './engine/createStage.js';
 import { createDirector } from './director.js';
@@ -64,6 +65,7 @@ export const Stage = ({ game }: { game: SandboxState }) => {
       read: () => snapshot.current,
       hand: () => hand.current,
       walk: () => combineWalks(devices.read(), touchWalk.current),
+      turn: () => combineTurns(devices.turn(), hand.current.turn ?? 0),
       stance,
       sound: impacts,
     });
@@ -79,7 +81,7 @@ export const Stage = ({ game }: { game: SandboxState }) => {
     };
   }, []);
 
-  const { handlers, stick, looking } = useThrowControls({ game, canvas, stance, hand, touchWalk, sound });
+  const { handlers, stick, looking, lockRefused } = useThrowControls({ game, canvas, stance, hand, touchWalk, sound });
   useGamepadThrow({ game, stance, hand });
   const desktop = typeof window !== 'undefined' && window.matchMedia?.('(pointer: fine)').matches;
 
@@ -95,7 +97,11 @@ export const Stage = ({ game }: { game: SandboxState }) => {
         </div>
       )}
       {desktop && !looking && (
-        <div className="look-hint">Click to take the mouse · WASD or arrows to walk · Esc to let go</div>
+        <div className="look-hint">
+          {lockRefused
+            ? 'The mouse aims · hold it at the screen edge or Q / E to turn · WASD or arrows to walk'
+            : 'Click to take the mouse · WASD or arrows to walk · Q / E to turn · Esc to let go'}
+        </div>
       )}
     </div>
   );
