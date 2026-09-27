@@ -202,7 +202,7 @@ export const createDirector = (stage: Stage, { read, hand, walk, turn, stance, s
     const released = phase.kind !== 'ready';
     // Where the feet went this frame; nowhere, unless walking.
     let stepped: [Vec2, Vec2] = [stance.current.feet, stance.current.feet];
-    const { aim, pitch, draw } = hand();
+    const { aim, pitch, draw, look: gaze } = hand();
 
     // A new turn, or ground taken from under the thrower's feet: back home.
     if (phase.kind === 'ready' && draw === null) {
@@ -314,7 +314,10 @@ export const createDirector = (stage: Stage, { read, hand, walk, turn, stance, s
 
     look = look === null ? heading : easeHeading(look, heading, LOOK_FOLLOW_RATE, seconds);
     // The eyes go down with the throw: at the ground the knife is meant for.
-    const wantedDip = eyeDip(engine.getRenderWidth() / Math.max(1, engine.getRenderHeight()), pitch);
+    // With a free look the eyes go where the player looks, up to the sky and
+    // down to the feet; otherwise they follow the throw down to the ground.
+    const wantedDip =
+      gaze === undefined ? eyeDip(engine.getRenderWidth() / Math.max(1, engine.getRenderHeight()), pitch) : -gaze;
     dip = dip === null ? wantedDip : easeToward(dip, wantedDip, LOOK_FOLLOW_RATE, seconds);
     const jolt = impact && Number.isFinite(sinceImpact)
       ? shakeOffset(

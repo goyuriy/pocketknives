@@ -31,8 +31,8 @@ export type BodyLook = {
   /** Shirt colour — the player's own. */
   readonly sleeve: string;
   /**
-   * Whether the head is drawn. Not from the thrower's own eyes, which are
-   * inside it; yes from anywhere else.
+   * Whether the head and the rest of the trunk are drawn. Not from the
+   * thrower's own eyes, which see only the arms; yes from anywhere else.
    */
   readonly head: boolean;
   /**
@@ -135,7 +135,7 @@ export const createBodyView = (scene: Scene, playfield: TransformNode, shadows: 
       }
 
       trunk.show(pose.figure, look.heading, look.head);
-      trunk.meshes.forEach((mesh) => mesh.setEnabled(look.drawn));
+      trunk.meshes.forEach((mesh) => mesh.setEnabled(look.drawn && look.head));
       trunk.head.setEnabled(look.drawn && look.head);
       arms.forEach((arm) => [arm.upper, arm.lower, arm.elbow, arm.fist].forEach((node) => node.setEnabled(look.drawn)));
 

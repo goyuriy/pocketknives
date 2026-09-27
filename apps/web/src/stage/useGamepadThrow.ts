@@ -10,6 +10,7 @@ import {
   padSample,
 } from '../input/gamepadSwing.js';
 import type { HandInput } from './snapshot.js';
+import { throwPitchFor, tiltLook } from '../input/look.js';
 
 /** Radians of aim per pixel of the made-up pointer while gripping — any value works, the rate is what counts. */
 const RADIANS_PER_PIXEL = 0.003;
@@ -73,9 +74,9 @@ export const useGamepadThrow = ({
       if (!stroke) {
         if (stick[0] !== 0 || stick[1] !== 0) {
           stance.current = { ...stance.current, facing: stance.current.facing - stick[0] * PAD_TURN_RATE * seconds };
-          const { minPitch, maxPitch } = config.gesture;
-          const pitch = Math.min(maxPitch, Math.max(minPitch, hand.current.pitch - stick[1] * PAD_PITCH_RATE * seconds));
-          hand.current = { aim: 0, pitch, draw: null };
+          const look = tiltLook(hand.current.look ?? hand.current.pitch, stick[1] * PAD_PITCH_RATE * seconds);
+          const pitch = throwPitchFor(look, config);
+          hand.current = { ...hand.current, aim: 0, pitch, draw: null, look };
           game.setPitch(pitch);
         }
         if (grip && game.phase.kind === 'ready') {
@@ -100,7 +101,7 @@ export const useGamepadThrow = ({
         return;
       }
       stroke = next;
-      hand.current = { aim: reading.aim, pitch: next.pitch, draw: reading.draw };
+      hand.current = { ...hand.current, aim: reading.aim, pitch: next.pitch, draw: reading.draw };
       game.setDraw(Math.max(0, reading.draw));
     };
 

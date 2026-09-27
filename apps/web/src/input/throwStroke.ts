@@ -53,6 +53,24 @@ export const lookReach = (centre: number, radiansPerPixel: number): Reach => ({
 });
 
 /**
+ * How much further a mouse is moved than a thumb for the same draw.
+ *
+ * A thumb on glass travels a short way and a mouse a long one, and a mouse
+ * read like a thumb throws hard from a flick of the wrist — worst of all in a
+ * small window, where a screen-height is not far. So a mouse's draw is measured
+ * against the whole window, never just the stage, and this much more of it.
+ */
+const MOUSE_DRAW_SCALE = 1.4;
+
+/**
+ * The length, in pixels, that draw and push are measured in — one
+ * "screen-height" of `GestureTuning`. A finger's is the stage's height; a
+ * mouse's (or pen's) is the window's, scaled by `MOUSE_DRAW_SCALE`.
+ */
+export const drawSpan = (pointerType: string, stageHeight: number, windowHeight: number): number =>
+  pointerType === 'touch' ? stageHeight : Math.max(stageHeight, windowHeight) * MOUSE_DRAW_SCALE;
+
+/**
  * How much of the stage, from the top, the hand's height is read across. The
  * HUD covers the rest, and the pointer never reaches the stage beneath it.
  */
@@ -158,10 +176,10 @@ export const gripStroke = (at: Sample, reach: Reach, pitch: number): Stroke => (
 export const advanceStroke = (
   stroke: Stroke,
   fresh: readonly Sample[],
-  viewportHeight: number,
+  span: number,
   config: ThrowConfig,
 ): { stroke: Stroke; reading: StrokeReading } => {
-  const height = Math.max(1, viewportHeight);
+  const height = Math.max(1, span);
   const { anchor } = stroke;
   const drawOf = (sample: Sample) => (sample.y - anchor.y) / height / config.gesture.fullDraw;
 
@@ -196,10 +214,10 @@ export const advanceStroke = (
 export const liftStroke = (
   stroke: Stroke,
   lift: Sample,
-  viewportHeight: number,
+  span: number,
   config: ThrowConfig,
 ): ThrowIntent | null => {
-  const height = Math.max(1, viewportHeight);
+  const height = Math.max(1, span);
   const samples = [...stroke.samples, lift];
   if (lift.y <= stroke.anchor.y) return null; // already through the grip: `advanceStroke` threw or refused it
   const drawOf = (sample: Sample) => (sample.y - stroke.anchor.y) / height / config.gesture.fullDraw;

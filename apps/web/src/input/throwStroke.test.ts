@@ -8,6 +8,7 @@ import {
   gripStroke,
   lookReach,
   pitchFromPointer,
+  drawSpan,
   screenReach,
   type Sample,
 } from './throwStroke.js';
@@ -226,5 +227,17 @@ describe('liftStroke', () => {
   it('calls it off when the hand was easing back up slowly', () => {
     const { stroke, lift } = partWay(0.6, 1500);
     expect(liftStroke(stroke, lift, HEIGHT, DEFAULT_CONFIG)).toBeNull();
+  });
+});
+
+describe('drawSpan', () => {
+  it('measures a finger against the stage, and a mouse against more than the whole window', () => {
+    expect(drawSpan('touch', 600, 800)).toBe(600);
+    expect(drawSpan('mouse', 400, 900)).toBeGreaterThan(900);
+    expect(drawSpan('pen', 400, 900)).toBe(drawSpan('mouse', 400, 900));
+  });
+
+  it('never lets a small stage make the mouse touchier than the window would', () => {
+    expect(drawSpan('mouse', 300, 900)).toBe(drawSpan('mouse', 900, 900));
   });
 });

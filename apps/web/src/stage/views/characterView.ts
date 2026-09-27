@@ -5,12 +5,16 @@ import type { TransformNode } from '@babylonjs/core/Meshes/transformNode';
 import type { ShadowGenerator } from '@babylonjs/core/Lights/Shadows/shadowGenerator';
 import type { PBRMaterial } from '@babylonjs/core/Materials/PBR/pbrMaterial';
 import { Color3 } from '@babylonjs/core/Maths/math.color';
+import { Mesh } from '@babylonjs/core/Meshes/mesh';
+import { SubMesh } from '@babylonjs/core/Meshes/subMesh';
+import { VertexBuffer } from '@babylonjs/core/Buffers/buffer';
 import { Quaternion, Vector3 } from '@babylonjs/core/Maths/math.vector';
 import type { Vec2, Vec3 } from '@pocketknives/core';
 import type { BodyPose } from '../math/bodyPose.js';
 import { bladeDirection, toWorld } from '../math/coords.js';
 import { mixHex } from '../math/color.js';
 import { locomotion, type ClipSpeeds } from '../math/locomotion.js';
+import { armsFirst, isArmBoneName } from '../math/armsOnly.js';
 import type { Limb } from '../math/twoBoneIk.js';
 import { reachArm, type ArmBones } from './boneAim.js';
 import { closeOnHandle, HAND_SCALE, measureHand, type HandShape } from './handGrip.js';
@@ -46,9 +50,10 @@ export type CharacterFrame = {
   readonly color: string;
   readonly visible: boolean;
   /**
-   * Seen from its own eyes. The camera is then inside the head, so the head
-   * is folded away to nothing — the way first-person games show a whole body
-   * without the player seeing the inside of their own skull.
+   * Seen from its own eyes. Only the arms are drawn then, as in any
+   * first-person game — a whole body seen from inside its own head is
+   * shoulders, chest and knees crowding the bottom of the view. Every other
+   * camera, and every other player, sees all of it.
    */
   readonly firstPerson: boolean;
 };
@@ -79,6 +84,8 @@ type Rig = {
   readonly otherHand: HandShape;
   readonly head: TransformNode;
   readonly tinted: readonly { material: PBRMaterial; share: number }[];
+  /** Draws the whole character, or its arms alone — see `splitOffArms`. */
+  readonly showBody: (body: boolean) => void;
 };
 
 /** A bone's own name, whatever the exporter prefixed it with (`mixamorig:`, `mixamorig1:`, …). */
@@ -147,6 +154,7 @@ export const createCharacterView = (
       rig.root.scaling.setAll(SCALE);
       // After the clips, which set the head's scale every frame like every bone's.
       rig.head.scaling.setAll(frame.firstPerson ? HIDDEN : 1);
+      rig.showBody(!frame.firstPerson);
       // Every bone's place in the world follows from the root just moved: bring
       // them all up to date now, parents first, or the arms would reach from
       // where the shoulders were last frame — a knife trailing the hand as it walks.
@@ -334,6 +342,17 @@ const load = async (scene: Scene, source: string): Promise<Rig> => {
     .filter((material) => !material.albedoTexture)
     .map((material) => ({ material, share: /joint/i.test(material.name) ? 0.7 : 0.15 }));
 
+  const bodies = container.meshes.flatMap((mesh) => {
+    const split = mesh instanceof Mesh ? splitOffArms(mesh) : null;
+    return split ? [split] : [];
+  });
+  let bodyShown = true;
+  const showBody = (body: boolean) => {
+    if (body === bodyShown) return;
+    bodyShown = body;
+    bodies.forEach((show) => show(body));
+  };
+
   return {
     root,
     meshes: container.meshes,
@@ -347,5 +366,37 @@ const load = async (scene: Scene, source: string): Promise<Rig> => {
     otherHand,
     head: bone('Head'),
     tinted,
+    showBody,
+  };
+};
+
+/**
+ * Splits a skinned mesh into two parts drawn from one set of vertices — its
+ * arms, and the rest — and returns a switch that draws both, or the arms
+ * alone. Null for a mesh that is not skinned or already has parts of its own,
+ * which is left whole.
+ *
+ * Effectful: reorders the mesh's triangles (`armsFirst`) and replaces its
+ * parts. Both parts are always drawn when on screen rather than culled
+ * separately: each part's bounds are measured in the bind pose, a T-pose, and
+ * an arm reaching forward is nowhere near where its T-pose bounds say.
+ */
+const splitOffArms = (mesh: Mesh): ((body: boolean) => void) | null => {
+  const indices = mesh.getIndices();
+  const influences = mesh.getVerticesData(VertexBuffer.MatricesIndicesKind);
+  const weights = mesh.getVerticesData(VertexBuffer.MatricesWeightsKind);
+  if (!mesh.skeleton || mesh.subMeshes?.length !== 1 || !indices || !influences || !weights) return null;
+
+  const armBones = mesh.skeleton.bones.map((bone) => isArmBoneName(boneName(bone.name)));
+  const sorted = armsFirst(indices, influences, weights, (index) => armBones[index] ?? false);
+  const material = mesh.subMeshes[0]!.materialIndex;
+  const vertices = mesh.getTotalVertices();
+  mesh.setIndices(sorted.indices);
+  mesh.releaseSubMeshes();
+  const arms = new SubMesh(material, 0, vertices, 0, sorted.arms, mesh);
+  const rest = new SubMesh(material, 0, vertices, sorted.arms, sorted.indices.length - sorted.arms, mesh);
+  mesh.alwaysSelectAsActiveMesh = true;
+  return (body) => {
+    mesh.subMeshes = body ? [arms, rest] : [arms];
   };
 };

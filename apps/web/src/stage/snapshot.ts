@@ -59,4 +59,10 @@ export type HandInput = {
    * free cursor held out at the edge of the screen. Absent is zero.
    */
   readonly turn?: number;
+  /**
+   * Where the eyes look, radians above level, when the player has a free look
+   * (the captured mouse, the gamepad) — see `look.ts`. `pitch` is then the
+   * throw's share of it. Absent when the view simply follows the throw.
+   */
+  readonly look?: number;
 };

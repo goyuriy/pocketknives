@@ -5,6 +5,7 @@ import {
   advanceStroke,
   aimFromPointer,
   dragReach,
+  drawSpan,
   gripStroke,
   liftStroke,
   lookReach,
@@ -18,6 +19,7 @@ import type { ImpactSound } from '../audio/impactSound.js';
 import type { HandInput } from './snapshot.js';
 import { handSway } from '../input/handSway.js';
 import { edgeTurn } from '../input/turn.js';
+import { throwPitchFor, tiltLook } from '../input/look.js';
 
 /**
  * Whether the mouse is captured for mouse-look right now.
@@ -128,8 +130,8 @@ export const useThrowControls = ({
   const unlockedAt = useRef(-Infinity);
   const canThrow = phase.kind === 'ready';
 
-  const point = (aim: number, pitch: number, draw: number | null, turn = 0) => {
-    hand.current = { aim, pitch, draw, turn };
+  const point = (aim: number, pitch: number, draw: number | null, turn = 0, look?: number) => {
+    hand.current = { aim, pitch, draw, turn, ...(look === undefined ? {} : { look }) };
     setPitch(pitch);
   };
 
@@ -173,7 +175,11 @@ export const useThrowControls = ({
       setLooking(captured);
       if (!captured) unlockedAt.current = performance.now();
       if (!captured && stroke.current) letGo();
-      if (!captured) hand.current = { ...hand.current, aim: 0 };
+      if (!captured) {
+        // Without the mouse there is no free look: the view goes back to following the throw.
+        const { look: _free, ...rest } = hand.current;
+        hand.current = { ...rest, aim: 0 };
+      }
     };
     document.addEventListener('pointerlockchange', changed);
     document.addEventListener('pointerlockerror', refuseLock);
@@ -200,6 +206,10 @@ export const useThrowControls = ({
   };
 
   const box = (event: React.PointerEvent<HTMLElement>) => event.currentTarget.getBoundingClientRect();
+
+  /** What this pointer's draw is measured in — see `drawSpan`. */
+  const spanOf = (event: React.PointerEvent<HTMLElement>) =>
+    drawSpan(event.pointerType, event.currentTarget.clientHeight, window.innerHeight);
 
   /**
    * Keeps a pointer's events coming here even when it strays off the stage.
@@ -261,7 +271,13 @@ export const useThrowControls = ({
     gripFacing.current = stance.current.facing;
     turnsBody.current = captured || touch;
     stroke.current = gripStroke(at, reach, pitch);
-    point(captured || touch ? 0 : aimFromPointer(event.clientX, area.left, area.width, game.config), pitch, 0);
+    point(
+      captured || touch ? 0 : aimFromPointer(event.clientX, area.left, area.width, game.config),
+      pitch,
+      0,
+      0,
+      captured ? hand.current.look : undefined,
+    );
     setDraw(0);
   };
 
@@ -284,9 +300,8 @@ export const useThrowControls = ({
           [0, 0],
         );
         stance.current = { ...stance.current, facing: stance.current.facing - moved[0] * LOOK_RATE };
-        const { minPitch, maxPitch } = game.config.gesture;
-        const pitch = Math.min(maxPitch, Math.max(minPitch, hand.current.pitch - moved[1] * PITCH_RATE));
-        point(0, pitch, null);
+        const look = tiltLook(hand.current.look ?? hand.current.pitch, moved[1] * PITCH_RATE);
+        point(0, throwPitchFor(look, game.config), null, 0, look);
       } else if (event.pointerType !== 'touch') {
         const area = box(event);
         const aim = aimFromPointer(event.clientX, area.left, area.width, game.config);
@@ -303,12 +318,12 @@ export const useThrowControls = ({
     const { stroke: next, reading } = advanceStroke(
       stroke.current,
       samplesOf(event),
-      event.currentTarget.clientHeight,
+      spanOf(event),
       game.config,
     );
     if (reading.thrown) return throwIt(reading.thrown, next.samples.at(-1)!.t);
     stroke.current = next;
-    hand.current = { aim: reading.aim, pitch: next.pitch, draw: reading.draw };
+    hand.current = { ...hand.current, aim: reading.aim, pitch: next.pitch, draw: reading.draw };
     setDraw(Math.max(0, reading.draw));
   };
 
@@ -334,7 +349,7 @@ export const useThrowControls = ({
     // Letting go in the middle of a push throws — the phone flick.
     const lift = stroke.current ? samplesOf(event).at(-1) : undefined;
     const thrown =
-      stroke.current && lift ? liftStroke(stroke.current, lift, event.currentTarget.clientHeight, game.config) : null;
+      stroke.current && lift ? liftStroke(stroke.current, lift, spanOf(event), game.config) : null;
     if (thrown) return throwIt(thrown, lift!.t);
     letGo();
   };

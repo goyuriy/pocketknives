@@ -85,6 +85,12 @@ pointer and WASD/arrows on desktop, a floating left-thumb stick on touch, the
 left stick on a gamepad.
 - ✅ Walk within your own land, sliding along its border.
 - ✅ Mouse-look (Pointer Lock), angle from looking up and down.
+- ✅ Look from your feet to the sky with the mouse or gamepad; the throw goes
+  where you look, up to a 45° lob. A gentler mouse draw (half a window for a
+  full draw). Forearms and hands only from your own eyes.
+- 📋 A sky: looking up shows black.
+- 📋 In first person, hide the free hand while it hangs at the side — looking
+  straight down it shows as a forearm cut off at the elbow.
 - ✅ Turn all the way round without Pointer Lock: Q / E, or hold the cursor at
   the edge of the screen. A browser that refuses to capture the mouse drops to
   the free cursor instead of swallowing every click.

@@ -225,9 +225,9 @@ circle. If the ground under your feet is taken, you are put back home.
 
 | | Walk | Turn and aim | Angle | Throw |
 | --- | --- | --- | --- | --- |
-| Mouse and keys | WASD or arrow keys | Mouse across (click to capture the mouse, Esc to release); Q / E turn too | Mouse up and down | Hold, pull back, push through — across still turns while drawn |
+| Mouse and keys | WASD or arrow keys | Mouse across (click to capture the mouse, Esc to release): all the way round, as far as the mouse goes; Q / E turn too | Mouse up and down: look anywhere from your feet to the sky, and the knife is thrown where you look — up to a 45° lob | Hold, pull back, push through — across still turns while drawn |
 | Mouse, not captured | WASD or arrow keys | The cursor points the hand; hold it out at the left or right edge of the screen and the body turns after it; Q / E | Cursor up and down | The same |
-| Gamepad | Left stick | Right stick across | Right stick up and down | Hold the right trigger (or bumper): the right stick becomes a swing stick — pull back, push up past the grip point. Across still turns. |
+| Gamepad | Left stick | Right stick across | Right stick up and down, looking as freely as the mouse | Hold the right trigger (or bumper): the right stick becomes a swing stick — pull back, push up past the grip point. Across still turns. |
 | Touch | A floating stick: put a thumb down on the left of the screen | Drag sideways from wherever the finger lands on the right — never where it lands | Where the finger comes down | The same drag: pull back, flick forward and let go |
 
 These follow what players already know from games that do it well. Mouse-look
@@ -238,6 +238,15 @@ with the left thumb, aim-and-release with the right — is Brawl Stars', and a s
 that floats to wherever the thumb lands is the one players find easiest to learn.
 Your feet stay planted while the button is held, so the grip point means
 something.
+
+A mouse is read more gently than a thumb: its draw is measured against 1.4
+window-heights (and never less than the window, however small the stage), so a
+full draw is about half the window's height of travel — a flick of the wrist is
+a flick, not a full-power throw. A finger's is still measured against the stage.
+
+From your own eyes you see only your forearms and hands, as in any
+first-person game; from every other camera — and to every other player — the
+whole thrower.
 
 Some browsers will not capture the mouse — embedded ones, an iPad with a
 trackpad. There the first refusal switches the game to the free cursor for the
