@@ -22,6 +22,28 @@ const SHOULDER_HALF_WIDTH = 0.24;
 export const EYE_HEIGHT = 1.5;
 const UPPER_ARM = 0.42;
 const FOREARM = 0.42;
+/** Where the legs join the body, and how far apart. */
+const HIP_HEIGHT = 0.8;
+const HIP_HALF_WIDTH = 0.12;
+const THIGH = 0.42;
+const SHIN = 0.42;
+/** How high the ankle sits above the sole. */
+const ANKLE_HEIGHT = 0.07;
+/**
+ * How the feet stand while still: the free side's foot a little forward, the
+ * throwing side's a little back — a thrower's stance, not a soldier's.
+ */
+const LEAD_FOOT = 0.14;
+const TRAIL_FOOT = -0.1;
+const FOOT_HALF_SPREAD = 0.14;
+/** How far a foot swings either way of its place in a stride, and how high it lifts. */
+const STRIDE_REACH = 0.24;
+const STRIDE_LIFT = 0.1;
+/** How much the chest leans into the throw, forward at the release, back at full draw. */
+const THROW_LEAN = 0.08;
+/** The base of the neck, and the middle of the head: the eyes are in it. */
+const NECK_HEIGHT = 1.3;
+const HEAD_HEIGHT = EYE_HEIGHT;
 /** Where each fist sits either side of the grip's middle on a two-handed weapon, as a fraction of the handle. */
 const TWO_HANDED_SPREAD = 0.3;
 /**
@@ -66,6 +88,25 @@ const FOLLOWED: Keyframe = { at: [0.45, -0.25, -0.55], bladeAngle: -1.0 };
 
 type Keyframe = { readonly at: Vec3; readonly bladeAngle: number };
 
+/**
+ * How the legs are walking: where in the stride they are, how much of a stride
+ * it is (0 standing, 1 walking), and which way, as `[forward, right]` in the
+ * body's own terms — a sidestep swings the legs sideways.
+ */
+export type Stride = {
+  readonly phase: number;
+  readonly amount: number;
+  readonly along: readonly [forward: number, right: number];
+};
+
+export const STANDING: Stride = { phase: 0, amount: 0, along: [1, 0] };
+
+/** Walking distance that makes one step, one foot passing the other. */
+export const STEP_LENGTH = 0.55;
+
+/** Where the stride is after walking `distance` further. Half a turn of the phase is a step. */
+export const strideAfter = (phase: number, distance: number): number => phase + (distance / STEP_LENGTH) * Math.PI;
+
 export type BodySetup = {
   /** Where the knife leaves the hand — the flight's origin. */
   readonly release: Vec3;
@@ -85,9 +126,22 @@ export type BodySetup = {
    * at the target. Eased by the caller, so the arm lifts rather than snaps.
    */
   readonly raised: number;
+  /** How the legs are walking. Standing still when left out. */
+  readonly stride?: Stride;
+};
+
+/** The rest of the thrower: trunk, head and legs. */
+export type Figure = {
+  readonly hips: Vec3;
+  readonly neck: Vec3;
+  readonly head: Vec3;
+  /** Hip, knee and ankle. The throwing side's leg, and the free side's. */
+  readonly throwingLeg: Limb;
+  readonly otherLeg: Limb;
 };
 
 export type BodyPose = {
+  readonly figure: Figure;
   /** The knife's balance point, which is what the flight tracks. */
   readonly knifeAt: Vec3;
   readonly bladeAngle: number;
@@ -200,6 +254,8 @@ export const bodyPose = (setup: BodySetup, swing: number): BodyPose => {
   const along = bladeDirection(heading, bladeAngle);
   const knifeAt = add(gripAt, along, -grip);
 
+  const figure = figureAt(frame, swing, setup.stride ?? STANDING);
+
   const elbowDownAndOut = (side: number): Vec3 => add(add(frame.right, [0, 0, -1.6], 1), frame.right, side - 1);
   const throwingPole = add(elbowDownAndOut(1), frame.forward, -0.3);
   const otherPole = add(elbowDownAndOut(-1), frame.forward, -0.3);
@@ -210,6 +266,7 @@ export const bodyPose = (setup: BodySetup, swing: number): BodyPose => {
     const lead = add(gripAt, along, spread);
     const trail = add(gripAt, along, -spread);
     return {
+      figure,
       knifeAt,
       bladeAngle,
       throwingArm: twoBoneIk(inFrame(frame, throwingShoulder), trail, UPPER_ARM, FOREARM, throwingPole),
@@ -245,6 +302,7 @@ export const bodyPose = (setup: BodySetup, swing: number): BodyPose => {
   const reaching = lerp3(hanging, pointAt, lift);
 
   return {
+    figure,
     knifeAt,
     bladeAngle,
     throwingArm: twoBoneIk(inFrame(frame, throwingShoulder), gripAt, UPPER_ARM, FOREARM, throwingPole),
@@ -252,6 +310,46 @@ export const bodyPose = (setup: BodySetup, swing: number): BodyPose => {
     pointing: lift > 0.5 && tuck < 0.5,
     pointHeading,
     pointTilt: lerp(lerp(HANGING_TILT, pointTilt, lift), -1.2, tuck),
+  };
+};
+
+/**
+ * Trunk, head and legs, in the body's frame.
+ *
+ * The feet stand in a thrower's stance and walk by swinging along the way the
+ * body is moving, each lifting on its way forward; the legs are solved from the
+ * hips down to them, knees bending forward. The chest leans back as the arm
+ * draws and forward through the throw. The shoulders the arms hang from stay
+ * where they are: the lean is small, and moving them would move the eye.
+ */
+const figureAt = (frame: BodyFrame, swing: number, stride: Stride): Figure => {
+  const amount = Math.min(1, Math.max(0, stride.amount));
+  const [f, r] = stride.along;
+  const norm = Math.hypot(f, r) || 1;
+  const along: Vec3 = [f / norm, r / norm, 0];
+  const bob = 0.03 * amount * Math.abs(Math.cos(stride.phase));
+  const hips = inFrame(frame, [0, 0, HIP_HEIGHT - bob]);
+
+  const foot = (side: number, place: number, phase: number): Vec3 => {
+    const swingOut = STRIDE_REACH * amount * Math.sin(phase);
+    const lift = STRIDE_LIFT * amount * Math.max(0, Math.cos(phase));
+    return inFrame(frame, [
+      place + along[0] * swingOut,
+      side * FOOT_HALF_SPREAD + along[1] * swingOut,
+      ANKLE_HEIGHT + lift,
+    ]);
+  };
+  const knees = add(frame.forward, [0, 0, 0.3]);
+  const leg = (side: number, ankle: Vec3): Limb =>
+    twoBoneIk(inFrame(frame, [0, side * HIP_HALF_WIDTH, HIP_HEIGHT - bob]), ankle, THIGH, SHIN, knees);
+
+  const lean = THROW_LEAN * Math.max(-1, Math.min(1, swing));
+  return {
+    hips,
+    neck: inFrame(frame, [lean, 0, NECK_HEIGHT]),
+    head: inFrame(frame, [0.02, 0, HEAD_HEIGHT]),
+    throwingLeg: leg(1, foot(1, TRAIL_FOOT, stride.phase + Math.PI)),
+    otherLeg: leg(-1, foot(-1, LEAD_FOOT, stride.phase)),
   };
 };
 

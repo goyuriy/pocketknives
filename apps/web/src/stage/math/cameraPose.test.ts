@@ -11,6 +11,13 @@ describe('cameraPose', () => {
     expect(pose.focus[2]).toBeLessThan(pose.eye[2]);
   });
 
+  it('watches from behind and above when asked, looking out the way the thrower faces', () => {
+    const pose = cameraPose([0, -8], false, 10, Math.PI / 2, undefined, true);
+    expect(pose.eye[1]).toBeLessThan(-10); // behind, to the south
+    expect(pose.eye[2]).toBeGreaterThan(EYE_HEIGHT); // over the head
+    expect(pose.focus[1]).toBeGreaterThan(-8); // at the ground ahead
+  });
+
   it('lifts over the circle once the knife has landed', () => {
     const pose = cameraPose([0, -8], true, 10, Math.PI / 2);
     expect(pose.eye[2]).toBeGreaterThan(20);
@@ -49,7 +56,7 @@ describe('fieldOfView', () => {
   it('holds the angle across on a phone held upright, so both hands and the circle fit', () => {
     const phone = fieldOfView(375 / 700);
     expect(phone.held).toBe('horizontal');
-    expect((phone.radians * 180) / Math.PI).toBeCloseTo(56, 6);
+    expect((phone.radians * 180) / Math.PI).toBeCloseTo(64, 6);
   });
 });
 

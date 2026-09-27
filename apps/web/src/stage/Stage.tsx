@@ -21,6 +21,7 @@ const snapshotOf = (game: SandboxState): StageSnapshot => ({
   playerId: game.currentPlayer,
   reach: game.match.rules.reach,
   showReach: game.showReach,
+  thirdPerson: game.thirdPerson,
   thrown: game.thrown,
   config: game.config,
   knife: game.config.knife,

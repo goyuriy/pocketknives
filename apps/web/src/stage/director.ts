@@ -9,7 +9,7 @@ import { createDustView } from './views/dustView.js';
 import type { Stage } from './engine/createStage.js';
 import type { HandInput, StageSnapshot } from './snapshot.js';
 import { handSway } from '../input/handSway.js';
-import { bodyPose, READY_SWING, releasePointFor, swingForDraw } from './math/bodyPose.js';
+import { bodyPose, READY_SWING, releasePointFor, strideAfter, swingForDraw, type Stride } from './math/bodyPose.js';
 import { easeToward, RESTING_ARM, stepArm } from './math/armMotion.js';
 import { flightTimeAt, rateAt, RELEASE_SLOW_MOTION } from '../playback/releaseTimeline.js';
 import { cameraEaseRate, cameraPose, easeHeading, eyeDip, eyeLocks, LOOK_FOLLOW_RATE } from './math/cameraPose.js';
@@ -101,6 +101,8 @@ export const createDirector = (stage: Stage, { read, hand, walk, stance, sound }
     walker.place(feet);
     placedFor = state.playerId;
   };
+  // The legs' walk: where in the stride they are, eased in and out with the pace.
+  let stride: Stride = { phase: 0, amount: 0, along: [1, 0] };
   let motion = RESTING_ARM;
   let raised = 0;
   // Where the arm was when the hand let go: the hand-off swings it from here.
@@ -172,6 +174,8 @@ export const createDirector = (stage: Stage, { read, hand, walk, stance, sound }
     dust.update(now / 1000);
 
     const released = phase.kind !== 'ready';
+    // Where the feet went this frame; nowhere, unless walking.
+    let stepped: [Vec2, Vec2] = [stance.current.feet, stance.current.feet];
     const { aim, pitch, draw } = hand();
 
     // A new turn, or ground taken from under the thrower's feet: back home.
@@ -186,6 +190,7 @@ export const createDirector = (stage: Stage, { read, hand, walk, stance, sound }
       const allowed = keepOnOwnLand(state.board, state.playerId, feet, walked);
       if (allowed[0] !== walked[0] || allowed[1] !== walked[1]) walker.place(allowed);
       stance.current = { ...stance.current, feet: allowed };
+      stepped = [feet, allowed];
     }
     const feet: Vec2 = stance.current.feet;
     // The hand's own waver is drawn as well as thrown: what the player sees is
@@ -194,6 +199,9 @@ export const createDirector = (stage: Stage, { read, hand, walk, stance, sound }
       phase.kind === 'ready'
         ? stance.current.facing - (aim + handSway(now / 1000))
         : phase.attempt.flight.impact.heading;
+
+    // Swung along the way the feet went, in the terms of the way the body faces.
+    stride = strideFor(stride, stepped[0], stepped[1], heading, seconds);
 
     if (handingOff) {
       // A fixed swing, not an eased one: the flight starts on a schedule, and
@@ -223,6 +231,7 @@ export const createDirector = (stage: Stage, { read, hand, walk, stance, sound }
         raised,
         spec: phase.kind === 'ready' ? state.knife : phase.attempt.knife,
         hands: state.hands,
+        stride,
       },
       motion.shown,
     );
@@ -233,6 +242,7 @@ export const createDirector = (stage: Stage, { read, hand, walk, stance, sound }
         hands: state.hands,
         heading,
         sleeve: state.playerColor,
+        head: overhead || state.thirdPerson,
       },
       !released || handingOff,
     );
@@ -246,7 +256,14 @@ export const createDirector = (stage: Stage, { read, hand, walk, stance, sound }
         )
       : undefined;
     camera.follow(
-      cameraPose(feet, overhead, state.arenaRadius, look, eyeDip(engine.getRenderWidth() / Math.max(1, engine.getRenderHeight()))),
+      cameraPose(
+        feet,
+        overhead,
+        state.arenaRadius,
+        look,
+        eyeDip(engine.getRenderWidth() / Math.max(1, engine.getRenderHeight())),
+        state.thirdPerson,
+      ),
       cameraEaseRate(overhead),
       seconds,
       (distance) => eyeLocks(overhead, distance),
@@ -267,5 +284,29 @@ export const createDirector = (stage: Stage, { read, hand, walk, stance, sound }
       walker.dispose();
       flying?.model.dispose();
     },
+  };
+};
+
+/** Below this pace, units per second, the legs are standing, not walking. */
+const WALKING_PACE = 0.3;
+/** How quickly the legs fall into and out of a walk, per second. */
+const STRIDE_EASE = 8;
+
+/**
+ * The legs after moving from `from` to `to` in `seconds`, facing `facing`: the
+ * stride advances by the distance walked, swings along the way it went, and
+ * eases in and out so starting and stopping is not a snap.
+ */
+const strideFor = (stride: Stride, from: Vec2, to: Vec2, facing: number, seconds: number): Stride => {
+  const [dx, dy] = [to[0] - from[0], to[1] - from[1]];
+  const distance = Math.hypot(dx, dy);
+  const walking = seconds > 0 && distance / seconds > WALKING_PACE;
+  const along: Stride['along'] = walking
+    ? [dx * Math.cos(facing) + dy * Math.sin(facing), dx * Math.sin(facing) - dy * Math.cos(facing)]
+    : stride.along;
+  return {
+    phase: strideAfter(stride.phase, distance),
+    amount: easeToward(stride.amount, walking ? 1 : 0, STRIDE_EASE, seconds),
+    along,
   };
 };

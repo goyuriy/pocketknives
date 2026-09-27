@@ -60,7 +60,8 @@ const describe = (attempt: Attempt, arenaArea: number): string =>
 
 /**
  * @param debug       whether to show the sandbox controls — reset, player count,
- *                    stay, the reach line, slow motion — alongside the game's own HUD
+ *                    stay, the reach line, the camera behind, slow motion —
+ *                    alongside the game's own HUD
  * @param onHideDebug hides them, and the tuning panel with them
  */
 export const SandboxHud = ({
@@ -153,6 +154,14 @@ export const SandboxHud = ({
               onChange={(event) => game.setShowReach(event.target.checked)}
             />
             reach
+          </label>
+          <label className="toggle">
+            <input
+              type="checkbox"
+              checked={game.thirdPerson}
+              onChange={(event) => game.setThirdPerson(event.target.checked)}
+            />
+            behind
           </label>
           <label className="toggle">
             slow

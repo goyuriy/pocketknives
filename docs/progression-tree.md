@@ -10,16 +10,17 @@ Status: 💡 design — nothing here is built yet. The knives it refers to exist
 
 ## Principles
 
-1. **Sidegrades, never upgrades.** Nothing unlocked throws better, only
-   differently. Every knife and every grip is a trade — reach against
+1. **What you choose is a sidegrade; your character grows.** No knife or grip
+   throws better, only differently. Every one is a trade — reach against
    forgiveness, precision against power — the same rule the knife rack already
-   follows ([RULES.md](../RULES.md), *The knife*). A new player with the
-   starting kit can beat a veteran; the veteran just has more ways to try.
-   The one exception is **Long hands**, a passive skill kept deliberately
-   small. See *Skills*.
-2. **Unlock by doing, not by grinding.** The big unlocks are *trials* — a short
-   feat that uses the thing being unlocked, or the skill it needs. Earning a
-   grip is learning it. Experience points exist, but only buy looks.
+   follows ([RULES.md](../RULES.md), *The knife*). The character is different:
+   it gets slightly better the more you play, through passive skills bought
+   with character levels (see *Skills*). That growth is small and always
+   visible, so a new player can still beat a veteran.
+2. **Unlock by doing, not by grinding.** Grips and the Greatsword are unlocked
+   by *trials* — a short feat that uses the thing being unlocked, or the skill
+   it needs. Earning a grip is learning it. Experience raises your character
+   level, and levels buy looks and skill points.
 3. **Real throwing first.** Grips are the ones knife throwers actually use, and
    they behave in the game the way they behave in a yard: a hammer grip is where
    everyone starts, a no-spin throw is the thing people practise for years.
@@ -42,10 +43,10 @@ has its own gates.
   start ──►  Thrower ──► Kitchen ──► Cleaver ──► Needle
                                         └────► Greatsword
 
-             ┌─ Skills (passive, levels 1–5) ──────────────────────┐
+             ┌─ Skills (passive, character levels 3–20) ───────────┐
   start ──►  Long hands 1 ──► 2 ──► 3 ──► 4 ──► 5
 
-             ┌─ Looks (experience levels) ─────────────────────────┐
+             ┌─ Looks (character levels) ──────────────────────────┐
   start ──►  blade finishes · handle wraps · sleeves · trails · titles
 ```
 
@@ -110,10 +111,27 @@ Specialist"). They never touch the numbers above.
 
 ---
 
+## Character level
+
+Experience comes from playing matches: some for every stick, more for every
+claim, most for winning. It fills the character's level. Every level unlocks
+something to wear (see *Looks*), and some levels also give a **skill point**:
+
+| Character level | 3 | 6 | 10 | 15 | 20 |
+| --- | --- | --- | --- | --- | --- |
+| Skill point | 1st | 2nd | 3rd | 4th | 5th |
+
+The gaps widen on purpose. The first point comes in the first evening of play;
+the fifth is weeks away.
+
+---
+
 ## Skills
 
 Passive skills are always on and never chosen per throw. Each has five levels,
-earned in order. There is one so far.
+and a skill point raises one skill by one level. There is one skill so far, so
+every point goes to it; once there are more, the player chooses where each
+point goes.
 
 ### Long hands
 
@@ -123,13 +141,13 @@ lands within `reach` of land you hold. Long hands adds to that reach. Each level
 adds a little more than the one before it, so the last levels are the ones
 worth chasing.
 
-| Level | Adds | Reach (from 5) | Unlock trial |
+| Level | Adds | Reach (from 5) | Earliest at character level |
 | --- | --- | --- | --- |
-| 1 | +2% | 5.10 | Claim 5 times with the knife in the last fifth of your reach |
-| 2 | +3% | 5.25 | Claim 15 times that way |
-| 3 | +4% | 5.45 | Claim 30 times that way, with at least two knives |
-| 4 | +5% | 5.70 | Win a match where most of your ground came from the last fifth of your reach |
-| 5 | +6% | 6.00 | Claim from beyond the level-4 reach 10 times in one match |
+| 1 | +2% | 5.10 | 3 |
+| 2 | +3% | 5.25 | 6 |
+| 3 | +4% | 5.45 | 10 |
+| 4 | +5% | 5.70 | 15 |
+| 5 | +6% | 6.00 | 20 |
 
 Numbers are starting points for tuning, not final. The percentages are of the
 base reach, so level 5 is +20% altogether.
@@ -139,12 +157,11 @@ player's reach is the base times their Long hands factor, and `resolveThrow`
 and the chalked reach line both read the player's own reach. Everyone can see
 that line, so an opponent's longer arms are always visible, never a surprise.
 
-**Why it earns its exception.** It is the one upgrade in the tree, so it is
-kept small. It only moves a line everyone can see. It never touches the throw
-itself: sticking, spin, wobble and power are all unchanged. The trials ask you
-to play at the edge of your reach, the thing the skill rewards. Earning it is
-practising it. It is never sold (principle 4), and it counts in matchmaking
-(see *Open questions*).
+**Why this shape.** Getting slightly better over time is the point: it is
+what a returning player has to show for coming back. It stays small, and it
+only moves a line everyone can see. It never touches the throw itself:
+sticking, spin, wobble and power are all unchanged. And it is never sold
+(principle 4); only playing raises it.
 
 ---
 
@@ -166,9 +183,9 @@ first, most specialised last.
 
 ## Looks
 
-Experience comes from playing matches (more for winning, some for every stick),
-and each level unlocks something cosmetic: blade finishes, handle wraps, sleeve
-colours, throw trails, stuck-knife flourishes, titles. This is the branch the
+Every character level (see *Character level*) unlocks something cosmetic:
+blade finishes, handle wraps, sleeve colours, throw trails, stuck-knife
+flourishes, titles. This is the branch the
 **Season pass** extends later. It is the only branch money can touch.
 
 ---
@@ -181,11 +198,6 @@ colours, throw trails, stuck-knife flourishes, titles. This is the branch the
 - **Trials in multiplayer.** Trials should count in any mode, but a trial that
   can be farmed against friends needs care — e.g. only count matches against
   opponents at a similar level, or bots.
-- **Long hands in multiplayer.** It is the tree's one straight upgrade: a level-5
-  player reaches 20% further than a new one. Options: match players of similar
-  Long hands level, cap it in ranked play, or offer a trade-off later (for
-  example, long hands lower the draw's top speed a little) so it becomes a
-  sidegrade after all.
 - **Grip unlocks for returning players** who already know the game from another
   device: a short skill check to skip ahead, rather than replaying trials.
 

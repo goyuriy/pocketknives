@@ -36,6 +36,16 @@ export const eyeDip = (aspect: number): number =>
   EYE_DIP + TALL_EXTRA_DIP * Math.min(1, Math.max(0, (0.9 - aspect) / 0.4));
 const OVER_HEIGHT = 30;
 const OVER_SETBACK = 4;
+/**
+ * Behind the thrower: this far back and this high, a little over the free
+ * shoulder so the throwing arm and the knife stay in sight, looking at a spot
+ * this far ahead on the ground.
+ */
+const BEHIND_BACK = 3.6;
+const BEHIND_HEIGHT = 2.6;
+const BEHIND_ASIDE = -0.45;
+const BEHIND_AHEAD = 2;
+const BEHIND_FOCUS_HEIGHT = 0.5;
 
 export type CameraPose = {
   /** Game coordinates. */
@@ -48,6 +58,8 @@ export type CameraPose = {
  * @param look where the view is pointing across the ground, radians — the
  *             hand's heading, lagged
  * @param dip  how far below level the eyes look, radians — see `eyeDip`
+ * @param behind watch the thrower from behind and above instead of through
+ *             their eyes — to see the character, not to play
  */
 export const cameraPose = (
   feet: Vec2,
@@ -55,6 +67,7 @@ export const cameraPose = (
   arenaRadius: number,
   look: number,
   dip = EYE_DIP,
+  behind = false,
 ): CameraPose => {
   if (overhead) {
     // Over the circle from the thrower's side, so the cut reads the way it was thrown.
@@ -66,6 +79,18 @@ export const cameraPose = (
         OVER_HEIGHT,
       ],
       focus: [0, 0, 0],
+    };
+  }
+  const forward: Vec2 = [Math.cos(look), Math.sin(look)];
+  if (behind) {
+    const right: Vec2 = [Math.sin(look), -Math.cos(look)];
+    return {
+      eye: [
+        feet[0] - forward[0] * BEHIND_BACK + right[0] * BEHIND_ASIDE,
+        feet[1] - forward[1] * BEHIND_BACK + right[1] * BEHIND_ASIDE,
+        BEHIND_HEIGHT,
+      ],
+      focus: [feet[0] + forward[0] * BEHIND_AHEAD, feet[1] + forward[1] * BEHIND_AHEAD, BEHIND_FOCUS_HEIGHT],
     };
   }
   const eye: Vec3 = [feet[0], feet[1], EYE_HEIGHT];
@@ -108,10 +133,14 @@ export type FieldOfView = {
   readonly radians: number;
 };
 
-/** The first-person view, up the screen, on a screen wider than tall. */
-const VERTICAL_VIEW = (62 * Math.PI) / 180;
-/** The narrowest the view may get across the screen before it is held there instead. */
-const LEAST_ACROSS = (56 * Math.PI) / 180;
+/**
+ * The first-person view, up the screen, on a screen wider than tall. Widened
+ * from 62° after play: at 62 the ground came right up to the screen and the
+ * circle felt close enough to touch, with little of it in view at once.
+ */
+const VERTICAL_VIEW = (72 * Math.PI) / 180;
+/** The narrowest the view may get across the screen before it is held there instead. Widened from 56°. */
+const LEAST_ACROSS = (64 * Math.PI) / 180;
 
 /**
  * How wide the camera sees, for a screen of this shape (width / height).

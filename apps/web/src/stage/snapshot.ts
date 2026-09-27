@@ -30,6 +30,8 @@ export type StageSnapshot = {
   readonly reach: number;
   /** Whether that reach is chalked on the ground. */
   readonly showReach: boolean;
+  /** Watch the thrower from behind instead of through their eyes. */
+  readonly thirdPerson: boolean;
   /** Every knife thrown this match that is still lying out, oldest first. */
   readonly thrown: readonly Attempt[];
   readonly config: ThrowConfig;

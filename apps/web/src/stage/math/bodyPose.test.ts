@@ -7,6 +7,8 @@ import {
   gripOffset,
   READY_SWING,
   releasePointFor,
+  STEP_LENGTH,
+  strideAfter,
   swingForDraw,
   type BodySetup,
 } from './bodyPose.js';
@@ -124,6 +126,64 @@ describe('bodyPose', () => {
     const eye = eyeAt([0, -12, 1.4], Math.PI / 2);
     expect(eye[2]).toBe(EYE_HEIGHT);
     expect(eye[1]).toBeLessThan(-12);
+  });
+});
+
+describe('the rest of the body', () => {
+  const standing = bodyPose(setup('thrower'), READY_SWING).figure;
+  const feet = eyeAt([0, -12, 1.4], Math.PI / 2);
+
+  it('stands on the ground under the eye, head where the eyes are', () => {
+    for (const leg of [standing.throwingLeg, standing.otherLeg]) {
+      expect(leg.end[2]).toBeGreaterThan(0);
+      expect(leg.end[2]).toBeLessThan(0.1);
+    }
+    expect(standing.hips[2]).toBeLessThan(standing.neck[2]);
+    expect(standing.head[2]).toBeCloseTo(EYE_HEIGHT, 9);
+    expect(Math.hypot(standing.hips[0] - feet[0], standing.hips[1] - feet[1])).toBeLessThan(0.05);
+  });
+
+  it('stands like a thrower: the free foot forward, the throwing foot back', () => {
+    // Throwing north: forward is +y, and the throwing side is the right, +x.
+    expect(standing.otherLeg.end[1]).toBeGreaterThan(standing.throwingLeg.end[1]);
+    expect(standing.throwingLeg.end[0]).toBeGreaterThan(standing.otherLeg.end[0]);
+  });
+
+  it('bends the knees forward', () => {
+    for (const leg of [standing.throwingLeg, standing.otherLeg]) {
+      const midway = (leg.root[1] + leg.end[1]) / 2;
+      expect(leg.joint[1]).toBeGreaterThan(midway);
+    }
+  });
+
+  it('walks by swinging the feet in turn along the way it is going, lifting the one coming forward', () => {
+    const walking = (phase: number) =>
+      bodyPose({ ...setup('thrower'), stride: { phase, amount: 1, along: [1, 0] } }, READY_SWING).figure;
+    const mid = walking(Math.PI / 2);
+    // Free foot out in front, throwing foot behind, half a step later the other way round.
+    expect(mid.otherLeg.end[1]).toBeGreaterThan(standing.otherLeg.end[1] + 0.2);
+    expect(mid.throwingLeg.end[1]).toBeLessThan(standing.throwingLeg.end[1] - 0.2);
+    const later = walking(Math.PI / 2 + Math.PI);
+    expect(later.otherLeg.end[1]).toBeLessThan(standing.otherLeg.end[1] - 0.2);
+    // The foot on its way forward is off the ground; the one pushing back is on it.
+    const passing = walking(0);
+    expect(passing.otherLeg.end[2]).toBeGreaterThan(passing.throwingLeg.end[2] + 0.05);
+  });
+
+  it('sidesteps with the feet swinging sideways', () => {
+    const side = bodyPose({ ...setup('thrower'), stride: { phase: Math.PI / 2, amount: 1, along: [0, 1] } }, READY_SWING).figure;
+    expect(side.otherLeg.end[0]).toBeGreaterThan(standing.otherLeg.end[0] + 0.2);
+    expect(side.otherLeg.end[1]).toBeCloseTo(standing.otherLeg.end[1], 6);
+  });
+
+  it('takes a step every step length walked', () => {
+    expect(strideAfter(0, STEP_LENGTH)).toBeCloseTo(Math.PI, 9);
+  });
+
+  it('leans back to draw and forward into the throw', () => {
+    const back = bodyPose(setup('thrower'), -1).figure;
+    const through = bodyPose(setup('thrower'), 1).figure;
+    expect(through.neck[1]).toBeGreaterThan(back.neck[1] + 0.1);
   });
 });
 

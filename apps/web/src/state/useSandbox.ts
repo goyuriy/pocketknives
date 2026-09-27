@@ -111,6 +111,9 @@ export const useSandbox = (initialPlayers = 4) => {
   // Whether the edge of the thrower's reach is chalked on the ground. On by
   // default; switched off only to see the ground bare while debugging.
   const [showReach, setShowReach] = useRememberedFlag('pocketknives.reachLine', true);
+  // Watch from behind rather than through the thrower's eyes — for seeing the
+  // character while it is being built, not a way to play.
+  const [thirdPerson, setThirdPerson] = useRememberedFlag('pocketknives.thirdPerson', false);
   const timers = useRef<number[]>([]);
 
   // The chosen knife is part of the config, not a decoration on top of it, so
@@ -238,6 +241,8 @@ export const useSandbox = (initialPlayers = 4) => {
     setStayOnPlayer,
     showReach,
     setShowReach,
+    thirdPerson,
+    setThirdPerson,
   };
 };
 

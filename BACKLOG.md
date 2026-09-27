@@ -147,9 +147,9 @@ Which knives are open, and when, is decided by the knife branch of the
 ### Progression tree — 💡 · R, E
 What a player unlocks over time: four branches side by side — **grips**,
 **knives**, **skills**, **looks**. Designed in [docs/progression-tree.md](docs/progression-tree.md).
-Rules: sidegrades not upgrades (Long hands the one small exception), unlock by
-doing (trials) not by grinding, real throwing first, nothing sold changes where
-a knife lands.
+Rules: knives and grips are sidegrades while the character grows slightly with
+experience, unlock by doing (trials) not by grinding, real throwing first,
+nothing sold changes where a knife lands.
 - 💡 **Grips** — how the knife is held, each a real throwing technique with its
   own trade-off, unlocked by a trial that practises it:
   - Hammer (start) — the baseline throw.
@@ -162,11 +162,13 @@ a knife lands.
   Needle; the Greatsword earned by a trial.
 - 💡 **Grip mastery** — three ranks per grip, for sticks thrown with it; looks
   only.
-- 💡 **Skills** — passive, always on, five levels each, earned by trials:
+- 💡 **Character level** — experience from sticks, claims and wins fills it;
+  every level buys a look, levels 3, 6, 10, 15 and 20 each give a skill point.
+- 💡 **Skills** — passive, always on, five levels each, raised with skill points:
   - Long hands (1–5) — reach further from your ground to draw the line. Each
     level adds a little more than the last: +2%, +3%, +4%, +5%, +6% of the base
-    reach, so +20% at level 5. The tree's one upgrade, kept small and visible
-    (the reach line shows it), never sold.
+    reach, so +20% at level 5. The character getting slightly better over time,
+    on purpose; small, visible (the reach line shows it), never sold.
 - 💡 **Looks** — experience levels unlock cosmetics; the branch the **Season pass** extends.
 
 ### Daily board — 💡 · R, A
@@ -186,10 +188,18 @@ physics, different look — the first thing to sell.
 Free and paid tracks of cosmetics over a season of play. Only once **Progression tree** and **Cosmetics**
 exist.
 
-### Character & hands — 💡 · M, E
-Replace the primitive arms with a rigged character (KayKit Barbarian was
+### Character & hands — 🔨 · M, E
+Replace the primitive body with a rigged character (KayKit Barbarian was
 shortlisted: CC0, chunky, big hands). The `BodyView` contract is ready for it.
 Later: sleeves, gloves, tattoos as cosmetics.
+- ✅ A whole body from primitives: chest in the player's colour, hips, head
+  with hair and a nose, legs solved hip to ankle, shoes. The feet stand in a
+  thrower's stance, walk in stride the way the body moves, and the chest
+  leans into the throw.
+- ✅ A debug camera behind the thrower (**behind** in the debug row), to see
+  the character; from the thrower's own eyes only the arms and the body's
+  shadow show.
+- 📋 Swap in the rigged model on the same `BodyPose`.
 
 ---
 
