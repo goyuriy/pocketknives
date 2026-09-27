@@ -9,6 +9,8 @@ import { seededRandom } from '../throw/random.js';
 
 const RADIUS = 10;
 const players = ['a', 'b'] as const;
+/** For tests about the geometry of a cut, not about how far a player can reach. */
+const LONG_ARMS = { ...DEFAULT_RULES, reach: Infinity };
 
 const totalArea = (rings: readonly { ring: readonly Vec2[] }[]): number =>
   rings.reduce((sum, t) => sum + area(t.ring), 0);
@@ -51,13 +53,27 @@ describe('resolveThrow', () => {
     expect(totalArea(outcome.board.territories)).toBeCloseTo(area(board.arena), 6);
   });
 
-  it('reaches all the way to the far side when the near piece connects', () => {
-    // Cutting deep in b's half still pays: everything between the blade and the
-    // shared border is one connected piece. Depth is reward, not risk — the risk
-    // lives in whether the knife sticks at all.
-    const outcome = resolveThrow(board, 'a', { point: [0, -8], direction: [1, 0] });
+  it('takes everything between the blade and your border, as deep as you can reach', () => {
+    // The strip between y = 0 and y = -4.5 is over a quarter of the circle.
+    const outcome = resolveThrow(board, 'a', { point: [0, -4.5], direction: [1, 0] });
     if (outcome.kind !== 'claimed') throw new Error('expected a claim');
-    expect(outcome.gainedArea).toBeGreaterThan(area(board.arena) * 0.4);
+    expect(outcome.gainedArea).toBeGreaterThan(area(board.arena) * 0.25);
+  });
+
+  it('draws no line where the thrower cannot reach, however well the knife stuck', () => {
+    // a's border is y = 0; the knife is 8 past it, and the reach is 5.
+    const outcome = resolveThrow(board, 'a', { point: [0, -8], direction: [1, 0] });
+    expect(outcome).toEqual({ kind: 'miss', reason: 'out_of_reach', cut: null });
+  });
+
+  it('measures the reach from the thrower’s nearest ground, right up to the limit', () => {
+    const at = (depth: number) => resolveThrow(board, 'a', { point: [0, -depth], direction: [1, 0] }).kind;
+    expect(at(DEFAULT_RULES.reach - 0.01)).toBe('claimed');
+    expect(at(DEFAULT_RULES.reach + 0.01)).toBe('miss');
+    // The same knife counts for a player with longer arms.
+    expect(resolveThrow(board, 'a', { point: [0, -8], direction: [1, 0] }, { ...DEFAULT_RULES, reach: 9 }).kind).toBe(
+      'claimed',
+    );
   });
 
   it('takes the corner it sliced off, not the larger remainder behind the line', () => {
@@ -150,7 +166,7 @@ describe('resolveThrow', () => {
     // Four wedges: 'a' and 'c' sit opposite each other, meeting only at the
     // centre point. Nothing 'a' carves out of 'c' can touch land 'a' holds.
     const four = createBoard(['a', 'b', 'c', 'd'], RADIUS);
-    const outcome = resolveThrow(four, 'a', { point: [-5, -5], direction: [1, -1] });
+    const outcome = resolveThrow(four, 'a', { point: [-2, -2], direction: [1, -1] });
 
     expect(outcome.kind).toBe('miss');
     if (outcome.kind !== 'miss') return;
@@ -170,6 +186,7 @@ describe('resolveThrow', () => {
     //   c, d — either side of the post
     //
     // 'a' throws straight down into b's half — the piece that does not touch 'a'.
+    // Ten past a's border: these tests are about the seams, so the reach is lifted.
     const arena = createBoard(['x', 'y'], RADIUS).arena;
     const within = (...keep: ((p: Vec2) => boolean)[]) =>
       keep.reduce<readonly Vec2[]>((ring, inside) => clipRing(ring, inside), arena);
@@ -195,7 +212,7 @@ describe('resolveThrow', () => {
     it('cuts through the seams between a field’s own pieces, not just the piece it landed in', () => {
       // The bug: the line stopped at the seam at y = 0, cut only the half, which
       // does not touch 'a', and the throw was refused as not reaching a's land.
-      const outcome = resolveThrow(field, 'a', deepThrow);
+      const outcome = resolveThrow(field, 'a', deepThrow, LONG_ARMS);
       if (outcome.kind !== 'claimed') throw new Error(`expected a claim, got ${outcome.reason}`);
 
       const [start, end] = outcome.cut;
@@ -205,7 +222,7 @@ describe('resolveThrow', () => {
     });
 
     it('takes everything of that field on the thrower’s side of the line', () => {
-      const outcome = resolveThrow(field, 'a', deepThrow);
+      const outcome = resolveThrow(field, 'a', deepThrow, LONG_ARMS);
       if (outcome.kind !== 'claimed') throw new Error(`expected a claim, got ${outcome.reason}`);
 
       // a's cap is centred on x = 0, left of the line x = 1: so the left of
@@ -218,7 +235,7 @@ describe('resolveThrow', () => {
     });
 
     it('leaves both players holding one connected field', () => {
-      const outcome = resolveThrow(field, 'a', deepThrow);
+      const outcome = resolveThrow(field, 'a', deepThrow, LONG_ARMS);
       if (outcome.kind !== 'claimed') throw new Error(`expected a claim, got ${outcome.reason}`);
       for (const playerId of ['a', 'b']) {
         const fields = clusterRings(
@@ -318,7 +335,7 @@ describe('elimination', () => {
   });
 
   it('declares a winner once no opponent can stand anywhere', () => {
-    const match = createMatch(createBoard([...players], RADIUS), [...players]);
+    const match = createMatch(createBoard([...players], RADIUS), [...players], LONG_ARMS);
 
     // One deep cut leaves b a sliver of a cap — ground they own but cannot
     // stand on, which is what ends the game.
@@ -362,7 +379,9 @@ describe('invariants over many random throws', () => {
 
   it('conserves area, keeps every field whole and every piece convex', () => {
     const next = seededRandom(20260926);
-    let match = createMatch(createBoard(['a', 'b', 'c', 'd'], RADIUS), ['a', 'b', 'c', 'd']);
+    // Throws land anywhere in the circle, so the reach is lifted: these are
+    // promises about the geometry, and most throws would otherwise be out of reach.
+    let match = createMatch(createBoard(['a', 'b', 'c', 'd'], RADIUS), ['a', 'b', 'c', 'd'], LONG_ARMS);
     let claims = 0;
     for (let turn = 0; turn < 300 && !winner(match); turn++) {
       const angle = next() * 2 * Math.PI;

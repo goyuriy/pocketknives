@@ -14,6 +14,7 @@ import { easeToward, RESTING_ARM, stepArm } from './math/armMotion.js';
 import { flightTimeAt, rateAt, RELEASE_SLOW_MOTION } from '../playback/releaseTimeline.js';
 import { cameraEaseRate, cameraPose, easeHeading, eyeDip, eyeLocks, LOOK_FOLLOW_RATE } from './math/cameraPose.js';
 import { flyingPlacement } from './math/knifePlacement.js';
+import { reachDots } from './math/reachLine.js';
 import { createArenaView } from './views/arenaView.js';
 import { createBodyView } from './views/bodyView.js';
 import { createCameraRig } from './views/cameraRig.js';
@@ -80,6 +81,15 @@ export const createDirector = (stage: Stage, { read, hand, walk, stance, sound }
   };
   // When each knife hit the ground, and how hard.
   const landings = new Map<Attempt, Landing>();
+  // The chalked edge of the thrower's reach, kept until their ground or the reach changes.
+  let reach: { fields: unknown; playerId: string; reach: number; dots: readonly Vec2[] } | null = null;
+  const reachOf = (state: StageSnapshot): readonly Vec2[] => {
+    if (reach?.fields !== state.fields || reach.playerId !== state.playerId || reach.reach !== state.reach) {
+      const own = state.fields.filter((field) => field.ownerId === state.playerId);
+      reach = { fields: state.fields, playerId: state.playerId, reach: state.reach, dots: reachDots(own, state.reach, state.arenaRadius) };
+    }
+    return reach.dots;
+  };
   // Whose ground the thrower was last put on — a new turn puts them on their own.
   let placedFor: string | null = null;
 
@@ -141,6 +151,7 @@ export const createDirector = (stage: Stage, { read, hand, walk, stance, sound }
         : null;
 
     arena.showFields(state.fields, state.alive);
+    arena.showReach(reachOf(state), state.playerColor);
     arena.showCut(
       settled?.outcome?.kind === 'claimed' ? settled.outcome.cut : null,
       phase.kind === 'cutting' ? Math.min(1, Math.max(0, (intoPhase - IMPACT_BEAT) / CUT_DURATION)) : 1,

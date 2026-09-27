@@ -6,10 +6,14 @@ import { cutField, offsetFromChord, type FieldSide } from './fieldCut.js';
 import { mergeConvexNeighbours } from './tidy.js';
 import { absorbOrphans } from './orphans.js';
 import { territoriesOf } from './board.js';
+import { distanceToLand } from './standing.js';
 
 export const DEFAULT_RULES: RuleSet = {
   standRadius: 0.6,
   minSharedBorder: 0.05,
+  // Half the circle's radius. From your own border that is a short throw, and
+  // a player who wants more has to walk out to the edge of their land first.
+  reach: 5,
 };
 
 /** Geometric slack, scaled to the arena so the rules read the same at any size. */
@@ -22,7 +26,8 @@ const toleranceFor = (board: Board): number => board.radius * 1e-6;
  * until it meets a border — a real one, where someone else's ground or the
  * circle's edge begins, not a seam inside the victim's own field — and the side
  * of it facing the thrower is taken **only** if it touches land the thrower
- * already holds; anything else costs the turn.
+ * already holds; anything else costs the turn. And only if the knife is within
+ * reach of the thrower's own ground to begin with — the line is drawn by hand.
  *
  * Pure — the input board is never mutated. On a miss the same board is simply
  * carried forward by the caller.
@@ -49,6 +54,10 @@ export const resolveThrow = (
   }
   if (victim.ownerId === throwerId) {
     return { kind: 'miss', reason: 'own_territory', cut: null };
+  }
+  if (distanceToLand(board, throwerId, attempt.point) > rules.reach) {
+    // Stuck fair and square, but you cannot draw a line you cannot reach.
+    return { kind: 'miss', reason: 'out_of_reach', cut: null };
   }
 
   const heading = normalize(attempt.direction);

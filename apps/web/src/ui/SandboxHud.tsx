@@ -9,6 +9,7 @@ const MISS_TEXT: Record<MissReason, string> = {
   own_territory: 'That was your own ground.',
   degenerate_cut: 'No clean cut there.',
   no_connection: "Doesn't reach your land.",
+  out_of_reach: "Out of reach — too far from your ground to draw the line. Throw nearer.",
 };
 
 /**

@@ -59,7 +59,9 @@ pointing. Three decisions make a throw, and none of them is a reflex:
 
    Reach is measured from where the knife leaves the hand. From the middle of
    a quarter of the circle the far rim is about fifteen away: only a lob gets
-   there.
+   there. But a knife only claims ground if it lands within reach of your own
+   (see *Within reach*), so how far you can throw matters much less than how
+   near you can land it.
 2. **Draw.** Hold the button and pull back towards you. The knife cocks up by
    your ear, point still forward, like a dart. How far back is how hard it is
    thrown — a position, not a speed, so it means the same on a
@@ -187,7 +189,8 @@ as it does in the yard.
 That makes the shape of your land matter twice. Ground that pushes towards an
 opponent is ground you can walk out on and throw short from; losing it pushes
 you back and makes every throw longer. A thin strip of land is a road as well as
-an asset.
+an asset. And your reach is measured from your ground, so every stretch of it
+pushes the reach out with it.
 
 Each turn starts in the middle of your largest piece, facing the centre of the
 circle. If the ground under your feet is taken, you are put back home.
@@ -264,6 +267,33 @@ A sword is held in two hands, and the player sees both on screen. That is how it
 is held, not physics — the flight never reads it.
 
 > `KNIVES` — [knives.ts](packages/core/src/throw/knives.ts)
+
+## Within reach
+
+**You can only draw the line if the knife is near you.** In the yard you draw
+the cut yourself, down the blade, with a foot still on your own land, so a knife
+you cannot reach draws nothing, however well it stuck. Here that is a distance:
+the knife has to land within `reach` (5, half the circle's radius) of ground you
+hold. Otherwise the throw misses as `out_of_reach`, and no line is drawn.
+
+It is measured from the nearest of your ground, not from where you stood to
+throw. That is the yard's version, where you walk to the knife along your own
+land to draw the line. So throwing from deep inside your land is allowed, as
+long as the knife comes down near its edge.
+
+This is what keeps a turn local. Without it, a deep throw paid best: a knife
+stuck anywhere in an opponent's ground took everything between the blade and
+your border, so the far rim was the best place to aim. Now you take ground next
+to your own, a strip at a time, and the long throw that reaches across the
+circle wins nothing.
+
+The edge of your reach is chalked on the ground in your colour as a dotted line,
+all the way round your land. That is a fact about the board, not a preview of
+the throw. Nothing shows where the knife will land.
+
+> `distanceToLand` — [standing.ts](packages/core/src/rules/standing.ts)
+> `resolveThrow` — [cut.ts](packages/core/src/rules/cut.ts)
+> `reachDots` — [reachLine.ts](apps/web/src/stage/math/reachLine.ts)
 
 ## The cut
 
@@ -368,6 +398,7 @@ All of these cost the turn. None allow a retry.
 | --- | --- |
 | `outside_arena` | The knife landed outside the circle. |
 | `own_territory` | The knife landed on your own ground. |
+| `out_of_reach` | The knife landed too far from your ground to draw the line. |
 | `no_connection` | The half on your side doesn't touch land you hold. |
 | `degenerate_cut` | No clean cut there — landed exactly on a border, or the line grazes a single edge. |
 
@@ -413,6 +444,7 @@ it. Values are in arena units, where the arena radius is 10.
 | --- | --- | --- |
 | `standRadius` | 0.6 | Smallest circle a player must be able to fit on their land to stay in the game. |
 | `minSharedBorder` | 0.05 | Shortest stretch of border that counts as a real connection. Stops a claim resolving on a single touching corner. |
+| `reach` | 5 | Furthest a knife may land from your own ground and still draw a line. |
 
 Everything about the throw lives in one file:
 [config.ts](packages/core/src/throw/config.ts). The sandbox exposes it as live
@@ -454,11 +486,11 @@ There is no aiming preview. The knife in the hand is the aim.
 
 ## Not settled yet
 
-- **The reach rule.** In the yard game you must be able to reach the knife while
-  keeping a foot on your own land, which caps how far one throw can claim.
-  Nothing implements this yet, so a deep throw currently pays maximally: cut
-  anywhere in an opponent's ground and you take everything between the blade and
-  your border. `RuleSet` is open for it when we decide.
+- **How long the reach is.** 5 is a first guess, not a measured one. The
+  shortest throw lands about three from your feet, so a reach much under that
+  would make every throw from the border too long. And the draw still spans
+  throws out to 14, most of which now land out of reach. If short throws feel
+  too coarse to place, the power range is the next thing to tune.
 - **Roll.** The knife currently tumbles strictly within its flight plane, so the
   cut always runs along the throw. Letting a player put a twist on it would free
   the line from the aim — more control, and a third thing to learn. Deliberately

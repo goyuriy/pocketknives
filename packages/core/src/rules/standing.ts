@@ -1,5 +1,5 @@
 import type { Board, PlayerId, Vec2 } from '../types.js';
-import { area, centroid, containsPoint } from '../geometry/ring.js';
+import { area, centroid, containsPoint, distanceToBoundary } from '../geometry/ring.js';
 
 /**
  * Where a player may stand: anywhere on their own ground, and nowhere else.
@@ -11,6 +11,21 @@ import { area, centroid, containsPoint } from '../geometry/ring.js';
  */
 export const isOnOwnLand = (board: Board, playerId: PlayerId, point: Vec2): boolean =>
   board.territories.some((t) => t.ownerId === playerId && containsPoint(t.ring, point));
+
+/**
+ * How far `point` is from the nearest of the player's own ground: zero on it,
+ * Infinity for a player who holds nothing. Measured to whatever piece is
+ * nearest, so it never matters how many pieces a field is stored as.
+ */
+export const distanceToLand = (board: Board, playerId: PlayerId, point: Vec2): number => {
+  let nearest = Infinity;
+  for (const t of board.territories) {
+    if (t.ownerId !== playerId) continue;
+    if (containsPoint(t.ring, point)) return 0;
+    nearest = Math.min(nearest, distanceToBoundary(t.ring, point));
+  }
+  return nearest;
+};
 
 /** How finely a blocked step is searched for the furthest point still on your land. */
 const SEARCH_STEPS = 12;

@@ -26,6 +26,8 @@ export type StageSnapshot = {
   readonly swinging: boolean;
   /** Whose turn it is — whose ground the thrower may walk. */
   readonly playerId: PlayerId;
+  /** How far past their own ground the thrower can reach to draw a line. */
+  readonly reach: number;
   /** Every knife thrown this match that is still lying out, oldest first. */
   readonly thrown: readonly Attempt[];
   readonly config: ThrowConfig;

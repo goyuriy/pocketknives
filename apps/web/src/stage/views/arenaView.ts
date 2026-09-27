@@ -19,12 +19,21 @@ const DIRT = 0.006;
 const TERRITORY = 0.012;
 const BORDER = 0.03;
 const CUT = 0.045;
+const REACH = 0.02;
+/** Chalk dots marking the edge of the thrower's reach. */
+const REACH_DOT = 0.07;
 
 export type ArenaView = {
   /** Redraws who holds what. Cheap to call every frame: it only rebuilds when `fields` is a new value. */
   readonly showFields: (fields: readonly FieldOutline[], alive: readonly PlayerId[]) => void;
   /** The line the blade laid down, grown to `progress` (0–1) from its middle. Null hides it. */
   readonly showCut: (cut: readonly [Vec2, Vec2] | null, progress: number) => void;
+  /**
+   * Chalks the edge of how far the thrower can reach from their ground, in
+   * their colour. Cheap to call every frame: it only rebuilds when `dots` is a
+   * new value. Null hides it.
+   */
+  readonly showReach: (dots: readonly Vec2[] | null, color: string) => void;
   readonly dispose: () => void;
 };
 
@@ -53,6 +62,8 @@ export const createArenaView = (scene: Scene, playfield: TransformNode, radius: 
   let fieldMeshes: Mesh[] = [];
   let cutMesh: Mesh | null = null;
   let shownCut: string | null = null;
+  let reachMesh: Mesh | null = null;
+  let shownReach: readonly Vec2[] | null = null;
 
   const clearFields = () => {
     fieldMeshes.forEach((mesh) => {
@@ -119,12 +130,39 @@ export const createArenaView = (scene: Scene, playfield: TransformNode, radius: 
     );
   };
 
+  const showReach = (dots: readonly Vec2[] | null, color: string) => {
+    if (dots === shownReach) return;
+    shownReach = dots;
+    reachMesh?.material?.dispose();
+    reachMesh?.dispose();
+    reachMesh = null;
+    if (!dots || dots.length === 0) return;
+    const dot = (centre: Vec2) =>
+      flatPolygon(
+        Array.from({ length: 6 }, (_, i): Vec2 => [
+          centre[0] + Math.cos((i * Math.PI) / 3) * REACH_DOT,
+          centre[1] + Math.sin((i * Math.PI) / 3) * REACH_DOT,
+        ]),
+        REACH,
+      );
+    reachMesh = meshFromData(
+      scene,
+      'reach',
+      merge(dots.map(dot)),
+      paint(scene, 'reach', mixHex(color, '#fff6e0', 0.45), { unlit: true }),
+      playfield,
+    );
+  };
+
   return {
     showFields,
     showCut,
+    showReach,
     dispose: () => {
       clearFields();
       cutMesh?.dispose();
+      reachMesh?.material?.dispose();
+      reachMesh?.dispose();
       surround.dispose(false, true);
       dirt.dispose(false, true);
     },
