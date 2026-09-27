@@ -94,6 +94,8 @@ left stick on a gamepad.
   down. A gentler mouse draw (half a window for a
   full draw). Only the arms from your own eyes, elbows included.
 - ✅ Comfort settings: impact shake from none to full, field of view 85–130%.
+- ✅ Physics and walking in fixed 1/60 s steps (Babylon's deterministic
+  lockstep), the same on every refresh rate.
 - 📋 A sky: looking up shows black.
 - 📋 In first person, hide the free hand while it hangs at the side — looking
   straight down it shows as a forearm cut off at the elbow.

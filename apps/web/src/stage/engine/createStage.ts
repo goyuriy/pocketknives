@@ -71,7 +71,16 @@ export type StageOptions = {
  * mixing the two is a mirror image waiting to happen.
  */
 export const createStage = (canvas: HTMLCanvasElement, options: StageOptions): Stage => {
-  const engine = new Engine(canvas, true, { stencil: true, preserveDrawingBuffer: false }, false);
+  // Physics, and walking with it, runs in fixed steps of 1/60 s — as many a
+  // frame as the time since the last one needs, up to four — so the body moves
+  // and collides the same on a 60 Hz screen as on a 144 Hz one. The director
+  // hooks walking onto `scene.onBeforeStepObservable`.
+  const engine = new Engine(
+    canvas,
+    true,
+    { stencil: true, preserveDrawingBuffer: false, deterministicLockstep: true, lockstepMaxSteps: 4, timeStep: 1 / 60 },
+    false,
+  );
   // Sharp on high-density screens, but never past 2× — beyond that a phone
   // spends its battery on pixels nobody can see.
   engine.setHardwareScalingLevel(1 / Math.min(window.devicePixelRatio || 1, 2));

@@ -122,6 +122,8 @@ export const createDirector = (stage: Stage, { read, hand, walk, turn, stance, s
   };
   // Whose ground the thrower was last put on — a new turn puts them on their own.
   let placedFor: string | null = null;
+  // Where the feet were when last drawn, for how far they walked since.
+  let feetShown: Vec2 = stance.current.feet;
 
   /** Puts the thrower in the middle of their own ground, facing the centre of the circle. */
   const placeAtHome = (state: StageSnapshot) => {
@@ -217,27 +219,22 @@ export const createDirector = (stage: Stage, { read, hand, walk, turn, stance, s
     dust.update(worldNow / 1000);
 
     const released = phase.kind !== 'ready';
-    // Where the feet went this frame; nowhere, unless walking.
-    let stepped: [Vec2, Vec2] = [stance.current.feet, stance.current.feet];
     const { aim, pitch, draw, look: gaze, viewFollowsAim } = hand();
 
     // A new turn, or ground taken from under the thrower's feet: back home.
-    if (phase.kind === 'ready' && draw === null) {
+    if (canWalk(state, draw)) {
       if (placedFor !== state.playerId || !isOnOwnLand(state.board, state.playerId, stance.current.feet)) {
         placeAtHome(state);
+        feetShown = stance.current.feet;
       }
       // Turning, for when nothing captures the mouse: the keys, or a cursor
       // held out at the edge of the screen pulling the body round after it.
-      const facing = turnedFacing(stance.current.facing, turn(), seconds);
-      // Walking: wherever the player asks, as far as solid things allow, and
-      // never off their own ground. Feet stay planted through a throw.
-      const { feet } = stance.current;
-      const walked = walker.step(feet, walkStep(feet, walk(), facing, seconds), seconds);
-      const allowed = keepOnOwnLand(state.board, state.playerId, feet, walked);
-      if (allowed[0] !== walked[0] || allowed[1] !== walked[1]) walker.place(allowed);
-      stance.current = { feet: allowed, facing };
-      stepped = [feet, allowed];
+      stance.current = { ...stance.current, facing: turnedFacing(stance.current.facing, turn(), seconds) };
     }
+    // Where the feet went since the last frame — walking happens in the fixed
+    // physics steps before it (see `walkOneStep`), however many there were.
+    const stepped: [Vec2, Vec2] = [feetShown, stance.current.feet];
+    feetShown = stance.current.feet;
     const feet: Vec2 = stance.current.feet;
     // Where the eyes look across the ground: exactly where the player turned,
     // this frame, with no easing — the view is the mouse.
@@ -368,11 +365,36 @@ export const createDirector = (stage: Stage, { read, hand, walk, turn, stance, s
     );
   };
 
+  /** Whether the thrower may walk and turn: their turn, and not holding a throw. Feet stay planted through one. */
+  const canWalk = (state: StageSnapshot, draw: number | null): boolean => state.phase.kind === 'ready' && draw === null;
+
+  /**
+   * One fixed physics step of walking: wherever the player asks, as far as
+   * solid things allow, and never off their own ground.
+   *
+   * Walking meets the physics world — knives standing in the ground are solid
+   * — so it runs in the physics' own fixed steps (the engine's 1/60 s time step), not
+   * once a frame: a variable step makes the body move and collide a little
+   * differently at 60 frames a second than at 144.
+   */
+  const walkOneStep = () => {
+    const state = read();
+    if (!canWalk(state, hand().draw) || placedFor !== state.playerId) return;
+    const seconds = engine.getTimeStep() / 1000;
+    const { feet, facing } = stance.current;
+    const walked = walker.step(feet, walkStep(feet, walk(), facing, seconds), seconds);
+    const allowed = keepOnOwnLand(state.board, state.playerId, feet, walked);
+    if (allowed[0] !== walked[0] || allowed[1] !== walked[1]) walker.place(allowed);
+    stance.current = { ...stance.current, feet: allowed };
+  };
+
+  const stepObserver = scene.onBeforeStepObservable.add(walkOneStep);
   const observer = scene.onBeforeRenderObservable.add(frame);
 
   return {
     dispose: () => {
       scene.onBeforeRenderObservable.remove(observer);
+      scene.onBeforeStepObservable.remove(stepObserver);
       arena.dispose();
       body.dispose();
       camera.dispose();
