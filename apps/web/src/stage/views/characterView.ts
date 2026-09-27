@@ -17,6 +17,7 @@ import { bladeDirection, toWorld } from '../math/coords.js';
 import { mixHex } from '../math/color.js';
 import { locomotion, type ClipSpeeds } from '../math/locomotion.js';
 import { armsFirst, isArmBoneName, isArmJointBoneName } from '../math/armsOnly.js';
+import { drawOnTop } from './layers.js';
 import type { Limb } from '../math/twoBoneIk.js';
 import { reachArm, type ArmBones } from './boneAim.js';
 import { closeOnHandle, HAND_SCALE, measureHand, type HandShape } from './handGrip.js';
@@ -157,6 +158,7 @@ export const createCharacterView = (
       // After the clips, which set the head's scale every frame like every bone's.
       rig.head.scaling.setAll(frame.firstPerson ? HIDDEN : 1);
       rig.showBody(!frame.firstPerson);
+      drawOnTop(rig.meshes, frame.firstPerson);
       // Every bone's place in the world follows from the root just moved: bring
       // them all up to date now, parents first, or the arms would reach from
       // where the shoulders were last frame — a knife trailing the hand as it walks.

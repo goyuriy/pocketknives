@@ -14,6 +14,7 @@ import { alignUp, axisAngle, bladeQuaternion, compose, rotate } from '../math/co
 import type { BodyPose, Figure } from '../math/bodyPose.js';
 import type { Limb } from '../math/twoBoneIk.js';
 import { createKnifeModel, place, type KnifeModel } from './knifeModel.js';
+import { drawOnTop } from './layers.js';
 import { paint, repaint } from './materials.js';
 
 const SKIN = '#e9b48c';
@@ -138,6 +139,8 @@ export const createBodyView = (scene: Scene, playfield: TransformNode, shadows: 
       trunk.meshes.forEach((mesh) => mesh.setEnabled(look.drawn && look.head));
       trunk.head.setEnabled(look.drawn && look.head);
       arms.forEach((arm) => [arm.upper, arm.lower, arm.elbow, arm.fist].forEach((node) => node.setEnabled(look.drawn)));
+      // Seen from the thrower's own eyes, the arms and the knife are drawn over the world.
+      drawOnTop([...(knife ? [knife.root] : []), ...arms.flatMap((arm) => [arm.upper, arm.lower, arm.elbow, arm.fist])], !look.head);
 
       const [throwing, other] = arms;
       if (throwing) posed(throwing, pose.throwingArm, bladeQuaternion(look.heading, pose.bladeAngle));

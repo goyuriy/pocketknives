@@ -16,6 +16,7 @@ import { PhysicsShapeType } from '@babylonjs/core/Physics/v2/IPhysicsEnginePlugi
 import '@babylonjs/core/Physics/joinedPhysicsEngineComponent';
 import '@babylonjs/core/Physics/v2/physicsEngineComponent';
 import { PLAYFIELD_TILT } from '../math/coords.js';
+import { layerScene } from '../views/layers.js';
 import { SetMissingSideEffectWarningsEnabled } from '@babylonjs/core/Misc/devTools';
 
 // Every feature is its own import, and forgetting one fails silently. In
@@ -77,6 +78,7 @@ export const createStage = (canvas: HTMLCanvasElement, options: StageOptions): S
 
   const scene = new Scene(engine);
   scene.useRightHandedSystem = true;
+  layerScene(scene);
   scene.clearColor = Color4.FromColor3(BACKDROP, 1);
   scene.fogMode = Scene.FOGMODE_LINEAR;
   scene.fogColor = BACKDROP;
