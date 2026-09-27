@@ -400,6 +400,25 @@ button:active {
   white-space: nowrap;
 }
 
+/* Comfort settings: folded into one line until opened. */
+.comfort {
+  font-size: 13px;
+  color: var(--ink);
+}
+
+.comfort summary {
+  cursor: pointer;
+  width: fit-content;
+  opacity: 0.8;
+}
+
+.comfort[open] {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
+}
+
 /* After Escape: the game is waiting for a click, so say so where the eye is. */
 .look-hint.paused {
   top: 40%;

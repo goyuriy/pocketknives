@@ -347,7 +347,10 @@ export const createDirector = (stage: Stage, { read, hand, walk, turn, stance, s
     // A free look is the mouse, exactly; the throw-following view eases, since
     // a finger or a cursor can set a new angle in one jump.
     dip = dip === null || gaze !== undefined ? wantedDip : easeToward(dip, wantedDip, LOOK_FOLLOW_RATE, seconds);
-    const jolt = shakeAngles(holding ? 0 : trauma, worldNow / 1000);
+    const [yaw, tilt, roll] = shakeAngles(holding ? 0 : trauma, worldNow / 1000);
+    const { comfort } = state;
+    const jolt = [yaw * comfort.shake, tilt * comfort.shake, roll * comfort.shake] as const;
+    camera.setViewScale(comfort.view);
     camera.follow(
       cameraPose(
         feet,

@@ -3,16 +3,18 @@ import { SandboxHud } from './ui/SandboxHud.js';
 import { TuningPanel } from './ui/TuningPanel.js';
 import { useSandbox } from './state/useSandbox.js';
 import { useRememberedFlag } from './ui/useRememberedFlag.js';
+import { useComfort } from './state/useComfort.js';
 
 export const App = () => {
   const game = useSandbox(4);
+  const comfort = useComfort();
   // The tuning panel and sandbox controls, for working on the game rather
   // than playing it. Hidden, the screen is just the game.
   const [debug, setDebug] = useRememberedFlag('pocketknives.debug', true);
 
   return (
     <div className="app">
-      <Stage game={game} />
+      <Stage game={game} comfort={comfort.comfort} />
       {debug ? (
         <TuningPanel config={game.config} onChange={game.setTuning} />
       ) : (
@@ -20,7 +22,7 @@ export const App = () => {
           Debug
         </button>
       )}
-      <SandboxHud game={game} debug={debug} onHideDebug={() => setDebug(false)} />
+      <SandboxHud game={game} comfort={comfort} debug={debug} onHideDebug={() => setDebug(false)} />
     </div>
   );
 };

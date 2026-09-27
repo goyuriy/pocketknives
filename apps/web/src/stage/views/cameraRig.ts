@@ -19,6 +19,8 @@ export type CameraRig = {
     lockOn: (distance: number) => boolean,
     shake?: ShakeAngles,
   ) => void;
+  /** Widens or narrows the view, as a share of the designed one — the player's comfort setting. */
+  readonly setViewScale: (scale: number) => void;
   readonly dispose: () => void;
 };
 
@@ -38,6 +40,7 @@ export const createCameraRig = (scene: Scene): CameraRig => {
   scene.activeCamera = camera;
 
   let placed = false;
+  let widen = 1;
   const eye = new Vector3();
   const focus = new Vector3();
   // Where the camera is, eased. A shake turns the camera and never moves it,
@@ -48,7 +51,7 @@ export const createCameraRig = (scene: Scene): CameraRig => {
     follow: (pose, rate, seconds, lockOn, shake = STILL) => {
       // Wide enough to see your own hands and the circle beyond them at once,
       // whichever way up the screen is.
-      const view = fieldOfView(scene.getEngine().getAspectRatio(camera));
+      const view = fieldOfView(scene.getEngine().getAspectRatio(camera), widen);
       camera.fovMode = view.held === 'vertical' ? Camera.FOVMODE_VERTICAL_FIXED : Camera.FOVMODE_HORIZONTAL_FIXED;
       camera.fov = view.radians;
 
@@ -67,6 +70,9 @@ export const createCameraRig = (scene: Scene): CameraRig => {
       camera.rotation.x += pitch;
       camera.rotation.y += yaw;
       camera.rotation.z += roll;
+    },
+    setViewScale: (scale) => {
+      widen = scale;
     },
     dispose: () => camera.dispose(),
   };

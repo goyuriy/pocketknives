@@ -221,8 +221,13 @@ const LEAST_ACROSS = (64 * Math.PI) / 180;
  * fills the edge and the rest is sky. So once the view across would drop below
  * `LEAST_ACROSS` it is held across instead, and a tall screen sees further up
  * and down rather than less side to side.
+ *
+ * @param widen the player's field-of-view setting, as a share of the designed
+ *              view (see `Comfort.view`)
  */
-export const fieldOfView = (aspect: number): FieldOfView => {
-  const across = 2 * Math.atan(Math.tan(VERTICAL_VIEW / 2) * aspect);
-  return across >= LEAST_ACROSS ? { held: 'vertical', radians: VERTICAL_VIEW } : { held: 'horizontal', radians: LEAST_ACROSS };
+export const fieldOfView = (aspect: number, widen = 1): FieldOfView => {
+  const vertical = VERTICAL_VIEW * widen;
+  const leastAcross = LEAST_ACROSS * widen;
+  const across = 2 * Math.atan(Math.tan(vertical / 2) * aspect);
+  return across >= leastAcross ? { held: 'vertical', radians: vertical } : { held: 'horizontal', radians: leastAcross };
 };

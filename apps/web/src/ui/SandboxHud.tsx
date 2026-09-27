@@ -3,6 +3,8 @@ import type { Attempt, SandboxState } from '../state/useSandbox.js';
 import { CAMERA_VIEWS, type CameraView } from '../stage/math/cameraPose.js';
 import { colorOf } from './theme.js';
 import { DrawMeter } from './DrawMeter.js';
+import { ComfortControls } from './ComfortControls.js';
+import type { ComfortState } from '../state/useComfort.js';
 import { KnifePicker } from './KnifePicker.js';
 
 /**
@@ -75,10 +77,12 @@ const describe = (attempt: Attempt, arenaArea: number): string =>
  */
 export const SandboxHud = ({
   game,
+  comfort,
   debug,
   onHideDebug,
 }: {
   game: SandboxState;
+  comfort: ComfortState;
   debug: boolean;
   onHideDebug: () => void;
 }) => {
@@ -131,6 +135,8 @@ export const SandboxHud = ({
           </button>
         ))}
       </div>
+
+      <ComfortControls {...comfort} />
 
       {debug && (
         <div className="controls">

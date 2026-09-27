@@ -78,6 +78,15 @@ describe('fieldOfView', () => {
   });
 });
 
+describe('fieldOfView, widened', () => {
+  it('widens and narrows with the comfort setting, on any shape of screen', () => {
+    for (const aspect of [16 / 9, 375 / 700]) {
+      expect(fieldOfView(aspect, 1.2).radians).toBeGreaterThan(fieldOfView(aspect).radians);
+      expect(fieldOfView(aspect, 0.9).radians).toBeLessThan(fieldOfView(aspect).radians);
+    }
+  });
+});
+
 describe('eyeDip', () => {
   it('looks further down on a tall screen, so the extra height is ground, not sky', () => {
     expect(eyeDip(375 / 650)).toBeGreaterThan(eyeDip(16 / 9));

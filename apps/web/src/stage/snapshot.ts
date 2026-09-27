@@ -6,6 +6,7 @@ import type {
   ThrowConfig,
 } from '@pocketknives/core';
 import type { Attempt, Phase } from '../state/useSandbox.js';
+import type { Comfort } from '../state/useComfort.js';
 import type { CameraView } from './math/cameraPose.js';
 
 /**
@@ -18,6 +19,8 @@ import type { CameraView } from './math/cameraPose.js';
  * noticing either.
  */
 export type StageSnapshot = {
+  /** How much the view may move, for the player's comfort. */
+  readonly comfort: Comfort;
   readonly board: Board;
   readonly fields: readonly FieldOutline[];
   readonly alive: readonly PlayerId[];

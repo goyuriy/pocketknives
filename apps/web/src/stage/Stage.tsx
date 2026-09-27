@@ -10,9 +10,11 @@ import { createStage } from './engine/createStage.js';
 import { createDirector } from './director.js';
 import type { HandInput, StageSnapshot } from './snapshot.js';
 import { useThrowControls, STICK_REACH } from './useThrowControls.js';
+import type { Comfort } from '../state/useComfort.js';
 import { useGamepadThrow } from './useGamepadThrow.js';
 
-const snapshotOf = (game: SandboxState): StageSnapshot => ({
+const snapshotOf = (game: SandboxState, comfort: Comfort): StageSnapshot => ({
+  comfort,
   board: game.match.board,
   fields: game.fields,
   alive: game.alive,
@@ -41,9 +43,9 @@ const snapshotOf = (game: SandboxState): StageSnapshot => ({
  * `useThrowControls` (mouse and touch), `useGamepadThrow` (the right stick) and
  * the walking devices, into refs the stage reads each frame.
  */
-export const Stage = ({ game }: { game: SandboxState }) => {
+export const Stage = ({ game, comfort }: { game: SandboxState; comfort: Comfort }) => {
   const canvas = useRef<HTMLCanvasElement>(null);
-  const snapshot = useRef(snapshotOf(game));
+  const snapshot = useRef(snapshotOf(game, comfort));
   const sound = useRef<ImpactSound | null>(null);
   const hand = useRef<HandInput>({ aim: 0, pitch: game.config.gesture.restingPitch, draw: null });
   // Placed by the stage on the thrower's own ground once it has a board to read.
@@ -51,7 +53,7 @@ export const Stage = ({ game }: { game: SandboxState }) => {
   const touchWalk = useRef<WalkInput>(STANDING_STILL);
 
   useEffect(() => {
-    snapshot.current = snapshotOf(game);
+    snapshot.current = snapshotOf(game, comfort);
   });
 
   useEffect(() => {

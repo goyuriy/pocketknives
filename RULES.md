@@ -253,6 +253,11 @@ From your own eyes you see only your arms — upper arm, elbow, forearm and
 hand — as in any first-person game — but the whole of your shadow; from every
 other camera, and to every other player, the whole thrower.
 
+**Comfort.** Under *Comfort* in the HUD, a player can turn the impact shake
+down (to none) and widen or narrow the view (85–130% of the designed field of
+view), the settings players expect from any first-person game for motion
+sickness. Both are remembered in the browser.
+
 The captured mouse is read raw where the browser allows it, without the
 operating system's pointer acceleration, so the same sweep of the hand always
 turns the same way. Escape lets the mouse go and pauses on "click to carry
