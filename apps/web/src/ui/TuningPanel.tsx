@@ -37,7 +37,7 @@ const DIALS: readonly Dial[] = [
   { group: 'knife', key: 'balance', label: 'balance', min: 0.2, max: 0.8, step: 0.01, hint: '0 butt, 1 tip' },
   { group: 'knife', key: 'edgeWidth', label: 'edge', min: 0.002, max: 0.03, step: 0.0005, hint: 'finer bites deeper' },
 
-  { group: 'style', key: 'pitch', label: 'pitch', min: 0, max: 1.2, step: 0.01 },
+  { group: 'style', key: 'pitch', label: 'pitch', min: -1.57, max: 1.2, step: 0.01, hint: 'reference angle the physics is measured at' },
   { group: 'style', key: 'spinImpulse', label: 'natural spin', min: 0, max: 0.13, step: 0.0005, hint: 'how many turns a throw makes' },
   { group: 'style', key: 'startingBladeAngle', label: 'start angle', min: -3.14, max: 3.14, step: 0.02 },
   { group: 'style', key: 'releaseHeight', label: 'release height', min: 0.3, max: 3, step: 0.05 },
@@ -60,8 +60,8 @@ const DIALS: readonly Dial[] = [
   { group: 'gesture', key: 'fullWhip', label: 'full whip', min: 1, max: 10, step: 0.1, hint: 'push speed that spins the knife hardest' },
   { group: 'gesture', key: 'minPushSpeed', label: 'push speed', min: 0.1, max: 3, step: 0.05, hint: 'slower than this eases off instead of throwing' },
   { group: 'gesture', key: 'maxAim', label: 'aim reach', min: 0.2, max: 1.5, step: 0.01, hint: 'radians either side, screen edge to edge' },
-  { group: 'gesture', key: 'minPitch', label: 'flattest', min: 0, max: 0.6, step: 0.01, hint: 'launch angle with the hand low, radians' },
-  { group: 'gesture', key: 'maxPitch', label: 'steepest', min: 0.3, max: 1.3, step: 0.01, hint: 'launch angle with the hand high, radians' },
+  { group: 'gesture', key: 'minPitch', label: 'steepest down', min: -1.57, max: 0.3, step: 0.01, hint: 'launch angle with the hand low, radians; −1.57 is straight down' },
+  { group: 'gesture', key: 'maxPitch', label: 'highest lob', min: -0.5, max: 1.3, step: 0.01, hint: 'launch angle with the hand high, radians' },
   { group: 'gesture', key: 'driftGain', label: 'drift pull', min: 0, max: 1.5, step: 0.05, hint: 'how much a crooked push bends the throw' },
 
   { group: 'flight', key: 'gravity', label: 'gravity', min: 5, max: 60, step: 0.5 },

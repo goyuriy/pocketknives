@@ -1,6 +1,6 @@
 import type { Vec2, Vec3 } from '../types.js';
 import type { Launch } from './types.js';
-import { DEFAULT_CONFIG, launchSpeed, spinRate, type ThrowConfig } from './config.js';
+import { DEFAULT_CONFIG, launchSpeed, releaseBladeAngle, spinRate, type ThrowConfig } from './config.js';
 import { jitter, seededRandom } from './random.js';
 
 /**
@@ -28,7 +28,7 @@ export const aimedLaunch = (
     pitch: style.pitch,
     speed: launchSpeed(config, power),
     spin: spinRate(config),
-    bladeAngle: style.startingBladeAngle,
+    bladeAngle: releaseBladeAngle(style.pitch, config),
   };
 
   return seed === undefined ? clean : scatterLaunch(clean, config, seed);

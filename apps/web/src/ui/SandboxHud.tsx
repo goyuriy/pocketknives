@@ -107,7 +107,7 @@ export const SandboxHud = ({
           ? 'Pull back for distance, then push forward and let go. Let go still to call it off.'
           : attempt
             ? describe(attempt, arenaArea)
-            : 'Walk your own ground. Look to aim — up to lob, down for flat. Hold, pull back, push through.'}
+            : 'Walk your own ground. Look to aim — down into the ground at your feet, up to lob. Hold, pull back, push through.'}
       </div>
 
       <div className="standings">

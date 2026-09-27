@@ -44,24 +44,34 @@ pointing. Three decisions make a throw, and none of them is a reflex:
    hand wavers very slightly on its own; a patient player waits for it to
    settle.
 
-   Up and down sets **how steeply** to throw, from a skimming 6° with the hand
-   low to a 46° lob with it high — the free arm lifts to show it, and the HUD
-   gives the number. The angle locks when you grip, because from then on up
-   and down is the draw. It is a real choice, not a style: a flat throw is
-   quick and dependable but cannot reach the far side; a lob reaches anywhere
-   but stays up long enough for the hand's wobble to tell.
+   Up and down sets **how steeply** to throw: from straight down at your feet
+   with the hand low to a 45° lob with it high. Your eyes go with it — the
+   view looks down at the ground the knife is meant for, the way you watch
+   the dirt under your knees in the yard. The free arm tilts to show the
+   angle, and the HUD gives it (↓43° is 43° down into the ground). The angle
+   locks when you grip, because from then on up and down is the draw.
 
-   | Angle | Full draw reaches | Sticks at full draw |
+   **This is a game played at your feet.** A knife only claims ground if it
+   lands within reach of your own (see *Within reach*), so the steep half of
+   the range is where games are won. A lob still throws; from your border it
+   mostly lands where you could never reach it.
+
+   | Angle | Lands, least to full draw | Sticks at full draw |
    | --- | --- | --- |
-   | 6° (flat) | 8.7 | 97% |
-   | 20° (resting) | 13.7 | 81% |
-   | 46° (lob) | 17.9 | 64% |
+   | ↓90° (straight down) | 0.6 | 100% |
+   | ↓60° | 1.2 – 1.4 | 100% |
+   | ↓43° (resting) | 1.6 – 2.0 | 100% |
+   | ↓30° | 1.9 – 2.7 | 100% |
+   | 0° (level) | 2.9 – 7.4 | 100% |
+   | ↑20° | 3.4 – 14.3 | 85% |
+   | ↑45° (lob) | 3.3 – 18.6 | 68% |
 
-   Reach is measured from where the knife leaves the hand. From the middle of
-   a quarter of the circle the far rim is about fifteen away: only a lob gets
-   there. But a knife only claims ground if it lands within reach of your own
-   (see *Within reach*), so how far you can throw matters much less than how
-   near you can land it.
+   Distances are from your feet, with the Thrower, over 400 seeded throws.
+   Steep throws land where they are pointed whatever the draw, and never miss:
+   they are in the air a fraction of a second, too short for the hand's wobble
+   to grow, and they go in upright, handle well clear of the ground. The
+   flatter the throw, the more the draw decides the distance — and the more
+   the wobble tells.
 2. **Draw.** Hold the button and pull back towards you. The knife is held in a
    hammer grip, the first grip every thrower learns: the handle diagonally
    across the palm, fingers round it, the thumb along its side, the knife
@@ -148,8 +158,11 @@ The first two are not the same test. A knife can be perfectly aligned with its
 descending path and still have its tip above horizontal, whenever the path is
 steeper than the knife.
 
-Full power from the Thrower just reaches the far rim. A throw that fails to
-stick costs the turn, like any other miss.
+A throw that fails to stick costs the turn, like any other miss.
+
+The knife leaves the hand the way it sat in the fist, tipped up a little from
+the line of the throw — so a knife thrown straight down leaves pointing down,
+and needs hardly any turn to go in point-first.
 
 > `simulateFlight` — [flight.ts](packages/core/src/throw/flight.ts)
 > `stickVerdict` — [stick.ts](packages/core/src/throw/stick.ts)
@@ -497,6 +510,11 @@ There is no aiming preview. The knife in the hand is the aim.
   would make every throw from the border too long. And the draw still spans
   throws out to 14, most of which now land out of reach. If short throws feel
   too coarse to place, the power range is the next thing to tune.
+- **Steep throws never miss.** Straight down sticks every time: the flight is
+  too short for the wobble to matter. True to the yard, but it leaves sticking
+  no challenge close in. Candidates: a wobble in the blade's heading (the line
+  comes out a little crooked), or a grip wobble that grows as the throw
+  steepens.
 - **Roll.** The knife currently tumbles strictly within its flight plane, so the
   cut always runs along the throw. Letting a player put a twist on it would free
   the line from the aim — more control, and a third thing to learn. Deliberately

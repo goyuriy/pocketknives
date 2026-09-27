@@ -110,8 +110,8 @@ export const aimFromPointer = (x: number, left: number, width: number, config: T
 /**
  * How steeply the hand is set to throw, from how high the pointer is.
  *
- * Raise the hand to lob, lower it to throw flat. Top of the stage is the
- * steepest throw, the bottom of the band above the HUD the flattest.
+ * Raise the hand to lob, lower it to throw down at your feet. Top of the stage
+ * is the highest lob, the bottom of the band above the HUD straight down.
  */
 export const pitchFromPointer = (y: number, top: number, height: number, config: ThrowConfig): number => {
   const { minPitch, maxPitch } = config.gesture;

@@ -169,13 +169,13 @@ describe('aimFromPointer', () => {
 describe('pitchFromPointer', () => {
   const { minPitch, maxPitch } = DEFAULT_CONFIG.gesture;
 
-  it('lobs with the hand high and throws flat with it low', () => {
+  it('lobs with the hand high and throws down with it low', () => {
     expect(pitchFromPointer(0, 0, 1000, DEFAULT_CONFIG)).toBeCloseTo(maxPitch, 9);
     expect(pitchFromPointer(700, 0, 1000, DEFAULT_CONFIG)).toBeCloseTo(minPitch, 9);
     expect(pitchFromPointer(350, 0, 1000, DEFAULT_CONFIG)).toBeCloseTo((minPitch + maxPitch) / 2, 9);
   });
 
-  it('holds at the flattest below the band', () => {
+  it('holds at straight down below the band', () => {
     expect(pitchFromPointer(990, 0, 1000, DEFAULT_CONFIG)).toBeCloseTo(minPitch, 9);
   });
 });

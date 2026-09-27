@@ -98,7 +98,7 @@ export const useSandbox = (initialPlayers = 4) => {
   // The angle the hand is set to throw at, for the HUD. Rounded to a whole
   // degree on the way in, so sweeping the pointer re-renders only when the
   // number shown would actually change.
-  const [pitch, setPitchExactly] = useState(DEFAULT_CONFIG.style.pitch);
+  const [pitch, setPitchExactly] = useState(DEFAULT_CONFIG.gesture.restingPitch);
   const setPitch = useCallback(
     (radians: number) => setPitchExactly(Math.round((radians * 180) / Math.PI) * (Math.PI / 180)),
     [],

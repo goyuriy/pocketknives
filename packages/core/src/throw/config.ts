@@ -35,8 +35,10 @@ export type KnifeSpec = {
 /** How the player throws — fixed per player, not per throw. */
 export type ThrowStyle = {
   /**
-   * Launch angle above the horizontal, radians, when nobody chooses one — the
-   * hand's resting angle, and the angle raw `aimedLaunch` throws at.
+   * Launch angle above the horizontal, radians, that raw `aimedLaunch` throws
+   * at — the reference the knife's physics is measured and tuned against, and
+   * the angle the body's poses are drawn for. Where the player's hand rests is
+   * `GestureTuning.restingPitch`.
    */
   readonly pitch: number;
   /** How high above the ground the knife leaves the hand. */
@@ -51,7 +53,13 @@ export type ThrowStyle = {
    * knife makes on its way, and so how it looks in the air.
    */
   readonly spinImpulse: number;
-  /** Where in its tumble the knife starts. Zero points along the throw. */
+  /**
+   * Where in its tumble the knife starts, radians above the line it is thrown
+   * along: zero points exactly along the throw. Relative to the throw, not the
+   * ground, because the knife sits in the fist the same way however steeply the
+   * arm comes down — a knife thrown straight down leaves the hand pointing
+   * down, not up at the sky. See `releaseBladeAngle`.
+   */
   readonly startingBladeAngle: number;
   /** Launch speed of the gentlest and hardest throw, for a knife of `referenceMass`. */
   readonly minSpeed: number;
@@ -134,9 +142,14 @@ export type GestureTuning = {
   readonly maxAim: number;
   /** How much of the push's sideways drift ends up in the knife's line. */
   readonly driftGain: number;
-  /** The flattest and steepest the hand can throw, radians above level. */
+  /**
+   * The steepest down and highest up the hand can throw, radians above level —
+   * negative is down into the ground.
+   */
   readonly minPitch: number;
   readonly maxPitch: number;
+  /** The angle the hand rests at before the player moves it, radians above level. */
+  readonly restingPitch: number;
 };
 
 export type ThrowConfig = {
@@ -166,9 +179,10 @@ export const DEFAULT_CONFIG: ThrowConfig = {
     // The knife's natural tumble; the wrist settles on the sticking rate nearest
     // it, so this sets how many turns a throw makes rather than whether it sticks.
     spinImpulse: 0.0528, // 30 rad/s with the knife above
-    // Tip up, as the knife sits in the hand — the tumble carries it forward from
-    // there, so the throw begins where the held knife was left.
-    startingBladeAngle: 0.8,
+    // Tip up from the line of the throw, as the knife sits in the fist — the
+    // tumble carries it forward from there, so the throw begins where the held
+    // knife was left. At the reference pitch that is 0.8 above level.
+    startingBladeAngle: 0.45,
     // Tuned for throwing from inside your own ground, about five units from the
     // centre: the least draw tosses just over your own border, a full draw at
     // the resting angle falls just short of the far rim, and only a full lob
@@ -236,10 +250,14 @@ export const DEFAULT_CONFIG: ThrowConfig = {
     // Half the drift: enough that a sloppy push visibly pulls the knife, not so
     // much that an ordinary one throws it at the wrong player.
     driftGain: 0.5,
-    // From a skimming 6° to a 46° lob. The style's own pitch sits in between
-    // and is where the hand rests before the player moves it.
-    minPitch: 0.1,
-    maxPitch: 0.8,
+    // From straight down at your feet to a 45° lob. The yard game is played at
+    // the ground in front of you — the knife has to land where you can reach
+    // it (see `RuleSet.reach`) — so the steep half of the range is where games
+    // are won. A lob still throws; it just rarely wins.
+    minPitch: -Math.PI / 2,
+    maxPitch: Math.PI / 4,
+    // Down at the ground a stride or two ahead.
+    restingPitch: -0.75,
   },
   flight: {
     gravity: 24,
@@ -279,6 +297,13 @@ export const launchSpeed = (config: ThrowConfig, power: number): number => {
   const clamped = Math.min(1, Math.max(0, power));
   return (minSpeed + (maxSpeed - minSpeed) * clamped) * weightFactor(config);
 };
+
+/**
+ * The knife's angle as it leaves the hand, radians above level, for a throw
+ * launched at `pitch`: the fist's own tilt, carried round by the arm.
+ */
+export const releaseBladeAngle = (pitch: number, config: ThrowConfig): number =>
+  pitch + config.style.startingBladeAngle;
 
 /** The knife's natural tumble — what a relaxed wrist gives it. */
 export const spinRate = (config: ThrowConfig): number =>

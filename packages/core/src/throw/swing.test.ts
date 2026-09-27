@@ -72,7 +72,7 @@ describe('the player chooses where, how far, and how cleanly', () => {
   it('keeps the angle within what an arm can throw', () => {
     const { minPitch, maxPitch } = DEFAULT_CONFIG.gesture;
     expect(swingLaunch(stand, rest, swing({ pitch: 3 })).pitch).toBe(maxPitch);
-    expect(swingLaunch(stand, rest, swing({ pitch: -1 })).pitch).toBe(minPitch);
+    expect(swingLaunch(stand, rest, swing({ pitch: -3 })).pitch).toBe(minPitch);
   });
 
   it('reads draw as power from the least draw to a full one', () => {
@@ -109,7 +109,8 @@ describe('the wrist is automatic', () => {
   it('stands a clean throw up steeper when the handle has to clear the ground', () => {
     const entry = (grabClearance: number) => {
       const config = { ...DEFAULT_CONFIG, stick: { ...DEFAULT_CONFIG.stick, grabClearance } };
-      return landing(swing({ draw: 1, pitch: DEFAULT_CONFIG.gesture.minPitch }), config).entryAngle;
+      // A flat throw: one aimed down already goes in upright, with no room to stand steeper.
+      return landing(swing({ draw: 1, pitch: 0.1 }), config).entryAngle;
     };
     expect(entry(0.3)).toBeGreaterThan(entry(0));
   });

@@ -92,4 +92,10 @@ describe('eyeDip', () => {
     expect(eyeDip(375 / 650)).toBeGreaterThan(eyeDip(16 / 9));
     expect(eyeDip(16 / 9)).toBe(eyeDip(1));
   });
+
+  it('looks further down the further down the throw is aimed', () => {
+    expect(eyeDip(16 / 9, -Math.PI / 2)).toBeGreaterThan(eyeDip(16 / 9, -0.75));
+    expect(eyeDip(16 / 9, -0.75)).toBeGreaterThan(eyeDip(16 / 9, 0.6));
+    expect(eyeDip(16 / 9, 0.8)).toBeGreaterThan(0);
+  });
 });

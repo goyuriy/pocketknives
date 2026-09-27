@@ -6,8 +6,8 @@ import { EYE_HEIGHT } from './bodyPose.js';
  *
  * Two poses, and the whole feel of a throw lives in the move between them.
  *
- * Aiming, the camera is the thrower's eyes: eye level, looking out over their
- * own hands at the circle. It looks where the hand points, but like a
+ * Aiming, the camera is the thrower's eyes: eye level, looking down over their
+ * own hands at the ground the knife is meant for. It looks where the hand points, but like a
  * body-worn camera it does not lead — the hand moves first and the view catches
  * up (the director eases `look` towards the hand), so a quick sweep of the arm
  * is felt as the arm moving, not the world lurching.
@@ -17,23 +17,38 @@ import { EYE_HEIGHT } from './bodyPose.js';
  * above.
  */
 /**
- * How far below level the eyes look, radians. Down past the hands at the
- * circle — and down enough that the circle clears the HUD at the bottom of the
- * screen.
+ * How far below level the eyes look, radians, for a throw aimed level. Down
+ * past the hands at the circle — and down enough that the circle clears the
+ * HUD at the bottom of the screen.
  */
-const EYE_DIP = 0.22;
+const EYE_DIP = 0.35;
+/**
+ * How much further down the eyes look for each radian the throw is aimed down.
+ * Enough that they rest roughly on the ground the knife is headed for: at your
+ * feet for a throw straight down, a stride or two ahead at the resting angle,
+ * out over the circle for a lob.
+ */
+const DIP_PER_PITCH = 0.38;
+/** Never quite level, and never so far down that the hands leave the top of the view. */
+const LEAST_DIP = 0.05;
+const MOST_DIP = 1;
 /** How much further down a phone held upright looks, at its tallest. */
 const TALL_EXTRA_DIP = 0.16;
 
 /**
- * How far down the eyes look, for a screen of this shape (width / height).
+ * How far down the eyes look, for a screen of this shape (width / height) and
+ * a throw set at `pitch` (radians above level).
  *
- * A tall screen sees further up and down (see `fieldOfView`), and at the usual
- * dip the extra goes on sky: a third of a phone screen of nothing. Looking
- * further down spends it on the circle instead.
+ * In the yard your eyes are on the ground under your knees, where the knife is
+ * going — so the view follows the angle of the throw down, the way a head
+ * follows the hand. A tall screen sees further up and down (see
+ * `fieldOfView`), and at the usual dip the extra goes on sky: a third of a
+ * phone screen of nothing. Looking further down spends it on the ground
+ * instead.
  */
-export const eyeDip = (aspect: number): number =>
-  EYE_DIP + TALL_EXTRA_DIP * Math.min(1, Math.max(0, (0.9 - aspect) / 0.4));
+export const eyeDip = (aspect: number, pitch = 0): number =>
+  Math.min(MOST_DIP, Math.max(LEAST_DIP, EYE_DIP - DIP_PER_PITCH * pitch)) +
+  TALL_EXTRA_DIP * Math.min(1, Math.max(0, (0.9 - aspect) / 0.4));
 const OVER_HEIGHT = 30;
 const OVER_SETBACK = 4;
 /**

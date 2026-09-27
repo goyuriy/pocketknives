@@ -1,4 +1,13 @@
-import { homeSpot, isOnOwnLand, keepOnOwnLand, type KnifeSpec, type Vec2, type Vec3 } from '@pocketknives/core';
+import {
+  homeSpot,
+  isOnOwnLand,
+  keepOnOwnLand,
+  launchPitch,
+  releaseBladeAngle,
+  type KnifeSpec,
+  type Vec2,
+  type Vec3,
+} from '@pocketknives/core';
 import type { MutableRefObject } from 'react';
 import { CUT_DURATION, IMPACT_BEAT, type Attempt, type Stance } from '../state/useSandbox.js';
 import { walkStep, type WalkInput } from '../input/walk.js';
@@ -121,6 +130,7 @@ export const createDirector = (stage: Stage, { read, hand, walk, stance, sound }
   // Where the arm was when the hand let go: the hand-off swings it from here.
   let swingAtRelease = 0;
   let look: number | null = null;
+  let dip: number | null = null;
   let phaseSeen = first.phase;
   let phaseStartedAt = performance.now();
   // The last knife to hit the ground, and when: everything that happens on
@@ -241,7 +251,10 @@ export const createDirector = (stage: Stage, { read, hand, walk, stance, sound }
       {
         release,
         heading,
-        releaseBladeAngle: state.config.style.startingBladeAngle,
+        releaseBladeAngle:
+          phase.kind === 'ready'
+            ? releaseBladeAngle(launchPitch({ aim, pitch, draw: 0, drift: 0 }, state.config), state.config)
+            : phase.attempt.flight.samples[0]!.bladeAngle,
         loft: pitch - state.config.style.pitch,
         raised,
         spec: phase.kind === 'ready' ? state.knife : phase.attempt.knife,
@@ -292,6 +305,9 @@ export const createDirector = (stage: Stage, { read, hand, walk, stance, sound }
     );
 
     look = look === null ? heading : easeHeading(look, heading, LOOK_FOLLOW_RATE, seconds);
+    // The eyes go down with the throw: at the ground the knife is meant for.
+    const wantedDip = eyeDip(engine.getRenderWidth() / Math.max(1, engine.getRenderHeight()), pitch);
+    dip = dip === null ? wantedDip : easeToward(dip, wantedDip, LOOK_FOLLOW_RATE, seconds);
     const jolt = impact && Number.isFinite(sinceImpact)
       ? shakeOffset(
           sinceImpact,
@@ -305,7 +321,7 @@ export const createDirector = (stage: Stage, { read, hand, walk, stance, sound }
         overhead,
         state.arenaRadius,
         look,
-        eyeDip(engine.getRenderWidth() / Math.max(1, engine.getRenderHeight())),
+        dip,
         view,
         inHand ?? pose.throwingArm.end,
       ),

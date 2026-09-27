@@ -44,7 +44,7 @@ export const Stage = ({ game }: { game: SandboxState }) => {
   const canvas = useRef<HTMLCanvasElement>(null);
   const snapshot = useRef(snapshotOf(game));
   const sound = useRef<ImpactSound | null>(null);
-  const hand = useRef<HandInput>({ aim: 0, pitch: game.config.style.pitch, draw: null });
+  const hand = useRef<HandInput>({ aim: 0, pitch: game.config.gesture.restingPitch, draw: null });
   // Placed by the stage on the thrower's own ground once it has a board to read.
   const stance = useRef<Stance>({ feet: [0, 0], facing: 0 });
   const touchWalk = useRef<WalkInput>(STANDING_STILL);

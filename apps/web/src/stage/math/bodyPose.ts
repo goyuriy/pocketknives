@@ -68,6 +68,12 @@ const HANGING_TILT = -1.4;
  * shows the angle outright; the throwing hand only has to agree with it.
  */
 const HAND_LIFT = 0.22;
+/**
+ * A throw aimed down barely lowers the hand. Down into the ground is thrown
+ * overhand — the fist stays up by the shoulder and it is the knife that tips
+ * down — so dropping the hand to match would throw from the hip.
+ */
+const HAND_DROP = 0.05;
 const BLADE_LIFT = 0.8;
 
 /**
@@ -364,7 +370,7 @@ const figureAt = (frame: BodyFrame, swing: number, stride: Stride): Figure => {
  */
 const keyframeAt = (swing: number, released: Keyframe, loft: number): Keyframe => {
   const lifted = ({ at, bladeAngle }: Keyframe): Keyframe => ({
-    at: [at[0], at[1], at[2] + loft * HAND_LIFT],
+    at: [at[0], at[1], at[2] + loft * (loft > 0 ? HAND_LIFT : HAND_DROP)],
     bladeAngle: bladeAngle + loft * BLADE_LIFT,
   });
   const between = (a: Keyframe, b: Keyframe, t: number): Keyframe => ({

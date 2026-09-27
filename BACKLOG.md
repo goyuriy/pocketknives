@@ -104,6 +104,10 @@ instead of always the best move. See RULES.md, *Within reach*.
 - 📋 Tune the reach against play, and the draw's power range with it: most of
   a full draw now lands out of reach.
 - 💡 Per-player reach, for the **Long hands** skill (**Progression tree**).
+- ✅ Throws go down into the ground: from straight down at your feet to a 45°
+  lob, resting at 43° down, and the view looks down with the throw — the yard
+  game is played at the dirt under your knees.
+- 💡 Make steep throws miss sometimes — today straight down always sticks.
 
 ### Match flow — 📋 · E, R
 A complete match: turn order shown, elimination moment, winner screen,
@@ -145,8 +149,8 @@ Which knives are open, and when, is decided by the knife branch of the
 **Progression tree**.
 
 ### Progression tree — 💡 · R, E
-What a player unlocks over time: four branches side by side — **grips**,
-**knives**, **skills**, **looks**. Designed in [docs/progression-tree.md](docs/progression-tree.md).
+What a player unlocks over time: five branches side by side — **grips**,
+**throws**, **knives**, **skills**, **looks**. Designed in [docs/progression-tree.md](docs/progression-tree.md).
 Rules: knives and grips are sidegrades while the character grows slightly with
 experience, unlock by doing (trials) not by grinding, real throwing first,
 nothing sold changes where a knife lands.
@@ -162,6 +166,10 @@ nothing sold changes where a knife lands.
   Needle; the Greatsword much later (character level 30, then a trial). It is
   in the rack now but locked, since two-handed throwing is parked: see
   **Character & hands**.
+- 💡 **Throws** — the arm's path, separate from the grip:
+  - Overhand (start) — the hand comes over from behind the shoulder, as today.
+  - Underhand — the hand swings up from below and lets go with heavy reverse
+    spin; the knife flips back over itself on its way in.
 - 💡 **Grip mastery** — three ranks per grip, for sticks thrown with it; looks
   only.
 - 💡 **Character level** — experience from sticks, claims and wins fills it;

@@ -8,6 +8,12 @@ import { drawPower, type ThrowConfig } from '@pocketknives/core';
  * steeper" is hard to judge from an arm. So the draw is a bar, with a notch at
  * the least draw that throws at all, and the angle is a number.
  */
+/** The throw's angle as a player says it: how many degrees down into the ground, or up. */
+const angleLabel = (pitch: number): string => {
+  const degrees = Math.round((pitch * 180) / Math.PI);
+  return degrees < 0 ? `↓${-degrees}°` : `↑${degrees}°`;
+};
+
 export const DrawMeter = ({
   draw,
   pitch,
@@ -35,7 +41,7 @@ export const DrawMeter = ({
           />
           <span className="swing-mark" style={{ left: `${config.gesture.minDraw * 100}%` }} />
         </span>
-        <span className="swing-angle">{Math.round((pitch * 180) / Math.PI)}°</span>
+        <span className="swing-angle">{angleLabel(pitch)}</span>
       </div>
     </div>
   );

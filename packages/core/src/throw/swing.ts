@@ -8,6 +8,7 @@ import {
   spinRate,
   stickWindow,
   type ThrowConfig,
+  releaseBladeAngle,
 } from './config.js';
 import { simulateFlight } from './flight.js';
 import { scatterLaunch } from './launch.js';
@@ -27,8 +28,9 @@ export type ThrowIntent = {
   /** Where the hand pointed, radians from straight ahead, positive to the right. */
   readonly aim: number;
   /**
-   * How steeply it was thrown, radians above level — a flat throw or a lob.
-   * Kept within the gesture's range; see `launchPitch`.
+   * How steeply it was thrown, radians above level — negative down into the
+   * ground in front, positive a lob. Kept within the gesture's range; see
+   * `launchPitch`.
    */
   readonly pitch: number;
   /** How far the arm was drawn back, 0 to 1. This is the distance. */
@@ -96,14 +98,14 @@ export const swingLaunch = (
   config: ThrowConfig = DEFAULT_CONFIG,
   seed?: number,
 ): Launch => {
-  const { style } = config;
+  const pitch = launchPitch(intent, config);
   const aimed: Launch = {
-    origin: [from[0], from[1], style.releaseHeight] as Vec3,
+    origin: [from[0], from[1], config.style.releaseHeight] as Vec3,
     heading: thrownHeading(restHeading, intent, config),
-    pitch: launchPitch(intent, config),
+    pitch,
     speed: launchSpeed(config, drawPower(intent, config)),
     spin: 0,
-    bladeAngle: style.startingBladeAngle,
+    bladeAngle: releaseBladeAngle(pitch, config),
   };
   const thrown: Launch = { ...aimed, spin: wristSpin(aimed, config, whippedSpin(intent, config)) };
 
@@ -184,7 +186,7 @@ export const nearestStickingSpin = (
   spin: number,
   flightTime: number,
   arrivalAngle: number,
-  startAngle: number = DEFAULT_CONFIG.style.startingBladeAngle,
+  startAngle: number = releaseBladeAngle(DEFAULT_CONFIG.style.pitch, DEFAULT_CONFIG),
 ): number | null => {
   if (flightTime <= 0) return null;
   const turnNeeded = startAngle - arrivalAngle;

@@ -31,13 +31,16 @@ Status: 💡 design — nothing here is built yet. The knives it refers to exist
 
 ## Shape of the tree
 
-Four branches that grow side by side. Levels come from playing; each branch
+Five branches that grow side by side. Levels come from playing; each branch
 has its own gates.
 
 ```
              ┌─ Grips ─────────────────────────────────────────────┐
   start ──►  Hammer ──► Blade grip ──► Pinch ──► No-spin
                               └────► Two-handed (needs the Cleaver)
+
+             ┌─ Throws ────────────────────────────────────────────┐
+  start ──►  Overhand ──► Underhand (reverse spin)
 
              ┌─ Knives ────────────────────────────────────────────┐
   start ──►  Thrower ──► Kitchen ──► Cleaver ──► Needle
@@ -108,6 +111,22 @@ is visible before every throw, so an opponent can read what is coming.
 Each grip has three mastery ranks, earned by sticking throws with it. Ranks buy
 looks only — a trail colour, a flourish on the stuck knife, a title ("Half-spin
 Specialist"). They never touch the numbers above.
+
+---
+
+## Throws
+
+A grip is how the knife sits in the hand; a throw is the path the arm takes.
+They combine: any grip can be thrown either way.
+
+| Throw | Real life | What it does in the game | Learning (real) | Unlock trial |
+| --- | --- | --- | --- | --- |
+| **Overhand** | The hand comes over from behind the shoulder and down; the knife turns forward, tip over the top. | Today's throw. | ★☆☆☆ | Start |
+| **Underhand** | The hand swings up from below the hip and lets go on the way up, flicking the knife backwards: heavy reverse spin, the tip coming back under. A yard trick for sticking a knife close in front of you. | The knife spins backwards (negative spin), so the wrist's sticking rungs run the other way. Short and steep only — the swing has no power to throw far. Scatter on the spin is doubled: a backward flick is hard to judge. The throw looks different, so an opponent sees it coming. | ★★★☆ | Stick 5 throws in a row within one stride of your feet |
+
+**Why it is a sidegrade.** Reverse spin reaches no further and forgives less;
+what it buys is a different angle of entry, which lets a knife go in where a
+forward tumble would skip — and the style of doing it.
 
 ---
 
