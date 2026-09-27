@@ -164,9 +164,11 @@ export const createCharacterView = (
       for (const node of rig.root.getDescendants(false)) (node as TransformNode).computeWorldMatrix?.(true);
 
       const handle = new Vector3(...toWorld(bladeDirection(frame.heading, frame.pose.bladeAngle)));
+      // The thrower's right: the throw's plane is square to it, and so are the palms.
+      const across = new Vector3(...toWorld([Math.sin(frame.heading), -Math.cos(frame.heading), 0]));
       const throwing = reachFor(rig.throwingArm, frame.pose.throwingArm);
       reachArm(rig.throwingArm, throwing.target, throwing.pole);
-      let grip = closeOnHandle(rig.throwingHand, rig.throwingArm.lower, handle);
+      let grip = closeOnHandle(rig.throwingHand, handle, across);
       if (frame.hands === 1) {
         const other = reachFor(rig.otherArm, frame.pose.otherArm);
         reachArm(rig.otherArm, other.target, other.pole);
@@ -180,8 +182,8 @@ export const createCharacterView = (
       // stretch, so first the grip comes in until both hands can reach it.
       const apart = handle.normalizeToNew().scale(handSize(rig.otherHand) * HANDS_APART);
       reachArm(rig.throwingArm, withinBothReaches(rig, throwing.target, apart), throwing.pole);
-      grip = closeOnHandle(rig.throwingHand, rig.throwingArm.lower, handle);
-      holdToo(rig, frame.pose, grip.add(apart), handle);
+      grip = closeOnHandle(rig.throwingHand, handle, across);
+      holdToo(rig, frame.pose, grip.add(apart), handle, across);
       const middle = grip.add(apart.scale(0.5));
       return [middle.x, -middle.z, middle.y];
     },
@@ -276,7 +278,7 @@ const withinBothReaches = (rig: Rig, wanted: Vector3, apart: Vector3): Vector3 =
  * the same way. The arm reaches for a wrist but the handle has to be in the
  * palm, so the reach is corrected by however far the palm lands off it.
  */
-const holdToo = (rig: Rig, pose: BodyPose, wanted: Vector3, handle: Vector3): void => {
+const holdToo = (rig: Rig, pose: BodyPose, wanted: Vector3, handle: Vector3, across: Vector3): void => {
   const middle: Vec3 = [
     (pose.otherArm.root[0] + pose.otherArm.end[0]) / 2,
     (pose.otherArm.root[1] + pose.otherArm.end[1]) / 2,
@@ -286,7 +288,7 @@ const holdToo = (rig: Rig, pose: BodyPose, wanted: Vector3, handle: Vector3): vo
   let wrist = wanted.clone();
   for (let i = 0; i < SETTLING; i++) {
     reachArm(rig.otherArm, wrist, pole);
-    const palm = closeOnHandle(rig.otherHand, rig.otherArm.lower, handle);
+    const palm = closeOnHandle(rig.otherHand, handle, across);
     wrist = wrist.add(wanted.subtract(palm));
   }
 };

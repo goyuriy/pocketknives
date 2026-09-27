@@ -28,7 +28,7 @@ export const aimedLaunch = (
     pitch: style.pitch,
     speed: launchSpeed(config, power),
     spin: spinRate(config),
-    bladeAngle: releaseBladeAngle(style.pitch, config),
+    bladeAngle: releaseBladeAngle(config),
   };
 
   return seed === undefined ? clean : scatterLaunch(clean, config, seed);

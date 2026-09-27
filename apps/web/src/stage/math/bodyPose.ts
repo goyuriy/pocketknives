@@ -110,7 +110,8 @@ const BLADE_DIP = 0.2;
  */
 const HELD: Keyframe = { at: [0.3, 0.07, -0.02], bladeAngle: 1.75 };
 const DRAWN: Keyframe = { at: [0.08, 0.1, 0.3], bladeAngle: 1.95 };
-const FOLLOWED: Keyframe = { at: [0.42, -0.08, -0.44], bladeAngle: -1.2 };
+// The knife is gone by now; the fist's angle only keeps the wrist in line with the arm.
+const FOLLOWED: Keyframe = { at: [0.42, -0.08, -0.44], bladeAngle: 0.1 };
 /**
  * The top of the throw's arc: the arm near straight up over the head, the
  * knife cocked back behind it, the moment before it comes over.

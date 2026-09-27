@@ -105,7 +105,7 @@ export const swingLaunch = (
     pitch,
     speed: launchSpeed(config, drawPower(intent, config)),
     spin: 0,
-    bladeAngle: releaseBladeAngle(pitch, config),
+    bladeAngle: releaseBladeAngle(config),
   };
   const thrown: Launch = { ...aimed, spin: wristSpin(aimed, config, whippedSpin(intent, config)) };
 
@@ -186,7 +186,7 @@ export const nearestStickingSpin = (
   spin: number,
   flightTime: number,
   arrivalAngle: number,
-  startAngle: number = releaseBladeAngle(DEFAULT_CONFIG.style.pitch, DEFAULT_CONFIG),
+  startAngle: number = releaseBladeAngle(DEFAULT_CONFIG),
 ): number | null => {
   if (flightTime <= 0) return null;
   const turnNeeded = startAngle - arrivalAngle;

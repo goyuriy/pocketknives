@@ -2,7 +2,6 @@ import {
   homeSpot,
   isOnOwnLand,
   keepOnOwnLand,
-  launchPitch,
   releaseBladeAngle,
   type KnifeSpec,
   type Vec2,
@@ -259,7 +258,7 @@ export const createDirector = (stage: Stage, { read, hand, walk, turn, stance, s
         heading,
         releaseBladeAngle:
           phase.kind === 'ready'
-            ? releaseBladeAngle(launchPitch({ aim, pitch, draw: 0, drift: 0 }, state.config), state.config)
+            ? releaseBladeAngle(state.config)
             : phase.attempt.flight.samples[0]!.bladeAngle,
         loft: pitch - state.config.style.pitch,
         raised,

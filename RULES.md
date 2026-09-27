@@ -170,9 +170,12 @@ steeper than the knife.
 
 A throw that fails to stick costs the turn, like any other miss.
 
-The knife leaves the hand the way it sat in the fist, tipped up a little from
-the line of the throw — so a knife thrown straight down leaves pointing down,
-and needs hardly any turn to go in point-first.
+The knife leaves the hand standing up out of the fist (46° above level),
+whatever the angle of the throw — a hammer grip lets go that way with the arm
+reaching forward — and the wrist spins it round to go in point-first: about a
+third of a turn straight down, a turn and more for a long throw. The hand holds
+it the same way all through the swing: the palm faces across the throw, so the
+wrist bends forward and back with the knife and never rolls over.
 
 > `simulateFlight` — [flight.ts](packages/core/src/throw/flight.ts)
 > `stickVerdict` — [stick.ts](packages/core/src/throw/stick.ts)

@@ -128,6 +128,28 @@ describe('the character', () => {
     expect(headSize()).toBeCloseTo(1, 6);
   });
 
+  it('keeps the wrist from rolling over through the whole throw', async () => {
+    const { scene, character } = await loadCharacter();
+    const hand = scene.transformNodes.find((t) => t.name === 'mixamorig:RightHand')!;
+    // Thrown 43° down, from a full draw: over the top, let go, followed through.
+    const setup = { release: [0.2, -7.15, 1.4] as Vec3, heading, releaseBladeAngle: 0.8, spec: knife.spec, hands: 1 as const, loft: -1.1, raised: 1 };
+    const swings: { swing: number; throwFrom?: number }[] = [
+      ...Array.from({ length: 21 }, (_, i) => ({ swing: READY_SWING - (1 + READY_SWING) * (i / 20) })),
+      ...Array.from({ length: 21 }, (_, i) => ({ swing: -1 + i / 20, throwFrom: -1 })),
+      ...Array.from({ length: 21 }, (_, i) => ({ swing: i / 20 })),
+    ];
+    // How the hand's side faces against the thrower's right (east, facing north).
+    const sides = swings.map(({ swing, throwFrom }) => {
+      character.show({ ...frame, pose: bodyPose({ ...setup, ...(throwFrom === undefined ? {} : { throwFrom }) }, swing) });
+      hand.computeWorldMatrix(true);
+      const m = hand.getWorldMatrix().m;
+      const side = worldToGame({ x: m[4]!, y: m[5]!, z: m[6]! });
+      return side[0] / Math.hypot(...side);
+    });
+    // The palm stays square to the throw, on the same side, from start to finish.
+    expect(sides.every((side) => side > 0.6) || sides.every((side) => side < -0.6)).toBe(true);
+  });
+
   it('hides when asked, and says so', async () => {
     const { character } = await loadCharacter();
     expect(character.show({ ...frame, visible: false })).toBeNull();

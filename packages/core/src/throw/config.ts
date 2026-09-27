@@ -54,11 +54,11 @@ export type ThrowStyle = {
    */
   readonly spinImpulse: number;
   /**
-   * Where in its tumble the knife starts, radians above the line it is thrown
-   * along: zero points exactly along the throw. Relative to the throw, not the
-   * ground, because the knife sits in the fist the same way however steeply the
-   * arm comes down — a knife thrown straight down leaves the hand pointing
-   * down, not up at the sky. See `releaseBladeAngle`.
+   * Where in its tumble the knife starts, radians above level: how it stands
+   * out of the fist as the hand lets go. The same for every angle of throw — a
+   * hammer grip lets go with the knife standing up out of the fist, the arm
+   * reaching forward, and the wrist's spin (`wristSpin`) is what brings it
+   * round to go in point-first, even straight down. See `releaseBladeAngle`.
    */
   readonly startingBladeAngle: number;
   /** Launch speed of the gentlest and hardest throw, for a knife of `referenceMass`. */
@@ -179,10 +179,13 @@ export const DEFAULT_CONFIG: ThrowConfig = {
     // The knife's natural tumble; the wrist settles on the sticking rate nearest
     // it, so this sets how many turns a throw makes rather than whether it sticks.
     spinImpulse: 0.0528, // 30 rad/s with the knife above
-    // Tip up from the line of the throw, as the knife sits in the fist — the
-    // tumble carries it forward from there, so the throw begins where the held
-    // knife was left. At the reference pitch that is 0.8 above level.
-    startingBladeAngle: 0.45,
+    // Tip up, as the knife stands out of a hammer grip with the arm reaching
+    // forward — the tumble carries it forward from there. Once relative to the
+    // throw's angle, so that a throw straight down left pointing down; but the
+    // arm lets go in the same place whatever the angle, and a knife pointing
+    // down from a forward-reaching fist needs a wrist bent further than a
+    // wrist bends.
+    startingBladeAngle: 0.8,
     // Tuned for throwing from inside your own ground, about five units from the
     // centre: the least draw tosses just over your own border, a full draw at
     // the resting angle falls just short of the far rim, and only a full lob
@@ -299,11 +302,10 @@ export const launchSpeed = (config: ThrowConfig, power: number): number => {
 };
 
 /**
- * The knife's angle as it leaves the hand, radians above level, for a throw
- * launched at `pitch`: the fist's own tilt, carried round by the arm.
+ * The knife's angle as it leaves the hand, radians above level: standing up
+ * out of the fist, whatever the angle of the throw (see `startingBladeAngle`).
  */
-export const releaseBladeAngle = (pitch: number, config: ThrowConfig): number =>
-  pitch + config.style.startingBladeAngle;
+export const releaseBladeAngle = (config: ThrowConfig): number => config.style.startingBladeAngle;
 
 /** The knife's natural tumble — what a relaxed wrist gives it. */
 export const spinRate = (config: ThrowConfig): number =>

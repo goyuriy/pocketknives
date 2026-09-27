@@ -122,22 +122,26 @@ export const measureHand = (bone: (name: string) => TransformNode | undefined, s
  *
  * A hammer grip, the first grip every thrower learns: the handle lies
  * diagonally across the palm (`HANDLE_ACROSS_PALM`), the fingers closed round
- * it, the thumb along its side on the blade's end. Of all the ways the hand
- * could sit round the handle like that, it takes the one that bends the wrist
- * least off the forearm. Then every finger closes round it.
+ * it, the thumb along its side on the blade's end. Then every finger closes
+ * round it.
  *
- * Call after the arm has been posed, since the hand turns from where the
- * forearm left it.
+ * The palm faces across the throw, along `across` or against it — the knife
+ * turns in the throw's own plane, and so does the fist holding it. That makes
+ * the hand a smooth function of the knife: as the knife swings over the top,
+ * the wrist bends forward with it and never rolls. Choosing the hand afresh
+ * each frame from wherever the forearm happens to be (as this once did) has
+ * two answers whenever the handle lines up with the forearm, and the hand
+ * flips a half turn between them in the middle of the throw.
+ *
+ * @param across the throw plane's normal: the thrower's right, in world space
  */
-export const closeOnHandle = (shape: HandShape, forearm: TransformNode, handle: Vector3): Vector3 => {
+export const closeOnHandle = (shape: HandShape, handle: Vector3, across: Vector3): Vector3 => {
   const { hand } = shape;
-  forearm.computeWorldMatrix(true);
   hand.computeWorldMatrix(true);
   const along = handle.normalizeToNew();
-  const reach = hand.getAbsolutePosition().subtract(forearm.getAbsolutePosition()).normalize();
-  // The wrist-to-knuckles line at the grip's angle to the handle, turned about
-  // the handle to lie as near the forearm's line as it can.
-  let square = reach.subtract(along.scale(Vector3.Dot(reach, along)));
+  // Square to the handle, within the throw's plane: behind the handle's line,
+  // the side the wrist is on when the knife stands up out of the fist.
+  let square = Vector3.Cross(along, across);
   if (square.lengthSquared() < 1e-8) square = Vector3.Cross(along, Vector3.Up());
   square.normalize();
   const fingers = along
