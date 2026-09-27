@@ -208,8 +208,12 @@ Later: sleeves, gloves, tattoos as cosmetics.
   `apps/web/public/characters/README.md`.
 - 📋 Strafing clips (Mixamo "Left/Right Strafe Walk"): a sidestep still plays
   the walk forward.
-- 📋 A throw clip for the body (the arms stay on the reach), and the hand
-  closed on the handle.
+- ✅ The hand closes on the handle: turned so the fingers run across it and
+  the thumb is on the blade side (a hammer grip), fingers curled round, the
+  grip seated in the palm. Hands drawn twice life size, like the drawn fists,
+  since a life-size hand cannot close round the game's chunky handles. Two
+  hands on a sword sit side by side, the grip brought in until both reach.
+- 📋 A throw clip for the body (the arms stay on the reach).
 - 📋 The rig's arms are shorter than the drawn ones, so from behind the knife
   jumps a little forward as it leaves the hand.
 

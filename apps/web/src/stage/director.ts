@@ -9,7 +9,16 @@ import { createDustView } from './views/dustView.js';
 import type { Stage } from './engine/createStage.js';
 import type { HandInput, StageSnapshot } from './snapshot.js';
 import { handSway } from '../input/handSway.js';
-import { bodyPose, READY_SWING, releasePointFor, strideAfter, swingForDraw, type Stride } from './math/bodyPose.js';
+import {
+  bodyPose,
+  gripOffset,
+  READY_SWING,
+  releasePointFor,
+  strideAfter,
+  swingForDraw,
+  type Stride,
+} from './math/bodyPose.js';
+import { bladeDirection } from './math/coords.js';
 import { easeToward, RESTING_ARM, stepArm } from './math/armMotion.js';
 import { flightTimeAt, rateAt, RELEASE_SLOW_MOTION } from '../playback/releaseTimeline.js';
 import { cameraEaseRate, cameraPose, easeHeading, eyeDip, eyeLocks, LOOK_FOLLOW_RATE } from './math/cameraPose.js';
@@ -254,14 +263,14 @@ export const createDirector = (stage: Stage, { read, hand, walk, stance, sound }
       color: state.playerColor,
       visible: outside,
     });
+    // The knife's grip in the character's palm, pointing the way the drawn one does.
+    const heldSpec = phase.kind === 'ready' ? state.knife : phase.attempt.knife;
+    const along = bladeDirection(heading, pose.bladeAngle);
+    const toGrip = gripOffset(heldSpec);
     const held = inHand
       ? {
           ...pose,
-          knifeAt: [
-            pose.knifeAt[0] + inHand[0] - pose.throwingArm.end[0],
-            pose.knifeAt[1] + inHand[1] - pose.throwingArm.end[1],
-            pose.knifeAt[2] + inHand[2] - pose.throwingArm.end[2],
-          ] as Vec3,
+          knifeAt: [inHand[0] - along[0] * toGrip, inHand[1] - along[1] * toGrip, inHand[2] - along[2] * toGrip] as Vec3,
         }
       : pose;
     body.show(

@@ -30,7 +30,7 @@ export const aimBone = (node: TransformNode, child: TransformNode, target: Vecto
 };
 
 /** The rotation carrying unit `a` onto unit `b` the short way round. */
-const shortestArc = (a: Vector3, b: Vector3): Quaternion => {
+export const shortestArc = (a: Vector3, b: Vector3): Quaternion => {
   const dot = Vector3.Dot(a, b);
   if (dot < -1 + 1e-9) {
     // Opposite: any axis square to `a` will do.
