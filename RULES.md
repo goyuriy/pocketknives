@@ -75,9 +75,12 @@ pointing. Three decisions make a throw, and none of them is a reflex:
 2. **Draw.** Hold the button and pull back towards you. The knife is held in a
    hammer grip, the first grip every thrower learns: the handle diagonally
    across the palm, fingers round it, the thumb along its side, the knife
-   standing up out of the fist. Drawn back, the fist goes up by your ear and
-   the knife stands nearly upright, its tip still just in view. How far back is how hard it is
-   thrown — a position, not a speed, so it means the same on a
+   standing up out of the top of the fist and leaning a little back over the
+   shoulder, the fist low and right of the middle of the view. Drawn back, the
+   fist goes up beside your head, elbow bent and out, the knife upright behind
+   it — above your eyes and out of sight, as it is for a real thrower; your
+   free hand pointing and the draw meter carry the draw. How far back is how
+   hard it is thrown — a position, not a speed, so it means the same on a
    mouse, a trackpad and a thumb. The hand keeps turning with the mouse while
    the arm is back, so the line can be settled at full draw.
 3. **Push through.** Push forward past the point where you gripped. Crossing
@@ -85,6 +88,13 @@ pointing. Three decisions make a throw, and none of them is a reflex:
    pointed; push crooked and it pulls off line the way the push wandered, like
    a golf swing coming across the ball. The aim freezes where the push begins:
    sideways movement before that is re-aiming, after it is drift.
+
+   The arm throws the way the basic overhand throw is taught: from beside the
+   head it straightens up over the head and comes over the top in one arc,
+   the knife turning forward with it, lets go out in front, and follows
+   through down towards the ground it was thrown at. A short draw barely
+   lifts before it comes over. (Technique: OutdoorAnthony, *Learn to throw any
+   kind of knife*.)
 
    **How fast you push is how hard it spins.** A gentle push turns the knife
    lazily; a sharp whip sends it whirling — from about half its natural tumble

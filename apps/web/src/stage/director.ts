@@ -266,6 +266,8 @@ export const createDirector = (stage: Stage, { read, hand, walk, turn, stance, s
         spec: phase.kind === 'ready' ? state.knife : phase.attempt.knife,
         hands: state.hands,
         stride,
+        // Over the top from wherever the draw left the arm.
+        ...(handingOff ? { throwFrom: swingAtRelease } : {}),
       },
       motion.shown,
     );

@@ -88,21 +88,36 @@ const BLADE_DIP = 0.2;
  * The throwing hand's path through a swing, as grip positions relative to the
  * throwing shoulder `[forward, right, up]` and the knife's tilt at each.
  *
- * A hammer grip's throw, laid out so the first-person camera can follow it:
- * held, the fist is out in front of the throwing shoulder with the knife
- * standing up out of it, point up and a little forward, the way a thrower
- * holds it before the throw — low and right enough to leave the middle of the
- * view to the circle; drawn back, the fist goes up by the ear and the
- * knife stands nearly upright, still a little ahead of the eyes so its tip
- * stays in the top corner of the view — a knife drawn clean out of shot leaves
- * the player nothing to read the draw from; at release it is out in front at
- * eye level; after, it carries down across the body. The release
- * keyframe is not listed — it is wherever the flight begins, worked out per
- * throw.
+ * The basic overhand throw with a hammer grip, as it is taught (OutdoorAnthony,
+ * "Learn to throw any kind of knife"):
+ *
+ * - **held** — the fist up in front of the throwing shoulder, the handle
+ *   across the palm, the knife standing up out of the top of the fist and
+ *   leaning a little back over the shoulder — right of the middle of the view,
+ *   so the knife does not stand between the eyes and the target;
+ * - **drawn** — the fist up beside the head, elbow bent and out, the knife
+ *   upright behind it;
+ * - **thrown** — the arm straightens up over the head and comes over the top
+ *   in one arc (see `overTheTop`), the knife turning forward with it, and lets
+ *   go out in front;
+ * - **followed through** — the arm carries on down to point at the ground the
+ *   knife is going to.
+ *
+ * Drawn back, the knife is above the eyes and out of shot, as it is for a real
+ * thrower: the free hand pointing and the draw meter carry the draw. The
+ * release keyframe is not listed — it is wherever the flight begins, worked
+ * out per throw.
  */
-const DRAWN: Keyframe = { at: [0.28, 0.1, 0.26], bladeAngle: 1.0 };
-const HELD: Keyframe = { at: [0.4, 0.04, 0.04], bladeAngle: 0.95 };
-const FOLLOWED: Keyframe = { at: [0.34, -0.19, -0.41], bladeAngle: -1.0 };
+const HELD: Keyframe = { at: [0.3, 0.07, -0.02], bladeAngle: 1.75 };
+const DRAWN: Keyframe = { at: [0.08, 0.1, 0.3], bladeAngle: 1.95 };
+const FOLLOWED: Keyframe = { at: [0.42, -0.08, -0.44], bladeAngle: -1.2 };
+/**
+ * The top of the throw's arc: the arm near straight up over the head, the
+ * knife cocked back behind it, the moment before it comes over.
+ */
+const OVERHEAD: Keyframe = { at: [0, 0.04, 0.58], bladeAngle: 2.3 };
+/** How much of the throw is spent reaching up to the top before coming over it. */
+const RISE_SHARE = 0.35;
 
 type Keyframe = { readonly at: Vec3; readonly bladeAngle: number };
 
@@ -146,6 +161,12 @@ export type BodySetup = {
   readonly raised: number;
   /** How the legs are walking. Standing still when left out. */
   readonly stride?: Stride;
+  /**
+   * While the arm is throwing, the swing it started the throw from. The arm
+   * then goes over the top from there to the release, rather than back along
+   * the way it was drawn. Left out when not throwing.
+   */
+  readonly throwFrom?: number;
 };
 
 /** The rest of the thrower: trunk, head and legs. */
@@ -267,7 +288,7 @@ export const bodyPose = (setup: BodySetup, swing: number): BodyPose => {
   );
   const released: Keyframe = { at: releaseGrip, bladeAngle: releaseBladeAngle };
 
-  const { at, bladeAngle } = keyframeAt(swing, released, loft);
+  const { at, bladeAngle } = keyframeAt(swing, released, loft, setup.throwFrom);
   const gripAt = fromShoulder(at);
   const along = bladeDirection(heading, bladeAngle);
   const knifeAt = add(gripAt, along, -grip);
@@ -375,22 +396,59 @@ const figureAt = (frame: BodyFrame, swing: number, stride: Stride): Figure => {
  * The hand's place and the knife's tilt at `swing`, between the keyframes
  * either side of it. Loft raises the held and drawn poses; the release pose is
  * fixed by the flight and the follow-through does not need to show it.
+ *
+ * Between keyframes the fist swings round the shoulder (`roundTheShoulder`)
+ * rather than cutting straight across, so it never passes through the head.
  */
-const keyframeAt = (swing: number, released: Keyframe, loft: number): Keyframe => {
+const keyframeAt = (swing: number, released: Keyframe, loft: number, throwFrom?: number): Keyframe => {
   const lifted = ({ at, bladeAngle }: Keyframe): Keyframe => ({
     at: [at[0], at[1], at[2] + loft * (loft > 0 ? HAND_LIFT : HAND_DROP)],
     bladeAngle: bladeAngle + loft * (loft > 0 ? BLADE_LIFT : BLADE_DIP),
   });
-  const between = (a: Keyframe, b: Keyframe, t: number): Keyframe => ({
-    at: lerp3(a.at, b.at, t),
-    bladeAngle: lerp(a.bladeAngle, b.bladeAngle, t),
-  });
-  const held = lifted(HELD);
-  if (swing <= READY_SWING) {
-    return between(held, lifted(DRAWN), Math.min(1, (READY_SWING - swing) / (1 + READY_SWING)));
+  if (throwFrom !== undefined && throwFrom < swing && swing < 0) {
+    const start = keyframeAt(throwFrom, released, loft);
+    return overTheTop(start, released, drawnBy(throwFrom), (swing - throwFrom) / -throwFrom);
   }
-  if (swing <= 0) return between(released, held, swing / READY_SWING);
-  return between(released, FOLLOWED, Math.min(1, swing));
+  const held = lifted(HELD);
+  if (swing <= READY_SWING) return roundTheShoulder(held, lifted(DRAWN), drawnBy(swing));
+  if (swing <= 0) return roundTheShoulder(released, held, swing / READY_SWING);
+  return roundTheShoulder(released, FOLLOWED, Math.min(1, swing));
+};
+
+/** How far drawn a swing is: 0 held, 1 all the way back. */
+const drawnBy = (swing: number): number =>
+  Math.min(1, Math.max(0, (READY_SWING - swing) / (1 + READY_SWING)));
+
+/**
+ * The throw itself, `t` from 0 to 1: up to the top of the arc and over it to
+ * the release. How high the top is depends on how far the arm was drawn — a
+ * full draw reaches straight up, a short one barely lifts before it comes over.
+ */
+const overTheTop = (start: Keyframe, released: Keyframe, drawn: number, t: number): Keyframe => {
+  const top: Keyframe = {
+    at: lerp3(start.at, OVERHEAD.at, drawn),
+    bladeAngle: lerp(start.bladeAngle, OVERHEAD.bladeAngle, drawn),
+  };
+  return t < RISE_SHARE
+    ? roundTheShoulder(start, top, t / RISE_SHARE)
+    : roundTheShoulder(top, released, (t - RISE_SHARE) / (1 - RISE_SHARE));
+};
+
+/**
+ * Part of the way from one keyframe to the next, `t` from 0 to 1, with the fist
+ * swinging round the shoulder: its angle up from straight ahead and its
+ * distance out are blended, not its position, so the path is an arc the arm
+ * can make. Sideways it moves straight across.
+ */
+const roundTheShoulder = (from: Keyframe, to: Keyframe, t: number): Keyframe => {
+  const rise = ([ahead, , up]: Vec3) => Math.atan2(up, ahead);
+  const out = ([ahead, , up]: Vec3) => Math.hypot(ahead, up);
+  const angle = lerp(rise(from.at), rise(to.at), t);
+  const reach = lerp(out(from.at), out(to.at), t);
+  return {
+    at: [Math.cos(angle) * reach, lerp(from.at[1], to.at[1], t), Math.sin(angle) * reach],
+    bladeAngle: lerp(from.bladeAngle, to.bladeAngle, t),
+  };
 };
 
 /** How far past the grip the pointer comes up before the arm reaches the release pose. */

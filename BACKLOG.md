@@ -95,6 +95,12 @@ left stick on a gamepad.
 - 💡 Rumble on the draw and on impact, scaled like the camera shake.
 - 📋 Footsteps and a little head bob, so walking is felt.
 - 💡 A run-up: a few quick steps into the throw for extra reach.
+- ✅ The throw moves like the basic overhand throw as taught: knife standing up
+  out of a hammer grip, drawn up beside the head, over the top, followed
+  through down at the ground.
+- 📋 The rest of the body in the throw: step onto the front foot, lean into
+  it, the free arm swinging back — today the rigged character's trunk and
+  legs play their idle clip through the throw.
 
 ### Reach rule — ✅ first pass · E
 From the yard game: you must reach the knife while keeping a foot on your own

@@ -46,7 +46,7 @@ describe('bodyPose', () => {
     }
   });
 
-  it('draws the knife back and up by the ear, and brings it down in front after', () => {
+  it('draws the knife up by the ear, and follows through down in front', () => {
     const held = bodyPose(setup('thrower'), READY_SWING);
     const back = bodyPose(setup('thrower'), -1);
     const through = bodyPose(setup('thrower'), 1);
@@ -56,16 +56,22 @@ describe('bodyPose', () => {
     expect(through.throwingArm.end[2]).toBeLessThan(1.2); // down below the shoulder
   });
 
-  it('keeps the tip of a drawn-back knife in front of the eyes, where it can be seen', () => {
-    for (const knife of KNIVES) {
-      const back = bodyPose(setup(knife.id), -1);
-      const eye = eyeAt([0, -12, 1.4], Math.PI / 2);
-      const along = bladeDirection(Math.PI / 2, back.bladeAngle);
-      const tipReach = (1 - knife.spec.balance) * (knife.spec.bladeLength + knife.spec.handleLength);
-      const tip = back.knifeAt[1] + along[1] * tipReach;
-      // Well ahead of the eye — a camera cannot see what is level with it.
-      expect(tip - eye[1], knife.id).toBeGreaterThan(0.3);
-    }
+  it('throws over the top: the arm goes up over the head and comes down in front, never back past the chest', () => {
+    const start = bodyPose(setup('thrower'), -1);
+    const path = Array.from({ length: 21 }, (_, i) => bodyPose({ ...setup('thrower'), throwFrom: -1 }, -1 + i / 20));
+    const heights = path.map((pose) => pose.throwingArm.end[2]);
+    const release = bodyPose(setup('thrower'), 0).throwingArm.end[2];
+    // Straight up over the head, near a full arm above the shoulder.
+    expect(Math.max(...heights)).toBeGreaterThan(1.42 + 0.5);
+    expect(Math.min(...heights)).toBeGreaterThan(Math.min(start.throwingArm.end[2], release) - 0.01);
+    // It still ends exactly where the flight begins.
+    expect(distance(path.at(-1)!.knifeAt, [0, -12, 1.4])).toBeLessThan(1e-9);
+  });
+
+  it('holds the knife standing up out of the top of the fist, leaning back over the shoulder', () => {
+    const held = bodyPose(setup('thrower'), READY_SWING);
+    expect(held.bladeAngle).toBeGreaterThan(Math.PI / 2);
+    expect(held.bladeAngle).toBeLessThan(Math.PI / 2 + 0.5);
   });
 
   it('raises the hands and the pointing arm for a lob, and lowers them for a flat throw', () => {
