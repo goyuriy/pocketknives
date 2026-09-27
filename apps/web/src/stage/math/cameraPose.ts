@@ -36,6 +36,15 @@ const MOST_DIP = 1;
 const TALL_EXTRA_DIP = 0.16;
 
 /**
+ * How far the eyes can look up and down, radians. Up, all but straight up,
+ * where a camera loses track of which way is up. Down, 70°: as far as a head
+ * tips before the chin meets the chest — the arms are still in the sides of
+ * the view there, as they are for a real pair of eyes, not under the lens.
+ */
+export const LOOK_UP_LIMIT = (89 * Math.PI) / 180;
+export const LOOK_DOWN_LIMIT = (70 * Math.PI) / 180;
+
+/**
  * How far down the eyes look, for a screen of this shape (width / height) and
  * a throw set at `pitch` (radians above level).
  *
@@ -47,8 +56,11 @@ const TALL_EXTRA_DIP = 0.16;
  * instead.
  */
 export const eyeDip = (aspect: number, pitch = 0): number =>
-  Math.min(MOST_DIP, Math.max(LEAST_DIP, EYE_DIP - DIP_PER_PITCH * pitch)) +
-  TALL_EXTRA_DIP * Math.min(1, Math.max(0, (0.9 - aspect) / 0.4));
+  Math.min(
+    LOOK_DOWN_LIMIT,
+    Math.min(MOST_DIP, Math.max(LEAST_DIP, EYE_DIP - DIP_PER_PITCH * pitch)) +
+      TALL_EXTRA_DIP * Math.min(1, Math.max(0, (0.9 - aspect) / 0.4)),
+  );
 /**
  * How far in front of the middle of the head the eyes are, metres. Real eyes
  * sit well forward of the shoulders; from the middle of the head, looking down

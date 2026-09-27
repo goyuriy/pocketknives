@@ -225,7 +225,7 @@ circle. If the ground under your feet is taken, you are put back home.
 
 | | Walk | Turn and aim | Angle | Throw |
 | --- | --- | --- | --- | --- |
-| Mouse and keys | WASD or arrow keys | Mouse across (click to capture the mouse, Esc to release): all the way round, as far as the mouse goes; Q / E turn too | Mouse up and down: look anywhere from your feet to the sky, and the knife is thrown where you look — up to a 45° lob | Hold, pull back, push through — across still turns while drawn |
+| Mouse and keys | WASD or arrow keys | Mouse across (click to capture the mouse, Esc to release): all the way round, as far as the mouse goes; Q / E turn too | Mouse up and down: look from 70° down (as far as a head tips) up to the sky, and the knife is thrown where you look — up to a 45° lob; below 45° down the throw steepens faster than the eyes, so looking all the way down throws straight down, at the spot the eyes are on | Hold, pull back, push through — across still turns while drawn |
 | Mouse, not captured | WASD or arrow keys | The cursor points the hand; hold it out at the left or right edge of the screen and the body turns after it; Q / E | Cursor up and down | The same |
 | Gamepad | Left stick | Right stick across | Right stick up and down, looking as freely as the mouse | Hold the right trigger (or bumper): the right stick becomes a swing stick — pull back, push up past the grip point. Across still turns. |
 | Touch | A floating stick: put a thumb down on the left of the screen | Drag sideways from wherever the finger lands on the right — never where it lands | Where the finger comes down | The same drag: pull back, flick forward and let go |

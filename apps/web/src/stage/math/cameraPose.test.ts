@@ -5,6 +5,7 @@ import {
   easeHeading,
   EYE_LOCK_DISTANCE,
   eyeDip,
+  LOOK_DOWN_LIMIT,
   eyeLocks,
   fieldOfView,
   isCameraView,
@@ -99,5 +100,9 @@ describe('eyeDip', () => {
     expect(eyeDip(16 / 9, -Math.PI / 2)).toBeGreaterThan(eyeDip(16 / 9, -0.75));
     expect(eyeDip(16 / 9, -0.75)).toBeGreaterThan(eyeDip(16 / 9, 0.6));
     expect(eyeDip(16 / 9, 0.8)).toBeGreaterThan(0);
+  });
+
+  it('never looks further down than a head tips, however tall the screen', () => {
+    expect(eyeDip(0.4, -Math.PI / 2)).toBeLessThanOrEqual(LOOK_DOWN_LIMIT);
   });
 });
