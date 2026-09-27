@@ -101,6 +101,15 @@ export type StickTuning = {
   readonly minMomentum: number;
   /** How hard the ground is. Higher means shallower bites. */
   readonly soilResistance: number;
+  /**
+   * How high the butt of the handle must stand off the ground for the knife to
+   * count — room to get two fingers under the handle and pull it out.
+   *
+   * The yard's rule, and the one every argument over a throw came down to. A
+   * knife that went in but lies nearly flat has not stood up in the ground; it
+   * is left where it is, and claims nothing.
+   */
+  readonly grabClearance: number;
 };
 
 /**
@@ -202,6 +211,9 @@ export const DEFAULT_CONFIG: ThrowConfig = {
     minEntryAngle: 0.05,
     minMomentum: 1.2,
     soilResistance: 14,
+    // Two fingers. A knife is about a hand and a half long, so a Thrower sunk
+    // to its usual depth has to stand at better than 10° to clear it.
+    grabClearance: 0.12,
   },
   gesture: {
     // A third of the screen: long enough that power is a thing a player sets
@@ -293,3 +305,21 @@ export const biteDepth = (config: ThrowConfig, impactSpeed: number): number => {
   const edgeFactor = config.stick.referenceBladeLength / Math.max(config.knife.edgeWidth, 1e-6) / 14;
   return Math.min(config.knife.bladeLength, Math.max(0, drive * edgeFactor));
 };
+
+/**
+ * The shallowest a knife sunk `depth` into the ground can stand and still have
+ * its handle clear the ground by `grabClearance`, radians above level.
+ *
+ * What stands above the ground is the knife less what went in, and its butt
+ * rises by that length times the sine of the angle it stands at. A deeper bite
+ * leaves less knife to lift the handle, so a knife buried to the hilt has to
+ * stand steeper to be grabbed than one that barely went in.
+ */
+export const grabAngle = (config: ThrowConfig, depth: number): number => {
+  const standing = Math.max(1e-6, knifeLength(config.knife) - depth);
+  return Math.asin(Math.min(1, Math.max(0, config.stick.grabClearance) / standing));
+};
+
+/** How far the butt of a knife sunk `depth` at `entryAngle` stands off the ground. */
+export const handleClearance = (config: ThrowConfig, entryAngle: number, depth: number): number =>
+  (knifeLength(config.knife) - depth) * Math.sin(entryAngle);

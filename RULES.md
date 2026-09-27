@@ -53,9 +53,9 @@ pointing. Three decisions make a throw, and none of them is a reflex:
 
    | Angle | Full draw reaches | Sticks at full draw |
    | --- | --- | --- |
-   | 6° (flat) | 8.7 | 99% |
-   | 20° (resting) | 13.7 | 90% |
-   | 46° (lob) | 17.9 | 72% |
+   | 6° (flat) | 8.7 | 97% |
+   | 20° (resting) | 13.7 | 81% |
+   | 46° (lob) | 17.9 | 64% |
 
    Reach is measured from where the knife leaves the hand. From the middle of
    a quarter of the circle the far rim is about fifteen away: only a lob gets
@@ -80,9 +80,9 @@ pointing. Three decisions make a throw, and none of them is a reflex:
 
    | Push | Thrower turns | Sticks | Needle turns | Sticks |
    | --- | --- | --- | --- | --- |
-   | gentle | 1.2 | 91% | 3.2 | 78% |
-   | middling | 4.2 | 89% | 12.2 | 71% |
-   | full whip | 7.2 | 86% | 20.2 | 55% |
+   | gentle | 1.3 | 82% | 3.3 | 68% |
+   | middling | 4.3 | 81% | 12.3 | 58% |
+   | full whip | 7.3 | 77% | 20.3 | 47% |
 
    (Full draw at the resting angle.)
 
@@ -125,10 +125,10 @@ not a free choice. With the Thrower:
 
 | Throw | Reach | Sticks |
 | --- | --- | --- |
-| quarter draw | 4.1 | 100% |
-| half draw | 6.7 | 99% |
-| three-quarters | 9.9 | 96% |
-| full draw | 13.7 | 90% |
+| quarter draw | 4.1 | 99% |
+| half draw | 6.7 | 96% |
+| three-quarters | 9.9 | 89% |
+| full draw | 13.7 | 81% |
 
 The knife still **tumbles forward**, tip over the top and down, the way a thrown
 knife does. Sticking asks three separate questions:
@@ -148,6 +148,28 @@ stick costs the turn, like any other miss.
 
 > `simulateFlight` — [flight.ts](packages/core/src/throw/flight.ts)
 > `stickVerdict` — [stick.ts](packages/core/src/throw/stick.ts)
+
+**You must be able to catch it by the handle.** This is the yard's own rule, the
+one every argument over a throw came down to: a knife only counts if it stands
+up well enough to be pulled out by the handle. It must leave room to get two fingers under the handle (the butt at
+least `grabClearance` off the ground). A knife that went in but lies nearly
+flat has not stood up in the ground. It stays where it went in, and claims
+nothing.
+
+How high the handle stands depends on two things: the angle the knife went in
+at, and how much of it is left above the ground. So a knife buried deep has to
+stand steeper than one that barely went in, and a short knife has to stand
+steeper than a long one. For a Thrower at its usual depth that means better
+than about 10°. The Needle, being short and sinking deep, needs about 15°.
+
+The wrist knows this rule too. It aims to bring the knife in steep enough for
+the handle to clear, planning for the deepest the point could go, so a clean
+throw is always one you could catch by the handle. What pushes a knife below
+the line is under-turning, the same wobble that lands a worse one handle-first.
+
+> `stickVerdict` — [stick.ts](packages/core/src/throw/stick.ts)
+> `grabAngle` — [config.ts](packages/core/src/throw/config.ts)
+> `sweetSpotAngle` — [swing.ts](packages/core/src/throw/swing.ts)
 
 **The flight itself carries no randomness.** It is a closed-form arc with a
 constant tumble — no drag, no physics engine — so a server and a client agree on
@@ -201,7 +223,8 @@ be pushed through on purpose.
 
 Every knife thrown stays where it fell, for the rest of the match (the oldest is
 picked up once there are sixteen). A stuck knife is solid — you walk round it,
-not through it. A knife that did not stick is handed to the physics engine the
+not through it. So is one that went in but lies too low to catch by the handle;
+it stands where it went in, dimmed, because it claims nothing. A knife that did not stick is handed to the physics engine the
 moment it lands: it kicks off the ground the way it arrived, bounces and settles
 for real, and can be kicked about afterwards.
 
@@ -219,10 +242,10 @@ your execution. Each trades **reach** against **forgiveness**.
 
 | Knife | Hands | Full reach | Sticks at full reach | Character |
 | --- | --- | --- | --- | --- |
-| Kitchen | 1 | 15.1 | 94% | Long in the blade and forgiving of a shaky hand. |
-| Thrower | 1 | 13.7 | 90% | Weighted forward and even-tempered. |
-| Cleaver | 1 | 10.2 | 97% | Heavy and slow to turn, buries itself to the handle. |
-| Needle | 1 | 17.0 | 73% | Light and whirling. Flies furthest, forgives nothing. |
+| Kitchen | 1 | 15.1 | 87% | Long in the blade and forgiving of a shaky hand. |
+| Thrower | 1 | 13.7 | 81% | Weighted forward and even-tempered. |
+| Cleaver | 1 | 10.2 | 92% | Heavy and slow to turn, buries itself to the handle. |
+| Needle | 1 | 17.0 | 62% | Light and whirling. Flies furthest, forgives nothing. |
 | Greatsword | 2 | 7.6 | 100% | Barely turns, drops point-first from anywhere — but only reaches so far. |
 
 Every difference is physical:
@@ -349,13 +372,14 @@ All of these cost the turn. None allow a retry.
 | `degenerate_cut` | No clean cut there — landed exactly on a border, or the line grazes a single edge. |
 
 And the ways it fails before the rules are consulted at all — the knife never
-stuck, so there was no line to draw:
+stuck, or never stood up well enough to count, so there was no line to draw:
 
 | Reason | What happened |
 | --- | --- |
 | `handle_first` | The hand wobbled; the knife came in under-turned and the butt struck first. |
 | `flat` | The hand wobbled the other way; it arrived across its own path and skipped. |
 | `too_slow` | Nothing left in it to bury the point. |
+| `handle_low` | It went in, but too flat to get your fingers under the handle. |
 
 A clean throw never fails these — the wrist sees to it. They are the hand's
 wobble, and the lever a player has on them is how far they reach.
@@ -401,7 +425,7 @@ dials — press **Tune** — with the derived numbers shown above the sliders, a
 | `gesture` | `fullDraw`, `minDraw`, `minPushSpeed`, `fullWhip`, `maxAim`, `driftGain`, `minPitch`, `maxPitch` | How the hand's motion is read |
 | `style` | `pitch`, `spinImpulse`, `startingBladeAngle`, `releaseHeight`, `minSpeed`, `maxSpeed`, `referenceMass`, `weightPenalty` | How the arm throws |
 | `scatter` | `spin`, `power`, `startingBladeAngle`, `heading` | How much the hand wobbles (seeded) |
-| `stick` | `baseMisalignment`, `minEntryAngle`, `minMomentum`, `soilResistance` | What the ground accepts |
+| `stick` | `baseMisalignment`, `minEntryAngle`, `minMomentum`, `soilResistance`, `grabClearance` | What the ground accepts, and what counts |
 | `flight` | `gravity`, `sampleInterval` | The world |
 
 Derived, and read through helpers so there is one definition of each:
@@ -411,6 +435,8 @@ Derived, and read through helpers so there is one definition of each:
 - **reach factor** from mass — see the knife section.
 - **stick window** scales with blade length.
 - **bite depth** from mass, impact speed and edge width, capped at the blade.
+- **grab angle** — the shallowest a knife can stand and still clear
+  `grabClearance` under its handle, from how much of it is left above the ground.
 
 `scatter.spin` is the main difficulty dial: it is the wobble that grows with
 flight time. `scatter.heading` stays at zero on purpose — where the knife goes is

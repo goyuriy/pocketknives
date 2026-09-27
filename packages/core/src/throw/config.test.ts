@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   DEFAULT_CONFIG,
   biteDepth,
+  grabAngle,
   knifeLength,
   minStickSpeed,
   momentOfInertia,
@@ -70,6 +71,13 @@ describe('the knife is a physical object, not a set of labels', () => {
       biteDepth(DEFAULT_CONFIG, 14),
     );
     expect(biteDepth(DEFAULT_CONFIG, 500)).toBeLessThanOrEqual(DEFAULT_CONFIG.knife.bladeLength);
+  });
+
+  it('asks a knife buried deeper to stand steeper before its handle can be grabbed', () => {
+    expect(grabAngle(DEFAULT_CONFIG, 0.3)).toBeGreaterThan(grabAngle(DEFAULT_CONFIG, 0.1));
+    expect(grabAngle(withKnife({ handleLength: 0.9 }), 0.1)).toBeLessThan(grabAngle(DEFAULT_CONFIG, 0.1));
+    const noRule = { ...DEFAULT_CONFIG, stick: { ...DEFAULT_CONFIG.stick, grabClearance: 0 } };
+    expect(grabAngle(noRule, 0.3)).toBe(0);
   });
 
   it('measures its own length from blade plus handle', () => {

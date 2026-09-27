@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import {
   DEFAULT_CONFIG,
+  grabAngle,
   knifeLength,
   minStickSpeed,
   momentOfInertia,
@@ -52,6 +53,7 @@ const DIALS: readonly Dial[] = [
   { group: 'stick', key: 'baseMisalignment', label: 'stick window', min: 0.05, max: 1.2, step: 0.01 },
   { group: 'stick', key: 'minMomentum', label: 'min momentum', min: 0, max: 6, step: 0.1 },
   { group: 'stick', key: 'soilResistance', label: 'ground hardness', min: 2, max: 40, step: 0.5 },
+  { group: 'stick', key: 'grabClearance', label: 'handle clearance', min: 0, max: 0.5, step: 0.01, hint: 'room under the handle for it to count' },
 
   { group: 'gesture', key: 'fullDraw', label: 'full draw', min: 0.08, max: 0.6, step: 0.01, hint: 'screen-heights of pull for max range' },
   { group: 'gesture', key: 'minDraw', label: 'least draw', min: 0, max: 0.3, step: 0.01 },
@@ -134,6 +136,7 @@ export const TuningPanel = ({
         <div><dt>length</dt><dd>{knifeLength(config.knife).toFixed(2)}</dd></div>
         <div><dt>min speed</dt><dd>{minStickSpeed(config).toFixed(1)}</dd></div>
         <div><dt>reach</dt><dd>×{weightFactor(config).toFixed(2)}</dd></div>
+        <div><dt>stands</dt><dd>≥{((grabAngle(config, 0) * 180) / Math.PI).toFixed(0)}°</dd></div>
       </dl>
 
       <div className="dials">

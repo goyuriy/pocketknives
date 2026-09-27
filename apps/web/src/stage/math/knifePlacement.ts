@@ -51,12 +51,12 @@ export const flyingPlacement = (flight: Flight, time: number): Placement => {
  *
  * How deep is not decoration — it comes from the impact and the knife's own mass
  * and edge, so a heavy blade thrown hard is buried to the handle and a light one
- * stands proud. A scrappy stick goes in shallower still.
+ * stands proud. A scrappy stick goes in shallower still. It is the verdict's
+ * own depth, so the handle stands exactly as high as the rules judged it.
  */
-export const stuckPlacement = (flight: Flight, quality: number, bite: number): Placement => {
+export const stuckPlacement = (flight: Flight, depth: number): Placement => {
   const { impact } = flight;
   const along = bladeDirection(impact.heading, impact.bladeAngle);
-  const depth = bite * (0.5 + 0.5 * quality);
   return {
     position: [
       impact.point[0] - along[0] * depth,
@@ -109,13 +109,8 @@ export const quiverLean = (t: number, strength: number, clean: number): number =
  * A stuck knife, quivering: leaned about the point where it enters the ground,
  * so the buried tip stays put and the handle does the waggling.
  */
-export const quiveringPlacement = (
-  flight: Flight,
-  quality: number,
-  bite: number,
-  lean: number,
-): Placement => {
-  const still = stuckPlacement(flight, quality, bite);
+export const quiveringPlacement = (flight: Flight, depth: number, lean: number): Placement => {
+  const still = stuckPlacement(flight, depth);
   if (lean === 0) return still;
   const pivot: Vec3 = [flight.impact.point[0], flight.impact.point[1], 0];
   const tilt = axisAngle([Math.cos(still.heading), Math.sin(still.heading), 0], lean);

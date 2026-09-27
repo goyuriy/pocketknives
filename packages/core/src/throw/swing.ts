@@ -1,6 +1,14 @@
 import type { Vec2, Vec3 } from '../types.js';
 import type { Launch } from './types.js';
-import { DEFAULT_CONFIG, launchSpeed, spinRate, stickWindow, type ThrowConfig } from './config.js';
+import {
+  DEFAULT_CONFIG,
+  biteDepth,
+  grabAngle,
+  launchSpeed,
+  spinRate,
+  stickWindow,
+  type ThrowConfig,
+} from './config.js';
 import { simulateFlight } from './flight.js';
 import { scatterLaunch } from './launch.js';
 
@@ -118,7 +126,8 @@ export const wristSpin = (
 ): number => {
   // Spin does not bend the arc, so any value finds when and how steeply it lands.
   const { impact } = simulateFlight({ ...launch, spin: 0 }, config.flight);
-  const target = sweetSpotAngle(impact.descentAngle, config);
+  // Planned for the deepest the point can go, the one that leaves the handle lowest.
+  const target = sweetSpotAngle(impact.descentAngle, config, biteDepth(config, impact.speed));
   return nearestStickingSpin(wanted, impact.time, target, launch.bladeAngle) ?? wanted;
 };
 
@@ -141,21 +150,26 @@ const MIDDLING_WHIP = (1 - LAZIEST_WHIP) / (WILDEST_WHIP - LAZIEST_WHIP);
 /**
  * Where in its turn the knife should arrive to stick most surely, radians.
  *
- * The middle of the range both gates accept: turned far enough that the point is
- * lower than the butt, not so far that it arrives across its own path. The two
- * limits are not symmetric about the line of flight — the entry gate usually
- * cuts the under-turned side short — so aiming at the line of flight itself
- * would leave the wrist with less margin one way than the other.
+ * The middle of the range every gate accepts: turned far enough that it stands
+ * up steeply enough to be grabbed by the handle, not so far that it arrives
+ * across its own path. The two limits are not symmetric about the line of
+ * flight — the handle's clearance usually cuts the under-turned side short — so
+ * aiming at the line of flight itself would leave the wrist with less margin
+ * one way than the other.
+ *
+ * `depth` is how far the point is expected to sink: the deeper it goes, the
+ * less knife is left to lift the handle, and the steeper it must stand.
  */
 export const sweetSpotAngle = (
   descentAngle: number,
   config: ThrowConfig = DEFAULT_CONFIG,
+  depth = 0,
 ): number => {
   const travel = -descentAngle;
   const window = stickWindow(config);
-  const { minEntryAngle } = config.stick;
-  const leastTurned = Math.min(travel + window, -minEntryAngle);
-  const mostTurned = Math.max(travel - window, -Math.PI + minEntryAngle);
+  const shallowest = Math.max(config.stick.minEntryAngle, grabAngle(config, depth));
+  const leastTurned = Math.min(travel + window, -shallowest);
+  const mostTurned = Math.max(travel - window, -Math.PI + shallowest);
   return (leastTurned + mostTurned) / 2;
 };
 

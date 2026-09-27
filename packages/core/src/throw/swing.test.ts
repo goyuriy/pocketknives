@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { DEFAULT_CONFIG, spinRate, weightFactor, type ThrowConfig } from './config.js';
+import { DEFAULT_CONFIG, biteDepth, spinRate, weightFactor, type ThrowConfig } from './config.js';
 import { simulateFlight, wrapAngle } from './flight.js';
 import { stickVerdict } from './stick.js';
 import { standingPoint } from './launch.js';
@@ -102,8 +102,16 @@ describe('the wrist is automatic', () => {
 
   it('lands the knife in the middle of what sticks, not on the edge of it', () => {
     const impact = landing(swing());
-    const target = sweetSpotAngle(impact.descentAngle);
+    const target = sweetSpotAngle(impact.descentAngle, DEFAULT_CONFIG, biteDepth(DEFAULT_CONFIG, impact.speed));
     expect(wrapAngle(impact.bladeAngle - target)).toBeCloseTo(0, 6);
+  });
+
+  it('stands a clean throw up steeper when the handle has to clear the ground', () => {
+    const entry = (grabClearance: number) => {
+      const config = { ...DEFAULT_CONFIG, stick: { ...DEFAULT_CONFIG.stick, grabClearance } };
+      return landing(swing({ draw: 1, pitch: DEFAULT_CONFIG.gesture.minPitch }), config).entryAngle;
+    };
+    expect(entry(0.3)).toBeGreaterThan(entry(0));
   });
 
   it('keeps each knife’s character — a heavy one turns lazily, a light one whirls', () => {

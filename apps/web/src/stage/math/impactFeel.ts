@@ -52,6 +52,7 @@ export const impactFeel = (verdict: StickVerdict, impact: Impact, knife: KnifeSp
   const weight = knifeWeight(knife.mass);
   const pace = clamp01(impact.speed / FULL_PACE);
   const strength = clamp01((knife.mass * impact.speed) / FULL_MOMENTUM);
-  if (verdict.stuck) return { kind: 'stick', weight, pace, strength, clean: verdict.quality };
+  // A knife lying too low to count still went in, and sounds like it.
+  if (verdict.planted) return { kind: 'stick', weight, pace, strength, clean: verdict.quality };
   return { kind: verdict.outcome === 'too_slow' ? 'tap' : 'clatter', weight, pace, strength, clean: 0 };
 };

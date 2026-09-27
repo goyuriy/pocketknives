@@ -22,6 +22,7 @@ const NOT_STUCK: Record<Exclude<StickOutcome, 'stuck'>, string> = {
   handle_first: 'Wobbled — landed handle-first. Far throws are the shaky ones.',
   flat: 'Wobbled — landed flat and skipped. Far throws are the shaky ones.',
   too_slow: 'No pace left in it to bite. Throw harder.',
+  handle_low: "Wobbled — went in too flat to get your fingers under the handle. Doesn't count.",
 };
 
 /**
