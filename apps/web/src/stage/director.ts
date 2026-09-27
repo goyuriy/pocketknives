@@ -30,7 +30,7 @@ import {
 import { bladeDirection } from './math/coords.js';
 import { easeToward, RESTING_ARM, stepArm } from './math/armMotion.js';
 import { flightTimeAt, rateAt, RELEASE_SLOW_MOTION } from '../playback/releaseTimeline.js';
-import { cameraEaseRate, cameraPose, easeHeading, eyeDip, eyeLocks, LOOK_FOLLOW_RATE } from './math/cameraPose.js';
+import { cameraEaseRate, cameraPose, eyeDip, eyeLocks, LOOK_FOLLOW_RATE } from './math/cameraPose.js';
 import { flyingPlacement } from './math/knifePlacement.js';
 import { reachDots } from './math/reachLine.js';
 import { createArenaView } from './views/arenaView.js';
@@ -39,10 +39,18 @@ import { createCameraRig } from './views/cameraRig.js';
 import { createKnifeModel, place, type KnifeModel } from './views/knifeModel.js';
 import { createGroundKnives, type Landing } from './views/groundKnives.js';
 import { createWalker } from './views/walker.js';
+import { springAt, stepHeadingSpring, stepSpring, type Spring, type SpringTuning } from './math/spring.js';
 import { createCharacterView } from './views/characterView.js';
 
 /** How briskly the free arm rises to point, and drops again, per second. */
 const FREE_ARM_RATE = 9;
+
+/**
+ * How the hand trails the view: brisk, with a touch of overshoot. The view
+ * follows the mouse exactly — any lag there feels floaty — and the weight goes
+ * on the hand instead, which swings round after a quick turn and settles.
+ */
+const HAND_LAG: SpringTuning = { frequency: 3.5, damping: 0.6 };
 
 /** The longest step a frame may take. A tab left in the background must not wake up to a leap. */
 const LONGEST_FRAME = 0.1;
@@ -131,7 +139,8 @@ export const createDirector = (stage: Stage, { read, hand, walk, turn, stance, s
   let raised = 0;
   // Where the arm was when the hand let go: the hand-off swings it from here.
   let swingAtRelease = 0;
-  let look: number | null = null;
+  let handHeading: Spring | null = null;
+  let handPitch: Spring | null = null;
   let dip: number | null = null;
   let phaseSeen = first.phase;
   let phaseStartedAt = performance.now();
@@ -201,7 +210,7 @@ export const createDirector = (stage: Stage, { read, hand, walk, turn, stance, s
     const released = phase.kind !== 'ready';
     // Where the feet went this frame; nowhere, unless walking.
     let stepped: [Vec2, Vec2] = [stance.current.feet, stance.current.feet];
-    const { aim, pitch, draw, look: gaze } = hand();
+    const { aim, pitch, draw, look: gaze, viewFollowsAim } = hand();
 
     // A new turn, or ground taken from under the thrower's feet: back home.
     if (phase.kind === 'ready' && draw === null) {
@@ -221,12 +230,20 @@ export const createDirector = (stage: Stage, { read, hand, walk, turn, stance, s
       stepped = [feet, allowed];
     }
     const feet: Vec2 = stance.current.feet;
-    // The hand's own waver is drawn as well as thrown: what the player sees is
-    // exactly the line the knife would leave on.
-    const heading =
+    // Where the eyes look across the ground: exactly where the player turned,
+    // this frame, with no easing — the view is the mouse.
+    const viewHeading = stance.current.facing - (viewFollowsAim ? aim : 0);
+    // Where the hand points: the aim, with its own waver, which is thrown as
+    // well as drawn — what the player sees is the line the knife would leave on.
+    // Once thrown, the line it did leave on. The hand gets there on a spring,
+    // trailing a quick turn of the view and settling.
+    const handTarget =
       phase.kind === 'ready'
         ? stance.current.facing - (aim + handSway(now / 1000))
         : phase.attempt.flight.impact.heading;
+    handHeading = handHeading ? stepHeadingSpring(handHeading, handTarget, seconds, HAND_LAG) : springAt(handTarget);
+    handPitch = handPitch ? stepSpring(handPitch, pitch, seconds, HAND_LAG) : springAt(pitch);
+    const heading = handHeading.value;
 
     // Swung along the way the feet went, in the terms of the way the body faces.
     stride = strideFor(stride, stepped[0], stepped[1], heading, seconds);
@@ -260,7 +277,7 @@ export const createDirector = (stage: Stage, { read, hand, walk, turn, stance, s
           phase.kind === 'ready'
             ? releaseBladeAngle(state.config)
             : phase.attempt.flight.samples[0]!.bladeAngle,
-        loft: pitch - state.config.style.pitch,
+        loft: handPitch.value - state.config.style.pitch,
         raised,
         spec: phase.kind === 'ready' ? state.knife : phase.attempt.knife,
         hands: state.hands,
@@ -311,13 +328,15 @@ export const createDirector = (stage: Stage, { read, hand, walk, turn, stance, s
       !released || handingOff,
     );
 
-    look = look === null ? heading : easeHeading(look, heading, LOOK_FOLLOW_RATE, seconds);
+
     // The eyes go down with the throw: at the ground the knife is meant for.
     // With a free look the eyes go where the player looks, up to the sky and
     // down to the feet; otherwise they follow the throw down to the ground.
     const wantedDip =
       gaze === undefined ? eyeDip(engine.getRenderWidth() / Math.max(1, engine.getRenderHeight()), pitch) : -gaze;
-    dip = dip === null ? wantedDip : easeToward(dip, wantedDip, LOOK_FOLLOW_RATE, seconds);
+    // A free look is the mouse, exactly; the throw-following view eases, since
+    // a finger or a cursor can set a new angle in one jump.
+    dip = dip === null || gaze !== undefined ? wantedDip : easeToward(dip, wantedDip, LOOK_FOLLOW_RATE, seconds);
     const jolt = impact && Number.isFinite(sinceImpact)
       ? shakeOffset(
           sinceImpact,
@@ -330,7 +349,7 @@ export const createDirector = (stage: Stage, { read, hand, walk, turn, stance, s
         feet,
         overhead,
         state.arenaRadius,
-        look,
+        viewHeading,
         dip,
         view,
         inHand ?? pose.throwingArm.end,

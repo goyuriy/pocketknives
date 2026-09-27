@@ -130,9 +130,10 @@ export const useThrowControls = ({
   const unlockedAt = useRef(-Infinity);
   const canThrow = phase.kind === 'ready';
 
-  const point = (aim: number, pitch: number, draw: number | null, turn = 0, look?: number) => {
-    hand.current = { aim, pitch, draw, turn, ...(look === undefined ? {} : { look }) };
-    setPitch(pitch);
+  /** Puts the hand somewhere new, and shows its angle. */
+  const point = (next: HandInput) => {
+    hand.current = next;
+    setPitch(next.pitch);
   };
 
   const refuseLock = () => {
@@ -271,13 +272,14 @@ export const useThrowControls = ({
     gripFacing.current = stance.current.facing;
     turnsBody.current = captured || touch;
     stroke.current = gripStroke(at, reach, pitch);
-    point(
-      captured || touch ? 0 : aimFromPointer(event.clientX, area.left, area.width, game.config),
+    point({
+      aim: captured || touch ? 0 : aimFromPointer(event.clientX, area.left, area.width, game.config),
       pitch,
-      0,
-      0,
-      captured ? hand.current.look : undefined,
-    );
+      draw: 0,
+      // A captured mouse and a finger turn the view as they aim; a free cursor only points.
+      viewFollowsAim: captured || touch,
+      ...(captured && hand.current.look !== undefined ? { look: hand.current.look } : {}),
+    });
     setDraw(0);
   };
 
@@ -301,16 +303,16 @@ export const useThrowControls = ({
         );
         stance.current = { ...stance.current, facing: stance.current.facing - moved[0] * LOOK_RATE };
         const look = tiltLook(hand.current.look ?? hand.current.pitch, moved[1] * PITCH_RATE);
-        point(0, throwPitchFor(look, game.config), null, 0, look);
+        point({ aim: 0, pitch: throwPitchFor(look, game.config), draw: null, look, viewFollowsAim: true });
       } else if (event.pointerType !== 'touch') {
         const area = box(event);
         const aim = aimFromPointer(event.clientX, area.left, area.width, game.config);
-        point(
+        point({
           aim,
-          pitchFromPointer(event.clientY, area.top, area.height, game.config),
-          null,
-          edgeTurn(aim, game.config.gesture.maxAim),
-        );
+          pitch: pitchFromPointer(event.clientY, area.top, area.height, game.config),
+          draw: null,
+          turn: edgeTurn(aim, game.config.gesture.maxAim),
+        });
       }
       return;
     }

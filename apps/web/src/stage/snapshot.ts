@@ -65,4 +65,10 @@ export type HandInput = {
    * throw's share of it. Absent when the view simply follows the throw.
    */
   readonly look?: number;
+  /**
+   * Whether aiming turns the view too: yes for a captured mouse, a finger and
+   * a gamepad, which turn the thrower as they aim; no for a free cursor, which
+   * only points the hand within a view that stays put. Absent is no.
+   */
+  readonly viewFollowsAim?: boolean;
 };

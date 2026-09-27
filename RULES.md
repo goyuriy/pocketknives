@@ -39,10 +39,12 @@ pointing. Three decisions make a throw, and none of them is a reflex:
    you: the same character every other camera shows, its head out of the way. Move the mouse across the screen and you turn with it, edge to edge
    being the arm's whole reach. Your free hand hangs at your side until you
    hold the button; then it comes up and points out along the line you are
-   aiming — the way a javelin thrower sights down their free arm. The
-   view follows a beat behind, the way a body-worn camera trails the arm. The
-   hand wavers very slightly on its own; a patient player waits for it to
-   settle.
+   aiming — the way a javelin thrower sights down their free arm. The view
+   follows the mouse exactly, with no lag — in a first-person game the view
+   *is* the mouse, and any delay there feels floaty. The weight is on the
+   hand instead: it trails a quick turn on a spring, swings a touch past and
+   settles. It also wavers very slightly on its own; a patient player waits
+   for it to settle.
 
    Up and down sets **how steeply** to throw: from straight down at your feet
    with the hand low to a 45° lob with it high. Your eyes go with it — the

@@ -76,14 +76,14 @@ export const useGamepadThrow = ({
           stance.current = { ...stance.current, facing: stance.current.facing - stick[0] * PAD_TURN_RATE * seconds };
           const look = tiltLook(hand.current.look ?? hand.current.pitch, stick[1] * PAD_PITCH_RATE * seconds);
           const pitch = throwPitchFor(look, config);
-          hand.current = { ...hand.current, aim: 0, pitch, draw: null, look };
+          hand.current = { ...hand.current, aim: 0, pitch, draw: null, look, viewFollowsAim: true };
           game.setPitch(pitch);
         }
         if (grip && game.phase.kind === 'ready') {
           across = 0;
           gripFacing = stance.current.facing;
           stroke = gripStroke({ x: 0, y: padGripY(config), t: now }, lookReach(0, RADIANS_PER_PIXEL), hand.current.pitch);
-          hand.current = { ...hand.current, aim: 0, draw: 0 };
+          hand.current = { ...hand.current, aim: 0, draw: 0, viewFollowsAim: true };
           game.setDraw(0);
         }
         return;

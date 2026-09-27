@@ -7,10 +7,10 @@ import { EYE_HEIGHT } from './bodyPose.js';
  * Two poses, and the whole feel of a throw lives in the move between them.
  *
  * Aiming, the camera is the thrower's eyes: eye level, looking down over their
- * own hands at the ground the knife is meant for. It looks where the hand points, but like a
- * body-worn camera it does not lead — the hand moves first and the view catches
- * up (the director eases `look` towards the hand), so a quick sweep of the arm
- * is felt as the arm moving, not the world lurching.
+ * own hands at the ground the knife is meant for. It looks exactly where the
+ * player turned, with no easing — in a first-person game the view is the mouse,
+ * and any lag there feels floaty. The weight goes on the hand instead, which
+ * trails a quick turn on a spring (the director's `HAND_LAG`).
  *
  * The moment the knife lands the camera lifts and swings over the circle,
  * because what the throw *won* is a shape, and a shape is only legible from
@@ -177,14 +177,11 @@ const debugPose = (view: Exclude<CameraView, 'eyes' | 'arena'>, feet: Vec2, look
 /** How quickly the camera settles into a new pose, per second. Landing is a slower, grander move. */
 export const cameraEaseRate = (overhead: boolean): number => (overhead ? 2.4 : 4);
 
-/** How quickly the view catches up with the hand, per second. Lower is lazier. */
+/**
+ * How quickly the view tips to a new angle of throw, per second, where that
+ * angle can jump — a finger landing, a cursor. A free look is never eased.
+ */
 export const LOOK_FOLLOW_RATE = 3.5;
-
-/** Eases one heading towards another the short way round, frame-rate independently. */
-export const easeHeading = (from: number, to: number, rate: number, seconds: number): number => {
-  const gap = Math.atan2(Math.sin(to - from), Math.cos(to - from));
-  return from + gap * (1 - Math.exp(-rate * seconds));
-};
 
 /**
  * Within this distance of where the eye should be, it stops easing and locks on.

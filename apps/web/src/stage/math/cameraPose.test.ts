@@ -2,7 +2,6 @@ import { describe, expect, it } from 'vitest';
 import {
   CAMERA_VIEWS,
   cameraPose,
-  easeHeading,
   EYE_LOCK_DISTANCE,
   eyeDip,
   LOOK_DOWN_LIMIT,
@@ -52,17 +51,6 @@ describe('cameraPose', () => {
     const pose = cameraPose([0, -8], true, 10, Math.PI / 2);
     expect(pose.eye[2]).toBeGreaterThan(20);
     expect(pose.focus).toEqual([0, 0, 0]);
-  });
-});
-
-describe('easeHeading', () => {
-  it('goes the short way round', () => {
-    const next = easeHeading(3.1, -3.1, 5, 0.1);
-    expect(next).toBeGreaterThan(3.1);
-  });
-
-  it('arrives in the end', () => {
-    expect(easeHeading(0, 1, 5, 10)).toBeCloseTo(1, 6);
   });
 });
 
