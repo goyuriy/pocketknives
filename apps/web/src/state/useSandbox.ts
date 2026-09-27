@@ -9,6 +9,7 @@ import {
   passTurn,
   isOnOwnLand,
   resolveThrow,
+  longHandsReach,
   simulateFlight,
   stickVerdict,
   survivors,
@@ -115,6 +116,9 @@ export const useSandbox = (initialPlayers = 4) => {
   // Whether the edge of the thrower's reach is chalked on the ground. On by
   // default; switched off only to see the ground bare while debugging.
   const [showReach, setShowReach] = useRememberedFlag('pocketknives.reachLine', true);
+  // Each player's level of the Long hands skill, 0 to 5. Nothing earns it yet —
+  // there is no experience — so it is set by hand from the debug tools.
+  const [longHands, setLongHandsFor] = useState<Readonly<Record<PlayerId, number>>>({});
   // Where the camera is: through the thrower's eyes to play, or one of the
   // debug views to look at the scene. `?camera=side` in the address picks one.
   const [cameraView, setCameraView] = useRememberedChoice('pocketknives.camera', 'camera', isCameraView, 'eyes');
@@ -129,6 +133,13 @@ export const useSandbox = (initialPlayers = 4) => {
   );
 
   const currentPlayer = match.players[match.turn]!;
+  // How far from their ground the thrower can reach to draw the line: the
+  // rules' base reach, lengthened by their Long hands.
+  const reach = longHandsReach(match.rules.reach, longHands[currentPlayer] ?? 0);
+  const setLongHands = useCallback(
+    (level: number) => setLongHandsFor((levels) => ({ ...levels, [currentPlayer]: level })),
+    [currentPlayer],
+  );
   const alive = useMemo(
     () => survivors(match.board, match.rules, match.players),
     [match.board, match.rules, match.players],
@@ -167,7 +178,7 @@ export const useSandbox = (initialPlayers = 4) => {
       const flight = simulateFlight(launch, config.flight);
       const verdict = stickVerdict(flight.impact, config);
       const outcome = verdict.stuck
-        ? resolveThrow(match.board, currentPlayer, throwFromImpact(flight.impact), match.rules)
+        ? resolveThrow(match.board, currentPlayer, throwFromImpact(flight.impact), { ...match.rules, reach })
         : null;
 
       const attempt: Attempt = {
@@ -196,7 +207,7 @@ export const useSandbox = (initialPlayers = 4) => {
         setPhase({ kind: 'ready' });
       }, attempt.playbackDuration + IMPACT_BEAT + CUT_DURATION + REST_DURATION);
     },
-    [phase.kind, match, currentPlayer, playbackScale, stayOnPlayer, config],
+    [phase.kind, match, currentPlayer, playbackScale, stayOnPlayer, config, reach],
   );
 
   const reset = useCallback((count: number) => {
@@ -246,6 +257,9 @@ export const useSandbox = (initialPlayers = 4) => {
     setStayOnPlayer,
     showReach,
     setShowReach,
+    reach,
+    longHands: longHands[currentPlayer] ?? 0,
+    setLongHands,
     cameraView,
     setCameraView,
   };

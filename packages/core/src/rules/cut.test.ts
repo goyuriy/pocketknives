@@ -3,7 +3,7 @@ import type { Board, Vec2 } from '../types.js';
 import { area } from '../geometry/ring.js';
 import { clusterRings, ringsOf } from '../geometry/cluster.js';
 import { createBoard, territoriesOf } from './board.js';
-import { DEFAULT_RULES, resolveThrow } from './cut.js';
+import { DEFAULT_RULES, longHandsReach, resolveThrow } from './cut.js';
 import { createMatch, isAlive, playTurn, winner } from './turn.js';
 import { seededRandom } from '../throw/random.js';
 
@@ -431,3 +431,15 @@ function clipRing(ring: readonly Vec2[], inside: (p: Vec2) => boolean): Vec2[] {
   });
   return out;
 }
+
+describe('longHandsReach', () => {
+  it('adds a little more each level, a fifth more at the top', () => {
+    const reaches = [0, 1, 2, 3, 4, 5].map((level) => longHandsReach(5, level));
+    expect(reaches.map((r) => Number(r.toFixed(2)))).toEqual([5, 5.1, 5.25, 5.45, 5.7, 6]);
+  });
+
+  it('holds levels to the ones there are', () => {
+    expect(longHandsReach(5, -2)).toBe(5);
+    expect(longHandsReach(5, 9)).toBeCloseTo(6, 9);
+  });
+});

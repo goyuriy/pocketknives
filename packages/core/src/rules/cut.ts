@@ -175,3 +175,21 @@ const pickClaimableSide = (
   const facing = sides.find((side) => side.side === Math.sign(throwerOffset))!;
   return connects(facing) ? facing : null;
 };
+
+/**
+ * What each level of the Long hands skill adds to a player's reach, as a
+ * share of the base: a little more each level, so the last levels are the
+ * ones worth chasing. See docs/progression-tree.md, *Long hands*.
+ */
+export const LONG_HANDS_STEPS: readonly number[] = [0.02, 0.03, 0.04, 0.05, 0.06];
+
+/**
+ * A player's reach with `level` levels of Long hands (0 to 5): the base
+ * reach and every level's share of it, so level 5 reaches 20% further.
+ * Levels outside the range are held to it.
+ */
+export const longHandsReach = (baseReach: number, level: number): number => {
+  const levels = Math.min(LONG_HANDS_STEPS.length, Math.max(0, Math.floor(level)));
+  const bonus = LONG_HANDS_STEPS.slice(0, levels).reduce((sum, step) => sum + step, 0);
+  return baseReach * (1 + bonus);
+};

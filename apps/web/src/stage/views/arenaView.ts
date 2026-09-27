@@ -6,6 +6,7 @@ import type { FieldOutline, PlayerId, Vec2 } from '@pocketknives/core';
 import { colorOf } from '../../ui/theme.js';
 import { flatPolygon, merge, ribbon } from '../math/meshData.js';
 import { mixHex } from '../math/color.js';
+import type { LinePiece } from '../math/reachLine.js';
 import { meshFromData } from './meshFromData.js';
 import { paint } from './materials.js';
 
@@ -20,8 +21,8 @@ const TERRITORY = 0.012;
 const BORDER = 0.03;
 const CUT = 0.045;
 const REACH = 0.02;
-/** Chalk dots marking the edge of the thrower's reach. */
-const REACH_DOT = 0.07;
+/** How wide the chalk line at the edge of the thrower's reach is. */
+const REACH_WIDTH = 0.12;
 
 export type ArenaView = {
   /** Redraws who holds what. Cheap to call every frame: it only rebuilds when `fields` is a new value. */
@@ -29,11 +30,11 @@ export type ArenaView = {
   /** The line the blade laid down, grown to `progress` (0–1) from its middle. Null hides it. */
   readonly showCut: (cut: readonly [Vec2, Vec2] | null, progress: number) => void;
   /**
-   * Chalks the edge of how far the thrower can reach from their ground, in
-   * their colour. Cheap to call every frame: it only rebuilds when `dots` is a
-   * new value. Null hides it.
+   * Chalks the edge of how far the thrower can reach from their ground — a
+   * line round their border, in their colour. Cheap to call every frame: it
+   * only rebuilds when `line` is a new value. Null hides it.
    */
-  readonly showReach: (dots: readonly Vec2[] | null, color: string) => void;
+  readonly showReach: (line: readonly LinePiece[] | null, color: string) => void;
   readonly dispose: () => void;
 };
 
@@ -63,7 +64,7 @@ export const createArenaView = (scene: Scene, playfield: TransformNode, radius: 
   let cutMesh: Mesh | null = null;
   let shownCut: string | null = null;
   let reachMesh: Mesh | null = null;
-  let shownReach: readonly Vec2[] | null = null;
+  let shownReach: readonly LinePiece[] | null = null;
 
   const clearFields = () => {
     fieldMeshes.forEach((mesh) => {
@@ -130,26 +131,18 @@ export const createArenaView = (scene: Scene, playfield: TransformNode, radius: 
     );
   };
 
-  const showReach = (dots: readonly Vec2[] | null, color: string) => {
-    if (dots === shownReach) return;
-    shownReach = dots;
+  const showReach = (line: readonly LinePiece[] | null, color: string) => {
+    if (line === shownReach) return;
+    shownReach = line;
     reachMesh?.material?.dispose();
     reachMesh?.dispose();
     reachMesh = null;
-    if (!dots || dots.length === 0) return;
-    const dot = (centre: Vec2) =>
-      flatPolygon(
-        Array.from({ length: 6 }, (_, i): Vec2 => [
-          centre[0] + Math.cos((i * Math.PI) / 3) * REACH_DOT,
-          centre[1] + Math.sin((i * Math.PI) / 3) * REACH_DOT,
-        ]),
-        REACH,
-      );
+    if (!line || line.length === 0) return;
     reachMesh = meshFromData(
       scene,
       'reach',
-      merge(dots.map(dot)),
-      paint(scene, 'reach', mixHex(color, '#fff6e0', 0.45), { unlit: true }),
+      merge(line.map(([from, to]) => ribbon(from, to, REACH_WIDTH, REACH))),
+      paint(scene, 'reach', mixHex(color, '#fff6e0', 0.35), { unlit: true }),
       playfield,
     );
   };

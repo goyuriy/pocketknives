@@ -122,11 +122,12 @@ land, which caps how deep one throw can claim. Makes deep throws a decision
 instead of always the best move. See RULES.md, *Within reach*.
 - ✅ A knife claims only if it lands within `reach` (5) of your own ground;
   otherwise `out_of_reach`, no line.
-- ✅ The edge of your reach chalked on the ground as a dotted line in your
-  colour, with a debug switch to hide it.
+- ✅ The edge of your reach chalked on the ground as a solid line round your
+  border in your colour (a contour line, no gaps), with a debug switch to hide it.
 - 📋 Tune the reach against play, and the draw's power range with it: most of
   a full draw now lands out of reach.
-- 💡 Per-player reach, for the **Long hands** skill (**Progression tree**).
+- ✅ Per-player reach, for the **Long hands** skill (**Progression tree**):
+  rule and line both use it; set by hand in debug until levels are earned.
 - ✅ Throws go down into the ground: from straight down at your feet to a 45°
   lob, resting at 43° down, and the view looks down with the throw — the yard
   game is played at the dirt under your knees.

@@ -171,8 +171,9 @@ worth chasing.
 Numbers are starting points for tuning, not final. The percentages are of the
 base reach, so level 5 is +20% altogether.
 
-**How it is built.** `RuleSet.reach` stays the base, the same for everyone. A
-player's reach is the base times their Long hands factor, and `resolveThrow`
+**How it is built** (in the sandbox now, set by hand from the debug row until
+levels are earned). `RuleSet.reach` stays the base, the same for everyone. A
+player's reach is the base times their Long hands factor (`longHandsReach`), and `resolveThrow`
 and the chalked reach line both read the player's own reach. Everyone can see
 that line, so an opponent's longer arms are always visible, never a surprise.
 

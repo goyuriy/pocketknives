@@ -350,14 +350,24 @@ your border, so the far rim was the best place to aim. Now you take ground next
 to your own, a strip at a time, and the long throw that reaches across the
 circle wins nothing.
 
-The edge of your reach is chalked on the ground in your colour as a dotted line,
-all the way round your land. That is a fact about the board, not a preview of
-the throw. Nothing shows where the knife will land. The **reach** switch in the
-debug row hides it, for seeing the ground bare.
+The edge of your reach is chalked on the ground in your colour as a solid
+line, all the way round your land at the reach's distance: inside it you could
+pull the knife out, beyond it you could not. It is found the way a contour line
+on a map is — the distance to your ground measured over a fine grid, the line
+drawn where it equals your reach — so it follows every shape of land without
+gaps. That is a fact about the board, not a preview of the throw. Nothing shows
+where the knife will land. The **reach** switch in the debug row hides it, for
+seeing the ground bare.
+
+Your reach is the base (5) lengthened by your **Long hands** skill: +2%, +3%,
++4%, +5% and +6% for levels 1 to 5, so +20% at the top. The rule and the line
+both use your own reach. Nothing earns levels yet; the debug row's **long
+hands** setting sets the thrower's.
 
 > `distanceToLand` — [standing.ts](packages/core/src/rules/standing.ts)
 > `resolveThrow` — [cut.ts](packages/core/src/rules/cut.ts)
-> `reachDots` — [reachLine.ts](apps/web/src/stage/math/reachLine.ts)
+> `longHandsReach` — [cut.ts](packages/core/src/rules/cut.ts)
+> `reachOutline` — [reachLine.ts](apps/web/src/stage/math/reachLine.ts)
 
 ## The cut
 

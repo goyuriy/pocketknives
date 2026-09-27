@@ -173,6 +173,23 @@ export const SandboxHud = ({
             />
             reach
           </label>
+          <label className="toggle" title="The thrower's Long hands skill: each level reaches a little further">
+            long hands
+            <select
+              value={game.longHands}
+              onChange={(event) => {
+                game.setLongHands(Number(event.target.value));
+                handBackTheKeys(event);
+              }}
+              aria-label="Long hands level"
+            >
+              {[0, 1, 2, 3, 4, 5].map((level) => (
+                <option key={level} value={level}>
+                  {level}
+                </option>
+              ))}
+            </select>
+          </label>
           <label className="toggle">
             camera
             <select

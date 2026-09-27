@@ -22,7 +22,7 @@ const snapshotOf = (game: SandboxState, comfort: Comfort): StageSnapshot => ({
   lastAttempt: game.lastAttempt,
   swinging: game.draw !== null,
   playerId: game.currentPlayer,
-  reach: game.match.rules.reach,
+  reach: game.reach,
   showReach: game.showReach,
   cameraView: game.cameraView,
   thrown: game.thrown,
