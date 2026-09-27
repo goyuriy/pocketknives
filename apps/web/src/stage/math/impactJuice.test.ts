@@ -10,7 +10,7 @@ import {
 } from '@pocketknives/core';
 import { dustPuffs, MOST_PUFFS, puffAt, puffCount } from './dust.js';
 import { impactFeel, knifeWeight } from './impactFeel.js';
-import { shakeAmplitude, shakeDuration, shakeOffset } from './shake.js';
+import { addTrauma, decayTrauma, hitstopFor, impactTrauma, shakeAngles, smoothNoise } from './shake.js';
 import {
   bouncingPlacement,
   BOUNCE_DURATION,
@@ -143,21 +143,43 @@ describe('bounce', () => {
 });
 
 describe('shake', () => {
-  it('jolts, then stops', () => {
-    const jolt = shakeOffset(0.02, 0.1, 0.3);
+  it('turns the view while there is trauma, and stops when it has worn off', () => {
+    const jolt = shakeAngles(0.8, 0.13);
     expect(Math.hypot(...jolt)).toBeGreaterThan(0);
-    expect(shakeOffset(0.3, 0.1, 0.3)).toEqual([0, 0, 0]);
+    expect(shakeAngles(decayTrauma(0.8, 2), 0.13)).toEqual([0, 0, 0]);
   });
 
-  it('shakes harder and longer the heavier the knife', () => {
-    const amplitudes = RACK.map((mass) => shakeAmplitude('stick', knifeWeight(mass), 0.6));
-    amplitudes.slice(1).forEach((a, i) => expect(a).toBeGreaterThan(amplitudes[i]!));
-    expect(amplitudes.at(-1)).toBeGreaterThan(amplitudes[0]! * 4);
-    expect(shakeDuration(1)).toBeGreaterThan(shakeDuration(0.2));
+  it('shakes by trauma squared: a light blow barely, a heavy one hard', () => {
+    const size = (trauma: number) => {
+      let most = 0;
+      for (let t = 0; t < 2; t += 0.01) most = Math.max(most, Math.hypot(...shakeAngles(trauma, t)));
+      return most;
+    };
+    expect(size(1)).toBeGreaterThan(size(0.5) * 3.5);
   });
 
-  it('shakes hardest for a stick, less for a bounce, not at all for a drop', () => {
-    expect(shakeAmplitude('stick', 0.7, 0.6)).toBeGreaterThan(shakeAmplitude('clatter', 0.7, 0.6));
-    expect(shakeAmplitude('tap', 1, 1)).toBe(0);
+  it('adds up when blows come close together, never past a full slam', () => {
+    expect(addTrauma(0.5, 0.3)).toBeCloseTo(0.8, 9);
+    expect(addTrauma(0.9, 0.5)).toBe(1);
+  });
+
+  it('wanders smoothly rather than jumping from frame to frame', () => {
+    for (let x = 0; x < 5; x += 0.01) {
+      expect(Math.abs(smoothNoise(x + 0.01) - smoothNoise(x))).toBeLessThan(0.05);
+      expect(Math.abs(smoothNoise(x))).toBeLessThanOrEqual(1);
+    }
+  });
+
+  it('hits harder, and holds the world still longer, the heavier the knife', () => {
+    const blows = RACK.map((mass) => impactTrauma('stick', knifeWeight(mass), 0.6));
+    blows.slice(1).forEach((b, i) => expect(b).toBeGreaterThan(blows[i]!));
+    expect(hitstopFor('stick', 1)).toBeGreaterThan(hitstopFor('stick', 0.2));
+    expect(hitstopFor('stick', 1)).toBeLessThan(0.12); // a few frames, not a pause
+  });
+
+  it('hits hardest for a stick, less for a bounce, not at all for a drop', () => {
+    expect(impactTrauma('stick', 0.7, 0.6)).toBeGreaterThan(impactTrauma('clatter', 0.7, 0.6));
+    expect(impactTrauma('tap', 1, 1)).toBe(0);
+    expect(hitstopFor('tap', 1)).toBe(0);
   });
 });

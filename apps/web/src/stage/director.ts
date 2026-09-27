@@ -12,8 +12,8 @@ import { CUT_DURATION, IMPACT_BEAT, type Attempt, type Stance } from '../state/u
 import { walkStep, type WalkInput } from '../input/walk.js';
 import { turnedFacing } from '../input/turn.js';
 import type { ImpactSound } from '../audio/impactSound.js';
-import { impactFeel, type ImpactFeel } from './math/impactFeel.js';
-import { shakeAmplitude, shakeDuration, shakeOffset } from './math/shake.js';
+import { impactFeel } from './math/impactFeel.js';
+import { addTrauma, decayTrauma, hitstopFor, impactTrauma, shakeAngles } from './math/shake.js';
 import { createDustView } from './views/dustView.js';
 import type { Stage } from './engine/createStage.js';
 import type { HandInput, StageSnapshot } from './snapshot.js';
@@ -144,13 +144,21 @@ export const createDirector = (stage: Stage, { read, hand, walk, turn, stance, s
   let dip: number | null = null;
   let phaseSeen = first.phase;
   let phaseStartedAt = performance.now();
-  // The last knife to hit the ground, and when: everything that happens on
-  // impact — dust, sound, shake, quiver, bounce — is timed from this.
-  let impact: { attempt: Attempt; at: number; feel: ImpactFeel } | null = null;
+  // The world's clock, milliseconds — everything that happens on impact
+  // (dust, quiver, bounce, shake) is timed on it: real time, except that it
+  // stands still for the few frames of hitstop when a knife hits (`hitstopFor`).
+  let worldNow = 0;
+  let holdUntil = -Infinity;
+  // How shaken the camera is, 0 to 1 (see `shake.ts`).
+  let trauma = 0;
 
   const frame = () => {
     const now = performance.now();
     const seconds = Math.min(engine.getDeltaTime() / 1000, LONGEST_FRAME);
+    const holding = now < holdUntil;
+    const worldSeconds = holding ? 0 : seconds;
+    worldNow += worldSeconds * 1000;
+    trauma = decayTrauma(trauma, worldSeconds);
     const state = read();
     const { phase } = state;
 
@@ -162,11 +170,13 @@ export const createDirector = (stage: Stage, { read, hand, walk, turn, stance, s
         // The flight's playback has just reached the ground.
         const { flight, verdict, seed, knife } = phase.attempt;
         const feel = impactFeel(verdict, flight.impact, knife);
-        impact = { attempt: phase.attempt, at: now, feel };
-        landings.set(phase.attempt, { at: now, feel });
+        landings.set(phase.attempt, { at: worldNow, feel });
         const ground: Vec3 = [flight.impact.point[0], flight.impact.point[1], 0.02];
-        dust.burst(ground, flight.impact.heading, feel.weight, feel.pace, seed, now / 1000);
+        dust.burst(ground, flight.impact.heading, feel.weight, feel.pace, seed, worldNow / 1000);
         sound.play(feel);
+        // The blow lands: the world holds still for a few frames, then the view shakes.
+        holdUntil = now + hitstopFor(feel.kind, feel.weight) * 1000;
+        trauma = addTrauma(trauma, impactTrauma(feel.kind, feel.weight, feel.pace));
       }
     }
     const intoPhase = (now - phaseStartedAt) / 1000;
@@ -203,9 +213,8 @@ export const createDirector = (stage: Stage, { read, hand, walk, turn, stance, s
     }
     // Forget landings for knives that have been picked up.
     for (const attempt of landings.keys()) if (!state.thrown.includes(attempt)) landings.delete(attempt);
-    ground.show(state.thrown, landings, now);
-    const sinceImpact = impact && landings.has(impact.attempt) ? (now - impact.at) / 1000 : Infinity;
-    dust.update(now / 1000);
+    ground.show(state.thrown, landings, worldNow);
+    dust.update(worldNow / 1000);
 
     const released = phase.kind !== 'ready';
     // Where the feet went this frame; nowhere, unless walking.
@@ -257,10 +266,11 @@ export const createDirector = (stage: Stage, { read, hand, walk, turn, stance, s
       motion = { shown: swingAtRelease + (0 - swingAtRelease) * t * t, recovering: true };
     } else {
       // Through the follow-through the arm lives on the world's clock, so it
-      // moves in slow motion with the knife it just let go of.
-      const worldSeconds =
-        phase.kind === 'flying' ? seconds * rateAt(intoFlight, state.playbackScale) : seconds;
-      motion = stepArm(motion, draw === null ? READY_SWING : swingForDraw(draw), released, worldSeconds);
+      // moves in slow motion with the knife it just let go of, and holds still
+      // through the hitstop.
+      const armSeconds =
+        phase.kind === 'flying' ? worldSeconds * rateAt(intoFlight, state.playbackScale) : worldSeconds;
+      motion = stepArm(motion, draw === null ? READY_SWING : swingForDraw(draw), released, armSeconds);
     }
     // The free arm comes up to point only while the button is held.
     raised = easeToward(raised, draw !== null && !released ? 1 : 0, FREE_ARM_RATE, seconds);
@@ -337,13 +347,7 @@ export const createDirector = (stage: Stage, { read, hand, walk, turn, stance, s
     // A free look is the mouse, exactly; the throw-following view eases, since
     // a finger or a cursor can set a new angle in one jump.
     dip = dip === null || gaze !== undefined ? wantedDip : easeToward(dip, wantedDip, LOOK_FOLLOW_RATE, seconds);
-    const jolt = impact && Number.isFinite(sinceImpact)
-      ? shakeOffset(
-          sinceImpact,
-          shakeAmplitude(impact.feel.kind, impact.feel.weight, impact.feel.pace),
-          shakeDuration(impact.feel.weight),
-        )
-      : undefined;
+    const jolt = shakeAngles(holding ? 0 : trauma, worldNow / 1000);
     camera.follow(
       cameraPose(
         feet,

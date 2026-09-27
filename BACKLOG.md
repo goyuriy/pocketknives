@@ -58,7 +58,11 @@ harder than a needle.
 - ✅ Bounce: a knife that did not stick cartwheels in two hops to rest.
 - ✅ Sound, synthesised (no assets): thunk + dirt crunch + ringing blade for a
   stick, skitters per bounce for a clatter, a dull knock for a drop.
-- ✅ Screen shake, a short jolt.
+- ✅ Screen shake, the trauma way (Eiserloh, GDC 2016): each impact adds
+  trauma that wears off, the shake is trauma squared, and it turns the view on
+  smooth noise rather than knocking it sideways.
+- ✅ Hitstop: the world holds still for a few frames when the knife hits,
+  longer for a heavier knife.
 - ✅ Weight reads first: dust and shake are driven by the knife's weight (on a
   log scale across the rack), with pace only shading them — a needle ticks the
   view and scuffs the dirt, a greatsword slams it and throws up clods.

@@ -1,23 +1,23 @@
 import type { Scene } from '@babylonjs/core/scene';
 import { FreeCamera } from '@babylonjs/core/Cameras/freeCamera';
 import { Vector3 } from '@babylonjs/core/Maths/math.vector';
-import type { Vec3 } from '@pocketknives/core';
 import { Camera } from '@babylonjs/core/Cameras/camera';
 import { fieldOfView, type CameraPose } from '../math/cameraPose.js';
 import { toWorld } from '../math/coords.js';
+import { STILL, type ShakeAngles } from '../math/shake.js';
 
 export type CameraRig = {
   /**
    * Eases towards `pose` over `seconds` at `rate` — or locks straight on when
-   * `lockOn` says so for the remaining distance — then knocks it by `shake`
-   * (game units) for this frame only. The first call places it outright.
+   * `lockOn` says so for the remaining distance — then turns it by `shake`
+   * for this frame only. The first call places it outright.
    */
   readonly follow: (
     pose: CameraPose,
     rate: number,
     seconds: number,
     lockOn: (distance: number) => boolean,
-    shake?: Vec3,
+    shake?: ShakeAngles,
   ) => void;
   readonly dispose: () => void;
 };
@@ -40,13 +40,12 @@ export const createCameraRig = (scene: Scene): CameraRig => {
   let placed = false;
   const eye = new Vector3();
   const focus = new Vector3();
-  // Where the camera would be without shake. Kept apart so a shake is a
-  // momentary knock and never drifts into the eased pose.
+  // Where the camera is, eased. A shake turns the camera and never moves it,
+  // so it can never drift into this.
   const steady = new Vector3();
-  const knock = new Vector3();
 
   return {
-    follow: (pose, rate, seconds, lockOn, shake = [0, 0, 0]) => {
+    follow: (pose, rate, seconds, lockOn, shake = STILL) => {
       // Wide enough to see your own hands and the circle beyond them at once,
       // whichever way up the screen is.
       const view = fieldOfView(scene.getEngine().getAspectRatio(camera));
@@ -61,9 +60,13 @@ export const createCameraRig = (scene: Scene): CameraRig => {
         steady.copyFrom(eye);
         placed = true;
       }
-      knock.set(...toWorld(shake));
-      camera.position.copyFrom(steady).addInPlace(knock);
-      camera.setTarget(focus.addInPlace(knock));
+      camera.position.copyFrom(steady);
+      camera.setTarget(focus);
+      // Turned after aiming: the head takes the blow and comes back.
+      const [yaw, pitch, roll] = shake;
+      camera.rotation.x += pitch;
+      camera.rotation.y += yaw;
+      camera.rotation.z += roll;
     },
     dispose: () => camera.dispose(),
   };
