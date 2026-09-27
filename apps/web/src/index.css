@@ -134,6 +134,11 @@ body {
   background: #ffffff14;
 }
 
+.knife.locked {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
 .toggle {
   display: flex;
   align-items: center;

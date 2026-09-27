@@ -31,14 +31,14 @@ type Dial = {
  * badly, and the ground decides what happens when it arrives.
  */
 const DIALS: readonly Dial[] = [
-  { group: 'knife', key: 'bladeLength', label: 'blade', min: 0.15, max: 1.2, step: 0.01, hint: 'longer forgives more' },
-  { group: 'knife', key: 'handleLength', label: 'handle', min: 0.1, max: 1, step: 0.01 },
+  { group: 'knife', key: 'bladeLength', label: 'blade', min: 0.05, max: 0.4, step: 0.001, hint: 'metres; longer forgives more' },
+  { group: 'knife', key: 'handleLength', label: 'handle', min: 0.03, max: 0.33, step: 0.001, hint: 'metres' },
   { group: 'knife', key: 'mass', label: 'mass', min: 0.05, max: 0.8, step: 0.01, hint: 'heavier tumbles slower' },
   { group: 'knife', key: 'balance', label: 'balance', min: 0.2, max: 0.8, step: 0.01, hint: '0 butt, 1 tip' },
-  { group: 'knife', key: 'edgeWidth', label: 'edge', min: 0.005, max: 0.09, step: 0.001, hint: 'finer bites deeper' },
+  { group: 'knife', key: 'edgeWidth', label: 'edge', min: 0.002, max: 0.03, step: 0.0005, hint: 'finer bites deeper' },
 
   { group: 'style', key: 'pitch', label: 'pitch', min: 0, max: 1.2, step: 0.01 },
-  { group: 'style', key: 'spinImpulse', label: 'natural spin', min: 0, max: 1.2, step: 0.005, hint: 'how many turns a throw makes' },
+  { group: 'style', key: 'spinImpulse', label: 'natural spin', min: 0, max: 0.13, step: 0.0005, hint: 'how many turns a throw makes' },
   { group: 'style', key: 'startingBladeAngle', label: 'start angle', min: -3.14, max: 3.14, step: 0.02 },
   { group: 'style', key: 'releaseHeight', label: 'release height', min: 0.3, max: 3, step: 0.05 },
   { group: 'style', key: 'minSpeed', label: 'min power', min: 2, max: 20, step: 0.5 },
@@ -52,8 +52,8 @@ const DIALS: readonly Dial[] = [
 
   { group: 'stick', key: 'baseMisalignment', label: 'stick window', min: 0.05, max: 1.2, step: 0.01 },
   { group: 'stick', key: 'minMomentum', label: 'min momentum', min: 0, max: 6, step: 0.1 },
-  { group: 'stick', key: 'soilResistance', label: 'ground hardness', min: 2, max: 40, step: 0.5 },
-  { group: 'stick', key: 'grabClearance', label: 'handle clearance', min: 0, max: 0.5, step: 0.01, hint: 'room under the handle for it to count' },
+  { group: 'stick', key: 'soilResistance', label: 'ground hardness', min: 6, max: 120, step: 1 },
+  { group: 'stick', key: 'grabClearance', label: 'handle clearance', min: 0, max: 0.15, step: 0.005, hint: 'metres under the handle for it to count' },
 
   { group: 'gesture', key: 'fullDraw', label: 'full draw', min: 0.08, max: 0.6, step: 0.01, hint: 'screen-heights of pull for max range' },
   { group: 'gesture', key: 'minDraw', label: 'least draw', min: 0, max: 0.3, step: 0.01 },
@@ -132,7 +132,7 @@ export const TuningPanel = ({
       <dl className="derived">
         <div><dt>tumble</dt><dd>{spinRate(config).toFixed(1)} rad/s</dd></div>
         <div><dt>window</dt><dd>±{((stickWindow(config) * 180) / Math.PI).toFixed(0)}°</dd></div>
-        <div><dt>inertia</dt><dd>{momentOfInertia(config.knife).toFixed(4)}</dd></div>
+        <div><dt>inertia</dt><dd>{momentOfInertia(config.knife).toFixed(5)}</dd></div>
         <div><dt>length</dt><dd>{knifeLength(config.knife).toFixed(2)}</dd></div>
         <div><dt>min speed</dt><dd>{minStickSpeed(config).toFixed(1)}</dd></div>
         <div><dt>reach</dt><dd>×{weightFactor(config).toFixed(2)}</dd></div>

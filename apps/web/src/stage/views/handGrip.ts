@@ -31,12 +31,10 @@ type Curl = {
 };
 
 /**
- * How much bigger than life the hands are drawn. The game's knives are chunky —
- * a handle more than a hand's width deep — and so are the drawn fists; a
- * life-size hand cannot close round one. Twice the size can, and reads as the
- * same cartoon hand the thrower sees through their own eyes.
+ * How big the hands are drawn against life. Life size: the knives are real
+ * size, with a handle a real hand closes round.
  */
-export const HAND_SCALE = 2;
+export const HAND_SCALE = 1;
 
 /** How far each finger joint closes round the handle, knuckle first, radians. */
 const FINGER_CURL = [1.25, 1.35, 0.9];

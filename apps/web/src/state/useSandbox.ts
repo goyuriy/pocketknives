@@ -27,6 +27,8 @@ import {
 } from '@pocketknives/core';
 import { PLAYER_NAMES } from '../ui/theme.js';
 import { useRememberedFlag } from '../ui/useRememberedFlag.js';
+import { useRememberedChoice } from '../ui/useRememberedChoice.js';
+import { isCameraView } from '../stage/math/cameraPose.js';
 import { playbackDuration } from '../playback/releaseTimeline.js';
 import { releasePointFor } from '../stage/math/bodyPose.js';
 
@@ -105,15 +107,17 @@ export const useSandbox = (initialPlayers = 4) => {
   // Every knife thrown this match, oldest first — they stay where they fell.
   const [thrown, setThrown] = useState<readonly Attempt[]>([]);
   const [knifeId, setKnifeId] = useState('thrower');
+  // No experience is kept yet, so every player is a new character: level 1.
+  const characterLevel = 1;
   const [tuning, setTuning] = useState<ThrowConfig>(DEFAULT_CONFIG);
   const [playbackScale, setPlaybackScale] = useState(0.55);
   const [stayOnPlayer, setStayOnPlayer] = useState(true);
   // Whether the edge of the thrower's reach is chalked on the ground. On by
   // default; switched off only to see the ground bare while debugging.
   const [showReach, setShowReach] = useRememberedFlag('pocketknives.reachLine', true);
-  // Watch from behind rather than through the thrower's eyes — for seeing the
-  // character while it is being built, not a way to play.
-  const [thirdPerson, setThirdPerson] = useRememberedFlag('pocketknives.thirdPerson', false);
+  // Where the camera is: through the thrower's eyes to play, or one of the
+  // debug views to look at the scene. `?camera=side` in the address picks one.
+  const [cameraView, setCameraView] = useRememberedChoice('pocketknives.camera', 'camera', isCameraView, 'eyes');
   const timers = useRef<number[]>([]);
 
   // The chosen knife is part of the config, not a decoration on top of it, so
@@ -235,14 +239,15 @@ export const useSandbox = (initialPlayers = 4) => {
     setTuning,
     knifeId,
     setKnifeId,
+    characterLevel,
     playbackScale,
     setPlaybackScale,
     stayOnPlayer,
     setStayOnPlayer,
     showReach,
     setShowReach,
-    thirdPerson,
-    setThirdPerson,
+    cameraView,
+    setCameraView,
   };
 };
 

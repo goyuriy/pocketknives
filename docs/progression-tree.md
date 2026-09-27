@@ -177,7 +177,7 @@ first, most specialised last.
 | Kitchen | Level 2 | More forgiving, less reach — a first taste of the trade-off. |
 | Cleaver | Level 4 | Heavy: short, steady, buries itself. Opens the Two-handed grip. |
 | Needle | Level 6 | Longest reach, forgives nothing — wants the Pinch grip. |
-| Greatsword | Trial: claim half the circle in a single match | A showpiece. Earned, not reached by waiting. |
+| Greatsword | Character level 30, then a trial: claim half the circle in a single match | A showpiece, and the one two-handed weapon. Held back until much later: two-handed throwing is not finished, and it should arrive as an event, not a starter. Shown locked in the rack until then. |
 
 ---
 

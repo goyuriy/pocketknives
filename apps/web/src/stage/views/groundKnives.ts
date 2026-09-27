@@ -104,7 +104,7 @@ export const createGroundKnives = (scene: Scene, shadows: ShadowGenerator): Grou
 };
 
 /** The box a knife fills, in its own frame: along the blade, through its thickness, across its width. */
-const extentsOf = (spec: KnifeSpec): Vector3 => new Vector3(knifeLength(spec), 0.06, 0.14);
+const extentsOf = (spec: KnifeSpec): Vector3 => new Vector3(knifeLength(spec), 0.02, 0.045);
 /** The box's middle, measured from the balance point the model is built around. */
 const centreOf = (spec: KnifeSpec): Vector3 => new Vector3(knifeLength(spec) * (0.5 - spec.balance), 0, 0);
 

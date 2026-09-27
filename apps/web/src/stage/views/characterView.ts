@@ -19,10 +19,10 @@ import { closeOnHandle, HAND_SCALE, measureHand, type HandShape } from './handGr
 export const CHARACTER_URL = `${import.meta.env.BASE_URL}characters/xbot.glb`;
 
 /**
- * Mixamo characters are made in metres at human height; this brings one to
- * the thrower's size here, head where the eyes are.
+ * Mixamo characters are made in metres, as the game is; X Bot is 1.8 m, and
+ * this brings it to the thrower's 1.75, eyes where the camera's are.
  */
-const SCALE = 0.94;
+const SCALE = 0.97;
 
 /**
  * The ground speed each of X Bot's clips was made for, measured off the clips

@@ -241,7 +241,8 @@ one that stuck has already cut; the physics is for the eye and the feet.
 ## The knife
 
 Chosen before the match, not during it: the knife is your strategy, the throw is
-your execution. Each trades **reach** against **forgiveness**.
+your execution. Every knife is its real size and weight, in metres and
+kilograms: the Thrower is 30 cm and 200 g. Each trades **reach** against **forgiveness**.
 
 | Knife | Hands | Full reach | Sticks at full reach | Character |
 | --- | --- | --- | --- | --- |
@@ -249,7 +250,7 @@ your execution. Each trades **reach** against **forgiveness**.
 | Thrower | 1 | 13.7 | 81% | Weighted forward and even-tempered. |
 | Cleaver | 1 | 10.2 | 92% | Heavy and slow to turn, buries itself to the handle. |
 | Needle | 1 | 17.0 | 62% | Light and whirling. Flies furthest, forgives nothing. |
-| Greatsword | 2 | 7.6 | 100% | Barely turns, drops point-first from anywhere — but only reaches so far. |
+| Greatsword | 2 | 7.6 | 100% | Barely turns, drops point-first from anywhere — but only reaches so far. Locked until character level 30; two-handed throwing is parked. |
 
 Every difference is physical:
 
@@ -439,7 +440,8 @@ they kill whole classes of bug before they appear.
 ## Tunable constants
 
 In `RuleSet` — kept out of the geometry so they can be balanced without touching
-it. Values are in arena units, where the arena radius is 10.
+it. Values are in metres: the arena's radius is 10 m, a thrower is 1.75 m tall, and
+every knife is the size of the real thing (the Thrower is 30 cm).
 
 | Name | Default | Meaning |
 | --- | --- | --- |

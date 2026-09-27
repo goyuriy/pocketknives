@@ -6,9 +6,9 @@ import {
 import type { Vec2 } from '@pocketknives/core';
 import type { Stage } from '../engine/createStage.js';
 
-/** The thrower's body as physics sees it: a capsule about the size of a person in this world. */
-const HEIGHT = 1.6;
-const RADIUS = 0.25;
+/** The thrower's body as physics sees it: a capsule the size of a person, in metres. */
+const HEIGHT = 1.75;
+const RADIUS = 0.22;
 
 export type Walker = {
   /**

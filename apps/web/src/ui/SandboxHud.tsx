@@ -1,5 +1,6 @@
 import { area, type MissReason, type StickOutcome } from '@pocketknives/core';
 import type { Attempt, SandboxState } from '../state/useSandbox.js';
+import { CAMERA_VIEWS, type CameraView } from '../stage/math/cameraPose.js';
 import { colorOf } from './theme.js';
 import { DrawMeter } from './DrawMeter.js';
 import { KnifePicker } from './KnifePicker.js';
@@ -60,7 +61,7 @@ const describe = (attempt: Attempt, arenaArea: number): string =>
 
 /**
  * @param debug       whether to show the sandbox controls — reset, player count,
- *                    stay, the reach line, the camera behind, slow motion —
+ *                    stay, the reach line, the debug cameras, slow motion —
  *                    alongside the game's own HUD
  * @param onHideDebug hides them, and the tuning panel with them
  */
@@ -91,7 +92,7 @@ export const SandboxHud = ({
       <div className="turn">
         <span className="swatch" style={{ background: colorOf(game.currentPlayer) }} />
         {game.currentPlayer} to throw
-        <KnifePicker chosen={game.knifeId} onChoose={game.setKnifeId} />
+        <KnifePicker chosen={game.knifeId} level={game.characterLevel} onChoose={game.setKnifeId} />
       </div>
 
       <DrawMeter
@@ -156,12 +157,18 @@ export const SandboxHud = ({
             reach
           </label>
           <label className="toggle">
-            <input
-              type="checkbox"
-              checked={game.thirdPerson}
-              onChange={(event) => game.setThirdPerson(event.target.checked)}
-            />
-            behind
+            camera
+            <select
+              value={game.cameraView}
+              onChange={(event) => game.setCameraView(event.target.value as CameraView)}
+              aria-label="Camera"
+            >
+              {CAMERA_VIEWS.map((view) => (
+                <option key={view} value={view}>
+                  {view}
+                </option>
+              ))}
+            </select>
           </label>
           <label className="toggle">
             slow

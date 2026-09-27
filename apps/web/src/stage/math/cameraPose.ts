@@ -47,6 +47,31 @@ const BEHIND_ASIDE = -0.45;
 const BEHIND_AHEAD = 2;
 const BEHIND_FOCUS_HEIGHT = 0.5;
 
+/**
+ * Where the camera can be put, for looking at the game rather than playing it.
+ *
+ * `eyes` is the game's own camera: through the thrower's eyes, lifting over
+ * the circle once a knife lands. Every other view is for debugging — a fixed
+ * place relative to the thrower that stays put through a throw, so a
+ * screenshot from it shows the same thing every time.
+ */
+export const CAMERA_VIEWS = ['eyes', 'behind', 'side', 'front', 'hand', 'top', 'arena'] as const;
+export type CameraView = (typeof CAMERA_VIEWS)[number];
+
+export const isCameraView = (value: unknown): value is CameraView =>
+  typeof value === 'string' && (CAMERA_VIEWS as readonly string[]).includes(value);
+
+/** Side on from the throwing side, and face on from in front: far enough for the whole body. */
+const SIDE_DISTANCE = 3.4;
+const FRONT_DISTANCE = 3;
+const BODY_MIDDLE = 1.05;
+/** Close on the throwing hand, from out to its side and a little ahead. */
+const HAND_ASIDE = 0.8;
+const HAND_AHEAD = 0.6;
+const HAND_ABOVE = 0.15;
+/** Straight down on the thrower, high enough for their reach around them. */
+const TOP_HEIGHT = 7;
+
 export type CameraPose = {
   /** Game coordinates. */
   readonly eye: Vec3;
@@ -58,8 +83,8 @@ export type CameraPose = {
  * @param look where the view is pointing across the ground, radians — the
  *             hand's heading, lagged
  * @param dip  how far below level the eyes look, radians — see `eyeDip`
- * @param behind watch the thrower from behind and above instead of through
- *             their eyes — to see the character, not to play
+ * @param view where to look from — see `CameraView`
+ * @param hand where the throwing hand is, for the `hand` view
  */
 export const cameraPose = (
   feet: Vec2,
@@ -67,9 +92,11 @@ export const cameraPose = (
   arenaRadius: number,
   look: number,
   dip = EYE_DIP,
-  behind = false,
+  view: CameraView = 'eyes',
+  hand: Vec3 = [feet[0], feet[1], BODY_MIDDLE],
 ): CameraPose => {
-  if (overhead) {
+  if (view !== 'eyes' && view !== 'arena') return debugPose(view, feet, look, hand);
+  if (overhead || view === 'arena') {
     // Over the circle from the thrower's side, so the cut reads the way it was thrown.
     const bearing = Math.hypot(feet[0], feet[1]) > 1e-6 ? Math.atan2(feet[1], feet[0]) : look + Math.PI;
     return {
@@ -81,24 +108,37 @@ export const cameraPose = (
       focus: [0, 0, 0],
     };
   }
-  const forward: Vec2 = [Math.cos(look), Math.sin(look)];
-  if (behind) {
-    const right: Vec2 = [Math.sin(look), -Math.cos(look)];
-    return {
-      eye: [
-        feet[0] - forward[0] * BEHIND_BACK + right[0] * BEHIND_ASIDE,
-        feet[1] - forward[1] * BEHIND_BACK + right[1] * BEHIND_ASIDE,
-        BEHIND_HEIGHT,
-      ],
-      focus: [feet[0] + forward[0] * BEHIND_AHEAD, feet[1] + forward[1] * BEHIND_AHEAD, BEHIND_FOCUS_HEIGHT],
-    };
-  }
   const eye: Vec3 = [feet[0], feet[1], EYE_HEIGHT];
   const ahead: Vec2 = [Math.cos(look) * Math.cos(dip), Math.sin(look) * Math.cos(dip)];
   return {
     eye,
     focus: [eye[0] + ahead[0], eye[1] + ahead[1], eye[2] - Math.sin(dip)],
   };
+};
+
+/** The debug views, each fixed relative to where the thrower stands and faces. */
+const debugPose = (view: Exclude<CameraView, 'eyes' | 'arena'>, feet: Vec2, look: number, hand: Vec3): CameraPose => {
+  const forward: Vec3 = [Math.cos(look), Math.sin(look), 0];
+  const right: Vec3 = [Math.sin(look), -Math.cos(look), 0];
+  const at = (along: number, aside: number, up: number, from: Vec3 = [feet[0], feet[1], 0]): Vec3 => [
+    from[0] + forward[0] * along + right[0] * aside,
+    from[1] + forward[1] * along + right[1] * aside,
+    from[2] + up,
+  ];
+  const body = at(0, 0, BODY_MIDDLE);
+  switch (view) {
+    case 'behind':
+      return { eye: at(-BEHIND_BACK, BEHIND_ASIDE, BEHIND_HEIGHT), focus: at(BEHIND_AHEAD, 0, BEHIND_FOCUS_HEIGHT) };
+    case 'side':
+      return { eye: at(0.3, SIDE_DISTANCE, 1.2), focus: at(0.3, 0, 0.9) };
+    case 'front':
+      return { eye: at(FRONT_DISTANCE, 0.3, 1.5), focus: body };
+    case 'hand':
+      return { eye: at(HAND_AHEAD, HAND_ASIDE, HAND_ABOVE, hand), focus: hand };
+    case 'top':
+      // A hair behind straight down, so the camera still knows which way is up the screen.
+      return { eye: at(-0.01, 0, TOP_HEIGHT), focus: at(0.6, 0, 0) };
+  }
 };
 
 /** How quickly the camera settles into a new pose, per second. Landing is a slower, grander move. */

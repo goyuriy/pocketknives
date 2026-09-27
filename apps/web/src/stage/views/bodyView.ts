@@ -20,12 +20,8 @@ const SKIN = '#e9b48c';
 const TROUSERS = '#3a3f4b';
 const SHOES = '#2b221c';
 const HAIR = '#3b2a1e';
-/**
- * A touch bigger than life — cartoon hands that read at a glance — but no
- * more: at eye level a hand is half a metre from the lens, and anything chunkier
- * fills the screen.
- */
-const FIST_SCALE = 0.65;
+/** Life size: a fist about 10 cm across, as the world is in metres. */
+const FIST_SCALE = 0.45;
 
 export type BodyLook = {
   readonly spec: KnifeSpec;
@@ -110,9 +106,9 @@ export const createBodyView = (scene: Scene, playfield: TransformNode, shadows: 
     knife.root.parent = playfield;
     const make = (name: string, pointer: boolean): Arm => {
       const arm: Arm = {
-        upper: limb(scene, `${name}-upper`, sleeve, playfield, 0.14, 0.12),
-        lower: limb(scene, `${name}-lower`, skin, playfield, 0.1, 0.085),
-        elbow: joint(scene, `${name}-elbow`, sleeve, playfield, 0.13),
+        upper: limb(scene, `${name}-upper`, sleeve, playfield, 0.11, 0.09),
+        lower: limb(scene, `${name}-lower`, skin, playfield, 0.08, 0.06),
+        elbow: joint(scene, `${name}-elbow`, sleeve, playfield, 0.1),
         fist: fist(scene, `${name}-fist`, skin, playfield),
         finger: null,
       };
@@ -261,7 +257,7 @@ const createTrunk = (scene: Scene, parent: TransformNode, wear: Wardrobe): Trunk
   chest.rotationQuaternion = Quaternion.Identity();
 
   const pelvis = CreateSphere('pelvis', { diameter: 1, segments: 12 }, scene);
-  pelvis.scaling.set(0.26, 0.2, 0.36);
+  pelvis.scaling.set(0.22, 0.18, 0.32);
   pelvis.material = wear.trousers;
   pelvis.parent = parent;
   pelvis.rotationQuaternion = Quaternion.Identity();
@@ -271,29 +267,29 @@ const createTrunk = (scene: Scene, parent: TransformNode, wear: Wardrobe): Trunk
   const head = new TransformNode('head', scene);
   head.parent = parent;
   head.rotationQuaternion = Quaternion.Identity();
-  const skull = CreateSphere('skull', { diameter: 0.3, segments: 16 }, scene);
+  const skull = CreateSphere('skull', { diameter: 0.22, segments: 16 }, scene);
   skull.material = wear.skin;
   skull.parent = head;
-  const cap = CreateSphere('hair', { diameter: 0.32, segments: 16, slice: 0.55 }, scene);
+  const cap = CreateSphere('hair', { diameter: 0.235, segments: 16, slice: 0.55 }, scene);
   cap.material = wear.hair;
   cap.parent = head;
   // Built round +y, which is game up once the head is placed.
   cap.rotationQuaternion = Quaternion.FromArray([...alignUp([0, 0, 1])]);
-  cap.position.set(-0.02, 0, 0.02);
-  const nose = CreateSphere('nose', { diameter: 0.06, segments: 8 }, scene);
+  cap.position.set(-0.015, 0, 0.015);
+  const nose = CreateSphere('nose', { diameter: 0.04, segments: 8 }, scene);
   nose.material = wear.skin;
   nose.parent = head;
-  nose.position.set(0.15, 0, -0.01);
+  nose.position.set(0.11, 0, -0.01);
 
   const leg = (name: string): LegMeshes => {
-    const shoe = CreateBox(`${name}-shoe`, { width: 0.26, height: 0.08, depth: 0.12 }, scene);
+    const shoe = CreateBox(`${name}-shoe`, { width: 0.27, height: 0.08, depth: 0.1 }, scene);
     shoe.material = wear.shoes;
     shoe.parent = parent;
     shoe.rotationQuaternion = Quaternion.Identity();
     return {
-      thigh: limb(scene, `${name}-thigh`, wear.trousers, parent, 0.17, 0.13),
-      shin: limb(scene, `${name}-shin`, wear.trousers, parent, 0.12, 0.1),
-      knee: joint(scene, `${name}-knee`, wear.trousers, parent, 0.13),
+      thigh: limb(scene, `${name}-thigh`, wear.trousers, parent, 0.15, 0.11),
+      shin: limb(scene, `${name}-shin`, wear.trousers, parent, 0.1, 0.08),
+      knee: joint(scene, `${name}-knee`, wear.trousers, parent, 0.11),
       shoe,
     };
   };
@@ -307,7 +303,7 @@ const createTrunk = (scene: Scene, parent: TransformNode, wear: Wardrobe): Trunk
       // From a little below the hips to the base of the neck, flatter front to back than side to side.
       const bottom: Vec3 = [figure.hips[0], figure.hips[1], figure.hips[2] - 0.05];
       upright(chest, bottom, figure.neck, heading);
-      chest.scaling.set(0.27, Math.hypot(...sub(figure.neck, bottom)) / 1.6 + 0.02, 0.5);
+      chest.scaling.set(0.24, Math.hypot(...sub(figure.neck, bottom)) / 1.6 + 0.02, 0.38);
       pelvis.position.set(...figure.hips);
       pelvis.rotationQuaternion!.set(...turned);
       span(neck, figure.neck, [figure.neck[0], figure.neck[1], figure.neck[2] + 0.1]);

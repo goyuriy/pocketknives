@@ -10,39 +10,41 @@ export const READY_SWING = -0.35;
 
 /*
  * The thrower's body, in their own frame: forward along the throw, right,
- * and up from the ground. Game units, where the knife is about 0.9 long —
- * chunky proportions, not anatomy.
+ * and up from the ground. Metres, at a person's real proportions: about
+ * 1.75 m tall, eyes at 1.62, arms reaching 0.63 from the shoulder to the
+ * middle of the fist, with a real 30 cm knife in it.
  */
 /** How far behind the release point the thrower stands. The arm reaches forward to let go. */
-const STAND_BACK = 0.85;
+const STAND_BACK = 0.6;
 /** How far left of the throwing line the body is, so the throwing shoulder is on it. */
-const BODY_LEFT = 0.2;
-const SHOULDER_HEIGHT = 1.2;
-const SHOULDER_HALF_WIDTH = 0.24;
-export const EYE_HEIGHT = 1.5;
-const UPPER_ARM = 0.42;
-const FOREARM = 0.42;
+const BODY_LEFT = 0.19;
+const SHOULDER_HEIGHT = 1.42;
+const SHOULDER_HALF_WIDTH = 0.19;
+export const EYE_HEIGHT = 1.62;
+const UPPER_ARM = 0.3;
+/** Elbow to the middle of the fist, where the handle is. */
+const FOREARM = 0.33;
 /** Where the legs join the body, and how far apart. */
-const HIP_HEIGHT = 0.8;
-const HIP_HALF_WIDTH = 0.12;
-const THIGH = 0.42;
-const SHIN = 0.42;
+const HIP_HEIGHT = 0.95;
+const HIP_HALF_WIDTH = 0.1;
+const THIGH = 0.48;
+const SHIN = 0.47;
 /** How high the ankle sits above the sole. */
 const ANKLE_HEIGHT = 0.07;
 /**
  * How the feet stand while still: the free side's foot a little forward, the
  * throwing side's a little back — a thrower's stance, not a soldier's.
  */
-const LEAD_FOOT = 0.14;
-const TRAIL_FOOT = -0.1;
-const FOOT_HALF_SPREAD = 0.14;
+const LEAD_FOOT = 0.16;
+const TRAIL_FOOT = -0.12;
+const FOOT_HALF_SPREAD = 0.12;
 /** How far a foot swings either way of its place in a stride, and how high it lifts. */
-const STRIDE_REACH = 0.24;
+const STRIDE_REACH = 0.3;
 const STRIDE_LIFT = 0.1;
 /** How much the chest leans into the throw, forward at the release, back at full draw. */
 const THROW_LEAN = 0.08;
 /** The base of the neck, and the middle of the head: the eyes are in it. */
-const NECK_HEIGHT = 1.3;
+const NECK_HEIGHT = 1.5;
 const HEAD_HEIGHT = EYE_HEIGHT;
 /** Where each fist sits either side of the grip's middle on a two-handed weapon, as a fraction of the handle. */
 const TWO_HANDED_SPREAD = 0.3;
@@ -53,10 +55,10 @@ const TWO_HANDED_SPREAD = 0.3;
  * pointing there — a parallel arm seen from behind is just a fist.
  */
 const POINT_DISTANCE = 5;
-const POINT_HEIGHT = 1.9;
-const POINT_REACH = 0.76;
+const POINT_HEIGHT = 2.1;
+const POINT_REACH = 0.58;
 /** How far below the shoulder the free hand hangs at rest — down at the hip, out of view. */
-const HANG_DROP = 0.78;
+const HANG_DROP = 0.6;
 /** Which way a hanging hand's knuckles face: down. */
 const HANGING_TILT = -1.4;
 
@@ -65,7 +67,7 @@ const HANGING_TILT = -1.4;
  * units per radian of loft. The pointing arm tilts by the loft itself, so it
  * shows the angle outright; the throwing hand only has to agree with it.
  */
-const HAND_LIFT = 0.3;
+const HAND_LIFT = 0.22;
 const BLADE_LIFT = 0.8;
 
 /**
@@ -82,9 +84,9 @@ const BLADE_LIFT = 0.8;
  * keyframe is not listed — it is wherever the flight begins, worked out per
  * throw.
  */
-const DRAWN: Keyframe = { at: [0.32, 0.12, 0.32], bladeAngle: 0.35 };
-const HELD: Keyframe = { at: [0.62, -0.06, 0.04], bladeAngle: 0.3 };
-const FOLLOWED: Keyframe = { at: [0.45, -0.25, -0.55], bladeAngle: -1.0 };
+const DRAWN: Keyframe = { at: [0.24, 0.09, 0.24], bladeAngle: 0.35 };
+const HELD: Keyframe = { at: [0.46, -0.05, 0.03], bladeAngle: 0.3 };
+const FOLLOWED: Keyframe = { at: [0.34, -0.19, -0.41], bladeAngle: -1.0 };
 
 type Keyframe = { readonly at: Vec3; readonly bladeAngle: number };
 
@@ -102,7 +104,7 @@ export type Stride = {
 export const STANDING: Stride = { phase: 0, amount: 0, along: [1, 0] };
 
 /** Walking distance that makes one step, one foot passing the other. */
-export const STEP_LENGTH = 0.55;
+export const STEP_LENGTH = 0.7;
 
 /** Where the stride is after walking `distance` further. Half a turn of the phase is a step. */
 export const strideAfter = (phase: number, distance: number): number => phase + (distance / STEP_LENGTH) * Math.PI;

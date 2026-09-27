@@ -53,7 +53,7 @@ describe('bodyPose', () => {
     // Throwing north, so "back" is south.
     expect(back.throwingArm.end[1]).toBeLessThan(held.throwingArm.end[1]);
     expect(back.throwingArm.end[2]).toBeGreaterThan(held.throwingArm.end[2]);
-    expect(through.throwingArm.end[2]).toBeLessThan(1);
+    expect(through.throwingArm.end[2]).toBeLessThan(1.2); // down below the shoulder
   });
 
   it('keeps the tip of a drawn-back knife in front of the eyes, where it can be seen', () => {
@@ -64,7 +64,7 @@ describe('bodyPose', () => {
       const tipReach = (1 - knife.spec.balance) * (knife.spec.bladeLength + knife.spec.handleLength);
       const tip = back.knifeAt[1] + along[1] * tipReach;
       // Well ahead of the eye — a camera cannot see what is level with it.
-      expect(tip - eye[1], knife.id).toBeGreaterThan(0.6);
+      expect(tip - eye[1], knife.id).toBeGreaterThan(0.3);
     }
   });
 
@@ -101,7 +101,7 @@ describe('bodyPose', () => {
     expect(idle.pointing).toBe(false);
     expect(gripped.pointing).toBe(true);
     // Down by the hip, well under the shoulder; raised, it is up at shoulder height.
-    expect(idle.otherArm.end[2]).toBeLessThan(idle.otherArm.root[2] - 0.6);
+    expect(idle.otherArm.end[2]).toBeLessThan(idle.otherArm.root[2] - 0.5);
     expect(gripped.otherArm.end[2]).toBeGreaterThan(gripped.otherArm.root[2]);
   });
 
@@ -118,8 +118,8 @@ describe('bodyPose', () => {
   it('puts both hands on a sword’s grip instead of pointing', () => {
     const pose = bodyPose(setup('greatsword'), 0);
     expect(pose.pointing).toBe(false);
-    expect(distance(pose.throwingArm.end, pose.otherArm.end)).toBeGreaterThan(0.1);
-    expect(distance(pose.throwingArm.end, pose.otherArm.end)).toBeLessThan(0.4);
+    expect(distance(pose.throwingArm.end, pose.otherArm.end)).toBeGreaterThan(0.05);
+    expect(distance(pose.throwingArm.end, pose.otherArm.end)).toBeLessThan(0.2);
   });
 
   it('puts the eye at eye height, behind the release', () => {

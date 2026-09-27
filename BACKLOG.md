@@ -17,7 +17,7 @@ Every epic is placed twice:
 in physics, so a knife is a way to play, never a purchase that wins. Money buys
 looks, convenience and support — not reach or forgiveness.
 
-Status: ✅ done · 🔨 in progress · 📋 ready · 💡 idea
+Status: ✅ done · 🔨 in progress · 📋 ready · 💡 idea · ⏸ parked
 
 ---
 
@@ -159,7 +159,9 @@ nothing sold changes where a knife lands.
   - No-spin — the knife barely turns: most reach, flattest flight, least stable.
     The mastery grip.
 - 💡 **Knives** — the five that exist, met in order: Thrower, Kitchen, Cleaver,
-  Needle; the Greatsword earned by a trial.
+  Needle; the Greatsword much later (character level 30, then a trial). It is
+  in the rack now but locked, since two-handed throwing is parked: see
+  **Character & hands**.
 - 💡 **Grip mastery** — three ranks per grip, for sticks thrown with it; looks
   only.
 - 💡 **Character level** — experience from sticks, claims and wins fills it;
@@ -196,9 +198,18 @@ Later: sleeves, gloves, tattoos as cosmetics.
   with hair and a nose, legs solved hip to ankle, shoes. The feet stand in a
   thrower's stance, walk in stride the way the body moves, and the chest
   leans into the throw.
-- ✅ A debug camera behind the thrower (**behind** in the debug row), to see
-  the character; from the thrower's own eyes only the arms and the body's
-  shadow show.
+- ✅ Debug cameras: `behind`, `side`, `front`, `hand` (close on the throwing
+  hand), `top` and `arena`, besides the game's own `eyes`. Picked in the debug
+  row or with `?camera=side` in the address; they hold still through a throw.
+  `pnpm --filter @pocketknives/web shots` screenshots every one of them from
+  a running preview (options in `apps/web/scripts/shots.mjs`).
+- ✅ Real-world sizes: the world is in metres, the thrower 1.75 m, the knives
+  their real length (the Thrower 30 cm) with life-size hands to hold them;
+  the physics constants that depend on size were scaled with them, so throws
+  land as before (the Thrower's identically; the others within a few throws
+  in 3,000, from rounding their lengths to the millimetre). The Greatsword is
+  scaled the same way for now, to 55 cm: its real length waits on two-handed
+  throwing.
 - ✅ A rigged character from Mixamo — X Bot, with Mixamo's idle, walk and
   run — for every camera but the thrower's own eyes. The clips are blended by
   pace and played at the speed the feet are really moving, backwards for
@@ -214,6 +225,10 @@ Later: sleeves, gloves, tattoos as cosmetics.
   since a life-size hand cannot close round the game's chunky handles. Two
   hands on a sword sit side by side, the grip brought in until both reach.
 - 📋 A throw clip for the body (the arms stay on the reach).
+- ⏸ Two-handed throwing, parked for later. What exists: both hands on the
+  sword's handle, side by side. Still to do: a two-handed throw of its own
+  (overhead, both arms), the sword at its full real length and retuned for it,
+  the Two-handed grip. The Greatsword stays locked in the rack until then.
 - 📋 The rig's arms are shorter than the drawn ones, so from behind the knife
   jumps a little forward as it leaves the hand.
 

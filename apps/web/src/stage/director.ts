@@ -252,7 +252,10 @@ export const createDirector = (stage: Stage, { read, hand, walk, stance, sound }
     );
     // From anywhere but the thrower's own eyes, the rigged character stands in
     // for the drawn body once it has loaded, and the knife goes in its hand.
-    const outside = overhead || state.thirdPerson;
+    const view = state.cameraView;
+    // The game's own camera lifts over the circle after a throw; debug views hold still.
+    const lifted = view === 'eyes' ? overhead : view === 'arena';
+    const outside = lifted || view !== 'eyes';
     const inHand = character.show({
       feet,
       heading,
@@ -301,11 +304,12 @@ export const createDirector = (stage: Stage, { read, hand, walk, stance, sound }
         state.arenaRadius,
         look,
         eyeDip(engine.getRenderWidth() / Math.max(1, engine.getRenderHeight())),
-        state.thirdPerson,
+        view,
+        inHand ?? pose.throwingArm.end,
       ),
-      cameraEaseRate(overhead),
+      cameraEaseRate(lifted),
       seconds,
-      (distance) => eyeLocks(overhead, distance),
+      (distance) => eyeLocks(lifted, distance),
       jolt,
     );
   };

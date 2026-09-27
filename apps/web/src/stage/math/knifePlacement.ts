@@ -73,13 +73,13 @@ export const stuckPlacement = (flight: Flight, depth: number): Placement => {
  * that landed on its side ends up. Seeing it lie there, rather than vanish, is
  * what tells the player the throw was wrong rather than the aim.
  */
-export const fallenPlacement = (flight: Flight, skid = 0.9): Placement => {
+export const fallenPlacement = (flight: Flight, skid = 0.5): Placement => {
   const { impact } = flight;
   return {
     position: [
       impact.point[0] + Math.cos(impact.heading) * skid,
       impact.point[1] + Math.sin(impact.heading) * skid,
-      0.03,
+      0.01,
     ],
     heading: impact.heading,
     bladeAngle: 0,

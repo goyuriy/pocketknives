@@ -1,7 +1,7 @@
 import type { KnifeSpec, Vec2 } from '@pocketknives/core';
 
 /** A blade this long is a sword, and a sword has a guard and the width to carry it. */
-const SWORD_LENGTH = 0.8;
+const SWORD_LENGTH = 0.27;
 
 export type Part = {
   /** Convex, counter-clockwise, in the knife's tumble plane: `u` along the knife, `v` across. */
@@ -27,7 +27,8 @@ export const knifeShape = ({ bladeLength, handleLength, balance, edgeWidth }: Kn
   const butt = tip - (bladeLength + handleLength);
   const shoulder = tip - bladeLength;
   const isSword = bladeLength >= SWORD_LENGTH;
-  const halfWidth = isSword ? 0.085 : 0.055;
+  // Real widths, in metres: a knife's blade about 3.5 cm across, a sword's 5.5.
+  const halfWidth = isSword ? 0.028 : 0.018;
   const taper = tip - bladeLength * 0.3;
 
   return {
@@ -39,26 +40,27 @@ export const knifeShape = ({ bladeLength, handleLength, balance, edgeWidth }: Kn
         [taper, halfWidth * 0.9],
         [shoulder, halfWidth],
       ],
-      thickness: Math.max(edgeWidth, 0.006),
+      thickness: Math.max(edgeWidth, 0.003),
     },
     handle: {
       outline: [
-        [butt, -0.045],
-        [shoulder + 0.02, -0.062],
-        [shoulder + 0.02, 0.062],
-        [butt, 0.045],
+        [butt, -0.013],
+        [shoulder + 0.007, -0.017],
+        [shoulder + 0.007, 0.017],
+        [butt, 0.013],
       ],
-      thickness: 0.05,
+      // A handle a hand closes round: about 3 cm deep and 2 cm thick.
+      thickness: 0.02,
     },
     guard: isSword
       ? {
           outline: [
-            [shoulder - 0.025, -0.21],
-            [shoulder + 0.025, -0.21],
-            [shoulder + 0.025, 0.21],
-            [shoulder - 0.025, 0.21],
+            [shoulder - 0.008, -0.07],
+            [shoulder + 0.008, -0.07],
+            [shoulder + 0.008, 0.07],
+            [shoulder - 0.008, 0.07],
           ],
-          thickness: 0.07,
+          thickness: 0.022,
         }
       : null,
   };
