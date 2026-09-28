@@ -57,7 +57,7 @@ describe('the character', () => {
     expect(worldToGame(wrist.getAbsolutePosition())[0]).toBeGreaterThan(0); // on the throwing side
   });
 
-  it('closes its hand round the handle in a hammer grip: diagonal across the palm, thumb on the blade side', async () => {
+  it('closes its hand round the handle in a hammer grip: diagonal across the palm, thumb wrapped over the fingers', async () => {
     const { scene, character } = await loadCharacter();
     const grip = character.show(frame)!;
     const at = (name: string): Vec3 => {
@@ -90,6 +90,17 @@ describe('the character', () => {
       expect(offLine(at(`RightHand${finger}4`)), finger).toBeLessThan(offLine(at(`RightHand${finger}1`)) + 0.01);
       expect(offLine(at(`RightHand${finger}4`)), finger).toBeLessThan(0.07);
     }
+
+    // The thumb wraps right round the handle and closes the fist over the
+    // fingers: its tip on the middle knuckles of the index or middle finger,
+    // and outside the handle, never through it.
+    const thumbTip = at('RightHandThumb4');
+    const toKnuckles = Math.min(
+      Math.hypot(...minus(thumbTip, at('RightHandIndex2'))),
+      Math.hypot(...minus(thumbTip, at('RightHandMiddle2'))),
+    );
+    expect(toKnuckles).toBeLessThan(0.015);
+    expect(offLine(thumbTip)).toBeGreaterThan(0.015);
   });
 
   it('holds a two-handed weapon with both hands on the handle', async () => {

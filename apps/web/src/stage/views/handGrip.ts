@@ -50,10 +50,17 @@ const HANDLE_ACROSS_PALM = (55 * Math.PI) / 180;
 /** How far each finger joint closes round the handle, knuckle first, radians. */
 const FINGER_CURL = [1.2, 1.35, 0.95];
 /**
- * And the thumb, which in a throwing grip is not wrapped over the fingers but
- * rests along the side of the handle, pointing towards the blade.
+ * And the thumb, wrapped right round the handle and over the curled fingers,
+ * its tip on the middle knuckles of the index and middle fingers — the closed
+ * fist of a hammer grip. Its root first swings across the palm and turns in
+ * to face the fingers (the thumb's opposition, which no plain bend can make),
+ * then its three joints close. Found by measuring on the character, not by
+ * eye: the tip lands within a few millimetres of those knuckles and the thumb
+ * stays outside the handle all the way round.
  */
-const THUMB_CURL = [-0.35, -0.25, -0.15];
+const THUMB_ACROSS_PALM = 0.9;
+const THUMB_TURNED_IN = 0.9;
+const THUMB_CURL = [-0.3, 0.9, 0.6];
 const FINGERS = ['Index', 'Middle', 'Ring', 'Pinky'];
 
 const worldRotation = (node: TransformNode): Quaternion => {
@@ -89,22 +96,30 @@ export const measureHand = (bone: (name: string) => TransformNode | undefined, s
   const thumbWorld = thumbBase.getAbsolutePosition().subtract(at).normalize();
 
   const curls: Curl[] = [];
-  const bend = (name: string, towards: Vector3, angles: readonly number[]) => {
+  /** @param root an extra turn for the first joint, before it bends, in its own frame */
+  const bend = (name: string, towards: Vector3, angles: readonly number[], root?: (joint: TransformNode) => Quaternion) => {
     const axisWorld = Vector3.Cross(towards, palmWorld).normalize();
     angles.forEach((angle, i) => {
       const joint = bone(`${side}Hand${name}${i + 1}`);
       if (!joint) return;
       joint.computeWorldMatrix(true);
+      const rest = (joint.rotationQuaternion ?? Quaternion.Identity()).clone();
       curls.push({
         bone: joint,
-        rest: (joint.rotationQuaternion ?? Quaternion.Identity()).clone(),
+        rest: i === 0 && root ? rest.multiply(root(joint)) : rest,
         axis: intoFrame(joint, axisWorld),
         angle,
       });
     });
   };
   FINGERS.forEach((finger) => bend(finger, fingersWorld, FINGER_CURL));
-  bend('Thumb', thumbWorld, THUMB_CURL);
+  // A mirror image turns the other way, so the left thumb's turns are negated.
+  const mirror = side === 'Right' ? 1 : -1;
+  bend('Thumb', thumbWorld, THUMB_CURL, (joint) =>
+    Quaternion.RotationAxis(intoFrame(joint, palmWorld), THUMB_ACROSS_PALM * mirror).multiply(
+      Quaternion.RotationAxis(intoFrame(joint, fingersWorld), THUMB_TURNED_IN * mirror),
+    ),
+  );
 
   return {
     hand,
@@ -122,8 +137,8 @@ export const measureHand = (bone: (name: string) => TransformNode | undefined, s
  *
  * A hammer grip, the first grip every thrower learns: the handle lies
  * diagonally across the palm (`HANDLE_ACROSS_PALM`), the fingers closed round
- * it, the thumb along its side on the blade's end. Then every finger closes
- * round it.
+ * it, and the thumb wrapped round it over the fingers on the blade's end
+ * (`THUMB_CURL`). Then every finger closes round it.
  *
  * The palm faces across the throw, along `across` or against it — the knife
  * turns in the throw's own plane, and so does the fist holding it. That makes

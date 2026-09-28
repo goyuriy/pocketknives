@@ -76,7 +76,8 @@ pointing. Three decisions make a throw, and none of them is a reflex:
    the wobble tells.
 2. **Draw.** Hold the button and pull back towards you. The knife is held in a
    hammer grip, the first grip every thrower learns: the handle diagonally
-   across the palm, fingers round it, the thumb along its side, the knife
+   across the palm, fingers round it, the thumb wrapped right round it and
+   over the fingers to close the fist, the knife
    standing up out of the top of the fist and leaning a little back over the
    shoulder, the fist low and right of the middle of the view. Drawn back, the
    fist goes up beside your head, elbow bent and out, the knife upright behind
