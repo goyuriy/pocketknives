@@ -120,7 +120,7 @@ left stick on a gamepad.
 From the yard game: you must reach the knife while keeping a foot on your own
 land, which caps how deep one throw can claim. Makes deep throws a decision
 instead of always the best move. See RULES.md, *Within reach*.
-- ✅ A knife claims only if it lands within `reach` (5) of your own ground;
+- ✅ A knife claims only if it lands within `reach` (1.5 m) of your own ground;
   otherwise `out_of_reach`, no line.
 - ✅ The edge of your reach chalked on the ground as a solid line round your
   border in your colour (a contour line, no gaps), with a debug switch to hide it.

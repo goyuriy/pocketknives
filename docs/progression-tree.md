@@ -160,13 +160,13 @@ lands within `reach` of land you hold. Long hands adds to that reach. Each level
 adds a little more than the one before it, so the last levels are the ones
 worth chasing.
 
-| Level | Adds | Reach (from 5) | Earliest at character level |
+| Level | Adds | Reach (from 1.5 m) | Earliest at character level |
 | --- | --- | --- | --- |
-| 1 | +2% | 5.10 | 3 |
-| 2 | +3% | 5.25 | 6 |
-| 3 | +4% | 5.45 | 10 |
-| 4 | +5% | 5.70 | 15 |
-| 5 | +6% | 6.00 | 20 |
+| 1 | +2% | 1.53 | 3 |
+| 2 | +3% | 1.58 | 6 |
+| 3 | +4% | 1.64 | 10 |
+| 4 | +5% | 1.71 | 15 |
+| 5 | +6% | 1.80 | 20 |
 
 Numbers are starting points for tuning, not final. The percentages are of the
 base reach, so level 5 is +20% altogether.

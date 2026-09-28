@@ -36,7 +36,7 @@ describe('resolveThrow', () => {
 
   it("takes the half of the victim's ground that touches the thrower", () => {
     // Land in b's half and cut horizontally: the piece nearer a's border is taken.
-    const outcome = resolveThrow(board, 'a', { point: [0, -3], direction: [1, 0] });
+    const outcome = resolveThrow(board, 'a', { point: [0, -3], direction: [1, 0] }, LONG_ARMS);
 
     expect(outcome.kind).toBe('claimed');
     if (outcome.kind !== 'claimed') return;
@@ -48,20 +48,20 @@ describe('resolveThrow', () => {
   });
 
   it('conserves the total ground — cutting never creates or destroys area', () => {
-    const outcome = resolveThrow(board, 'a', { point: [0, -3], direction: [1, 0] });
+    const outcome = resolveThrow(board, 'a', { point: [0, -3], direction: [1, 0] }, LONG_ARMS);
     if (outcome.kind !== 'claimed') throw new Error('expected a claim');
     expect(totalArea(outcome.board.territories)).toBeCloseTo(area(board.arena), 6);
   });
 
-  it('takes everything between the blade and your border, as deep as you can reach', () => {
+  it('takes everything between the blade and your border, however deep the reach', () => {
     // The strip between y = 0 and y = -4.5 is over a quarter of the circle.
-    const outcome = resolveThrow(board, 'a', { point: [0, -4.5], direction: [1, 0] });
+    const outcome = resolveThrow(board, 'a', { point: [0, -4.5], direction: [1, 0] }, LONG_ARMS);
     if (outcome.kind !== 'claimed') throw new Error('expected a claim');
     expect(outcome.gainedArea).toBeGreaterThan(area(board.arena) * 0.25);
   });
 
   it('draws no line where the thrower cannot reach, however well the knife stuck', () => {
-    // a's border is y = 0; the knife is 8 past it, and the reach is 5.
+    // a's border is y = 0; the knife is 8 past it, far beyond the reach.
     const outcome = resolveThrow(board, 'a', { point: [0, -8], direction: [1, 0] });
     expect(outcome).toEqual({ kind: 'miss', reason: 'out_of_reach', cut: null });
   });
@@ -85,7 +85,7 @@ describe('resolveThrow', () => {
     // side of that line, so 'b' gets the triangle — the outer bulk of the wedge
     // is behind the blade and stays with 'c'.
     const four = createBoard(['a', 'b', 'c', 'd'], RADIUS);
-    const outcome = resolveThrow(four, 'b', { point: [-1.5, -1.5], direction: [1, -1] });
+    const outcome = resolveThrow(four, 'b', { point: [-1.5, -1.5], direction: [1, -1] }, LONG_ARMS);
 
     if (outcome.kind !== 'claimed') throw new Error(`expected a claim, got ${outcome.reason}`);
     expect(outcome.victimId).toBe('c');
@@ -106,16 +106,18 @@ describe('resolveThrow', () => {
     const openingPosition = createBoard(['a', 'b', 'c', 'd'], RADIUS);
 
     const afterFirstCut = () => {
-      const outcome = resolveThrow(openingPosition, 'a', { point: [-2, 2], direction: [1, 1] });
+      const outcome = resolveThrow(openingPosition, 'a', { point: [-2, 2], direction: [1, 1] }, LONG_ARMS);
       if (outcome.kind !== 'claimed') throw new Error(`expected a claim, got ${outcome.reason}`);
       return outcome;
     };
 
     const afterCounterCut = () => {
-      const outcome = resolveThrow(afterFirstCut().board, 'b', {
-        point: [3, 3],
-        direction: [1, -1],
-      });
+      const outcome = resolveThrow(
+        afterFirstCut().board,
+        'b',
+        { point: [3, 3], direction: [1, -1] },
+        LONG_ARMS,
+      );
       if (outcome.kind !== 'claimed') throw new Error(`expected a claim, got ${outcome.reason}`);
       return outcome;
     };
@@ -166,7 +168,7 @@ describe('resolveThrow', () => {
     // Four wedges: 'a' and 'c' sit opposite each other, meeting only at the
     // centre point. Nothing 'a' carves out of 'c' can touch land 'a' holds.
     const four = createBoard(['a', 'b', 'c', 'd'], RADIUS);
-    const outcome = resolveThrow(four, 'a', { point: [-2, -2], direction: [1, -1] });
+    const outcome = resolveThrow(four, 'a', { point: [-2, -2], direction: [1, -1] }, LONG_ARMS);
 
     expect(outcome.kind).toBe('miss');
     if (outcome.kind !== 'miss') return;
@@ -249,7 +251,7 @@ describe('resolveThrow', () => {
   });
 
   it('stops the line at the first border it meets, not at the arena rim', () => {
-    const outcome = resolveThrow(board, 'a', { point: [0, -3], direction: [1, 0] });
+    const outcome = resolveThrow(board, 'a', { point: [0, -3], direction: [1, 0] }, LONG_ARMS);
     if (outcome.kind !== 'claimed') throw new Error('expected a claim');
 
     const [start, end] = outcome.cut;
@@ -261,19 +263,19 @@ describe('resolveThrow', () => {
   });
 
   it('wastes the turn when the knife lands outside the circle', () => {
-    const outcome = resolveThrow(board, 'a', { point: [0, -RADIUS - 1], direction: [1, 0] });
+    const outcome = resolveThrow(board, 'a', { point: [0, -RADIUS - 1], direction: [1, 0] }, LONG_ARMS);
     expect(outcome).toMatchObject({ kind: 'miss', reason: 'outside_arena' });
   });
 
   it('wastes the turn when the knife lands on your own ground', () => {
-    const outcome = resolveThrow(board, 'a', { point: [0, 3], direction: [1, 0] });
+    const outcome = resolveThrow(board, 'a', { point: [0, 3], direction: [1, 0] }, LONG_ARMS);
     expect(outcome).toMatchObject({ kind: 'miss', reason: 'own_territory' });
   });
 
   it('conserves area across a run of conquests', () => {
     let current = board;
     for (const y of [-2, -4, -6]) {
-      const outcome = resolveThrow(current, 'a', { point: [0, y], direction: [1, 0] });
+      const outcome = resolveThrow(current, 'a', { point: [0, y], direction: [1, 0] }, LONG_ARMS);
       if (outcome.kind !== 'claimed') throw new Error(`expected a claim at y=${y}`);
       current = outcome.board;
     }
@@ -283,7 +285,7 @@ describe('resolveThrow', () => {
   it('sees a player’s touching pieces as one field, not separate strips', () => {
     let current = board;
     for (const y of [-2, -4, -6]) {
-      const outcome = resolveThrow(current, 'a', { point: [0, y], direction: [1, 0] });
+      const outcome = resolveThrow(current, 'a', { point: [0, y], direction: [1, 0] }, LONG_ARMS);
       if (outcome.kind !== 'claimed') throw new Error('expected a claim');
       current = outcome.board;
     }
@@ -302,7 +304,7 @@ describe('resolveThrow', () => {
   it('keeps a player standing while their pieces add up to solid ground', () => {
     let current = board;
     for (const y of [-2, -4, -6]) {
-      const outcome = resolveThrow(current, 'a', { point: [0, y], direction: [1, 0] });
+      const outcome = resolveThrow(current, 'a', { point: [0, y], direction: [1, 0] }, LONG_ARMS);
       if (outcome.kind !== 'claimed') throw new Error('expected a claim');
       current = outcome.board;
     }
@@ -311,19 +313,19 @@ describe('resolveThrow', () => {
 
   it('leaves the original board untouched', () => {
     const before = JSON.stringify(board);
-    resolveThrow(board, 'a', { point: [0, -3], direction: [1, 0] });
+    resolveThrow(board, 'a', { point: [0, -3], direction: [1, 0] }, LONG_ARMS);
     expect(JSON.stringify(board)).toBe(before);
   });
 
   it('is deterministic — the same throw always yields the same board', () => {
-    const first = resolveThrow(board, 'a', { point: [0, -3], direction: [0.4, 0.9] });
-    const second = resolveThrow(board, 'a', { point: [0, -3], direction: [0.4, 0.9] });
+    const first = resolveThrow(board, 'a', { point: [0, -3], direction: [0.4, 0.9] }, LONG_ARMS);
+    const second = resolveThrow(board, 'a', { point: [0, -3], direction: [0.4, 0.9] }, LONG_ARMS);
     expect(JSON.stringify(first)).toBe(JSON.stringify(second));
   });
 
   it('ignores the length of the direction vector', () => {
-    const short = resolveThrow(board, 'a', { point: [0, -3], direction: [1, 0] });
-    const long = resolveThrow(board, 'a', { point: [0, -3], direction: [500, 0] });
+    const short = resolveThrow(board, 'a', { point: [0, -3], direction: [1, 0] }, LONG_ARMS);
+    const long = resolveThrow(board, 'a', { point: [0, -3], direction: [500, 0] }, LONG_ARMS);
     expect(JSON.stringify(short)).toBe(JSON.stringify(long));
   });
 });

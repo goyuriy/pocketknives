@@ -11,9 +11,10 @@ import { distanceToLand } from './standing.js';
 export const DEFAULT_RULES: RuleSet = {
   standRadius: 0.6,
   minSharedBorder: 0.05,
-  // Half the circle's radius. From your own border that is a short throw, and
-  // a player who wants more has to walk out to the edge of their land first.
-  reach: 5,
+  // An arm and a lean, metres: as far as you can bend from your own ground and
+  // still pull the knife out. So you walk to your border and throw into the
+  // ground just past it — the yard game's own distance.
+  reach: 1.5,
 };
 
 /** Geometric slack, scaled to the arena so the rules read the same at any size. */

@@ -336,7 +336,7 @@ is held, not physics — the flight never reads it.
 **You can only draw the line if the knife is near you.** In the yard you draw
 the cut yourself, down the blade, with a foot still on your own land, so a knife
 you cannot reach draws nothing, however well it stuck. Here that is a distance:
-the knife has to land within `reach` (5, half the circle's radius) of ground you
+the knife has to land within `reach` (1.5 m: an arm and a lean) of ground you
 hold. Otherwise the throw misses as `out_of_reach`, and no line is drawn.
 
 It is measured from the nearest of your ground, not from where you stood to
@@ -359,7 +359,7 @@ gaps. That is a fact about the board, not a preview of the throw. Nothing shows
 where the knife will land. The **reach** switch in the debug row hides it, for
 seeing the ground bare.
 
-Your reach is the base (5) lengthened by your **Long hands** skill: +2%, +3%,
+Your reach is the base (1.5 m) lengthened by your **Long hands** skill: +2%, +3%,
 +4%, +5% and +6% for levels 1 to 5, so +20% at the top. The rule and the line
 both use your own reach. Nothing earns levels yet; the debug row's **long
 hands** setting sets the thrower's.
@@ -519,7 +519,7 @@ every knife is the size of the real thing (the Thrower is 30 cm).
 | --- | --- | --- |
 | `standRadius` | 0.6 | Smallest circle a player must be able to fit on their land to stay in the game. |
 | `minSharedBorder` | 0.05 | Shortest stretch of border that counts as a real connection. Stops a claim resolving on a single touching corner. |
-| `reach` | 5 | Furthest a knife may land from your own ground and still draw a line. |
+| `reach` | 1.5 | Furthest a knife may land from your own ground and still draw a line, metres: an arm and a lean. |
 
 Everything about the throw lives in one file:
 [config.ts](packages/core/src/throw/config.ts). The sandbox exposes it as live
@@ -561,11 +561,12 @@ There is no aiming preview. The knife in the hand is the aim.
 
 ## Not settled yet
 
-- **How long the reach is.** 5 is a first guess, not a measured one. The
-  shortest throw lands about three from your feet, so a reach much under that
-  would make every throw from the border too long. And the draw still spans
-  throws out to 14, most of which now land out of reach. If short throws feel
-  too coarse to place, the power range is the next thing to tune.
+- **How long the reach is.** 1.5 m, from play: at 5 it covered most of a
+  neighbour's ground and the line sat near the horizon. Standing on your
+  border, throws at ↓60° or steeper land within it (the table under *The
+  throw*); the resting ↓43° lands 1.6–2.0 m out, just past it, so a player
+  learns to throw steeper or step right up to the edge. If that proves too
+  tight, the resting angle is the first thing to steepen.
 - **Steep throws never miss.** Straight down sticks every time: the flight is
   too short for the wobble to matter. True to the yard, but it leaves sticking
   no challenge close in. Candidates: a wobble in the blade's heading (the line
