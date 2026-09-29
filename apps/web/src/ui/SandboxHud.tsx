@@ -1,5 +1,5 @@
 import { area, type MissReason, type StickOutcome } from '@pocketknives/core';
-import type { Attempt, SandboxState } from '../state/useSandbox.js';
+import type { Attempt, GameUi } from '../state/useGame.js';
 import { CAMERA_VIEWS, type CameraView } from '../stage/math/cameraPose.js';
 import { colorOf } from './theme.js';
 import { DrawMeter } from './DrawMeter.js';
@@ -81,19 +81,19 @@ export const SandboxHud = ({
   debug,
   onHideDebug,
 }: {
-  game: SandboxState;
+  game: GameUi;
   comfort: ComfortState;
   debug: boolean;
   onHideDebug: () => void;
 }) => {
-  const arenaArea = area(game.match.board.arena);
+  const arenaArea = area(game.board.arena);
   const attempt = game.phase.kind === 'ready' ? game.lastAttempt : game.phase.attempt;
   const throwing = game.draw !== null;
 
-  const holdings = game.match.players.map((id) => ({
+  const holdings = game.players.map((id) => ({
     id,
     share:
-      game.match.board.territories
+      game.board.territories
         .filter((t) => t.ownerId === id)
         .reduce((sum, t) => sum + area(t.ring), 0) / arenaArea,
     alive: game.alive.includes(id),
@@ -128,7 +128,7 @@ export const SandboxHud = ({
             key={h.id}
             type="button"
             className={h.alive ? 'standing' : 'standing out'}
-            onClick={() => game.selectPlayer(game.match.players.indexOf(h.id))}
+            onClick={() => game.selectPlayer(game.players.indexOf(h.id))}
           >
             <span className="swatch" style={{ background: colorOf(h.id) }} />
             {h.id} {(h.share * 100).toFixed(1)}%

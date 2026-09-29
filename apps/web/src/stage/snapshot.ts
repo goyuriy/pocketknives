@@ -5,7 +5,8 @@ import type {
   PlayerId,
   ThrowConfig,
 } from '@pocketknives/core';
-import type { Attempt, Phase } from '../state/useSandbox.js';
+import type { Attempt } from '../state/useGame.js';
+import type { Playing } from '../playback/throwPlayback.js';
 import type { Comfort } from '../state/useComfort.js';
 import type { CameraView } from './math/cameraPose.js';
 
@@ -24,7 +25,11 @@ export type StageSnapshot = {
   readonly board: Board;
   readonly fields: readonly FieldOutline[];
   readonly alive: readonly PlayerId[];
-  readonly phase: Phase;
+  /**
+   * The throw being played back, if any. The stage works out from this and the
+   * clock, every frame, where in the playback it is.
+   */
+  readonly playing: Playing | null;
   readonly lastAttempt: Attempt | null;
   /** True while the finger is down and the hand is moving. */
   readonly swinging: boolean;
@@ -42,7 +47,6 @@ export type StageSnapshot = {
   readonly knife: KnifeSpec;
   readonly hands: 1 | 2;
   readonly playerColor: string;
-  readonly playbackScale: number;
   readonly arenaRadius: number;
 };
 

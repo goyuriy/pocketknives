@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type MutableRefObject } from 'react';
 import type { ThrowIntent } from '@pocketknives/core';
-import type { SandboxState, Stance } from '../state/useSandbox.js';
+import type { GameUi, Stance } from '../state/useGame.js';
 import {
   advanceStroke,
   aimFromPointer,
@@ -102,7 +102,7 @@ export const useThrowControls = ({
   touchWalk,
   sound,
 }: {
-  game: SandboxState;
+  game: GameUi;
   canvas: MutableRefObject<HTMLCanvasElement | null>;
   stance: MutableRefObject<Stance>;
   hand: MutableRefObject<HandInput>;

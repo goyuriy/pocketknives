@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react';
-import type { SandboxState, Stance } from '../state/useSandbox.js';
-import { ARENA_RADIUS } from '../state/useSandbox.js';
+import type { ThrowIntent } from '@pocketknives/core';
+import type { GameUi, Stance } from '../state/useGame.js';
+import { ARENA_RADIUS } from '../state/useGame.js';
 import { colorOf } from '../ui/theme.js';
 import { createWalkDevices } from '../input/devices.js';
 import { combineWalks, STANDING_STILL, type WalkInput } from '../input/walk.js';
@@ -13,12 +14,12 @@ import { useThrowControls, STICK_REACH } from './useThrowControls.js';
 import type { Comfort } from '../state/useComfort.js';
 import { useGamepadThrow } from './useGamepadThrow.js';
 
-const snapshotOf = (game: SandboxState, comfort: Comfort): StageSnapshot => ({
+const snapshotOf = (game: GameUi, comfort: Comfort): StageSnapshot => ({
   comfort,
-  board: game.match.board,
+  board: game.board,
   fields: game.fields,
   alive: game.alive,
-  phase: game.phase,
+  playing: game.playing,
   lastAttempt: game.lastAttempt,
   swinging: game.draw !== null,
   playerId: game.currentPlayer,
@@ -30,7 +31,6 @@ const snapshotOf = (game: SandboxState, comfort: Comfort): StageSnapshot => ({
   knife: game.config.knife,
   hands: game.knife.hands,
   playerColor: colorOf(game.currentPlayer),
-  playbackScale: game.playbackScale,
   arenaRadius: ARENA_RADIUS,
 });
 
@@ -43,7 +43,7 @@ const snapshotOf = (game: SandboxState, comfort: Comfort): StageSnapshot => ({
  * `useThrowControls` (mouse and touch), `useGamepadThrow` (the right stick) and
  * the walking devices, into refs the stage reads each frame.
  */
-export const Stage = ({ game, comfort }: { game: SandboxState; comfort: Comfort }) => {
+export const Stage = ({ game, comfort }: { game: GameUi; comfort: Comfort }) => {
   const canvas = useRef<HTMLCanvasElement>(null);
   const snapshot = useRef(snapshotOf(game, comfort));
   const sound = useRef<ImpactSound | null>(null);
@@ -82,6 +82,16 @@ export const Stage = ({ game, comfort }: { game: SandboxState; comfort: Comfort 
       sound.current = null;
     };
   }, []);
+
+  // A handle for scripts and the console: the session, and a throw from where
+  // the thrower stands through the same release the controls use. What the
+  // screenshot script drives; nothing in the game reads it.
+  useEffect(() => {
+    (window as unknown as { pocketknives: unknown }).pocketknives = {
+      session: game.session,
+      throw: (intent: ThrowIntent) => game.release(intent, stance.current),
+    };
+  });
 
   const { handlers, stick, looking, lockRefused, paused } = useThrowControls({ game, canvas, stance, hand, touchWalk, sound });
   useGamepadThrow({ game, stance, hand });

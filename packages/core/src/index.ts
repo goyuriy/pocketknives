@@ -20,3 +20,5 @@ export * from './rules/cut.js';
 export * from './rules/orphans.js';
 export * from './rules/standing.js';
 export * from './rules/turn.js';
+
+export * from './game/index.js';

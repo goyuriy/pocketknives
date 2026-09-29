@@ -6,7 +6,7 @@ import type { ShadowGenerator } from '@babylonjs/core/Lights/Shadows/shadowGener
 import { PhysicsAggregate } from '@babylonjs/core/Physics/v2/physicsAggregate';
 import { PhysicsShapeType } from '@babylonjs/core/Physics/v2/IPhysicsEnginePlugin';
 import { knifeLength, type KnifeSpec } from '@pocketknives/core';
-import type { Attempt } from '../../state/useSandbox.js';
+import type { Attempt } from '../../state/useGame.js';
 import { toWorld } from '../math/coords.js';
 import type { ImpactFeel } from '../math/impactFeel.js';
 import { bouncingPlacement, quiveringPlacement, quiverLean, stuckPlacement } from '../math/knifePlacement.js';

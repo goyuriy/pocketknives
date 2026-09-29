@@ -276,6 +276,15 @@ Later: sleeves, gloves, tattoos as cosmetics.
 Create a match, send a link, friends join in the browser with no install. The
 core is deterministic, so a small authoritative server (Colyseus) checks each
 throw from its intent and seed. The main acquisition loop for a web game.
+- ✅ Ready for it (ARCHITECTURE.md): the game is a `GameState` moved on only
+  by `applyCommand`; the authority stamps each throw's seed; the client talks
+  to a `Session`, and what is on screen is derived from events and the clock.
+- 📋 A room server that holds a `GameState`, applies commands with seeds it
+  draws, and broadcasts events and state.
+- 📋 A `NetSession` with the `Session` shape; a join link; late joiners get
+  the state.
+- 📋 A presence channel for where each player stands and points right now:
+  lossy, never deciding anything.
 
 ### Leaderboards — 💡 · R
 Scores on the **Daily board**, weekly biggest cut, longest stick, per knife.
@@ -309,6 +318,7 @@ of a season, a name colour, no power.
 
 ## Next up, in order
 
-1. The rest of **Slow-motion release** (impact slow motion, whoosh) — finish the feel of one throw.
+1. **Link rooms** — the first way anyone else sees it. The architecture is
+   ready for it (ARCHITECTURE.md, *How the backlog plugs in*).
 2. **Match flow** and **First three throws** — a playable game for a stranger.
-3. **Link rooms** — the first way anyone else sees it.
+3. The rest of **Slow-motion release** (impact slow motion, whoosh) — finish the feel of one throw.

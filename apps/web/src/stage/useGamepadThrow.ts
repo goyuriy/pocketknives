@@ -1,5 +1,5 @@
 import { useEffect, useRef, type MutableRefObject } from 'react';
-import type { SandboxState, Stance } from '../state/useSandbox.js';
+import type { GameUi, Stance } from '../state/useGame.js';
 import { advanceStroke, gripStroke, lookReach, type Stroke } from '../input/throwStroke.js';
 import {
   PAD_PITCH_RATE,
@@ -35,7 +35,7 @@ export const useGamepadThrow = ({
   stance,
   hand,
 }: {
-  game: SandboxState;
+  game: GameUi;
   stance: MutableRefObject<Stance>;
   hand: MutableRefObject<HandInput>;
 }): void => {
