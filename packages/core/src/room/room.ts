@@ -31,7 +31,7 @@ export type Room = {
 
 /** A message for the transport to deliver: to one connection, or to everyone (but perhaps one). */
 export type Outbound =
-  | { readonly to: ConnectionId; readonly message: ServerMessage }
+  | { readonly to: 'one'; readonly connection: ConnectionId; readonly message: ServerMessage }
   | { readonly to: 'everyone'; readonly except?: ConnectionId; readonly message: ServerMessage };
 
 /** The room after something happened, and what to tell whom. */
@@ -62,7 +62,7 @@ export const joinRoom = (room: Room, connection: ConnectionId): RoomStep => {
   return {
     room: next,
     out: [
-      { to: connection, message: welcome },
+      { to: 'one', connection, message: welcome },
       ...(seat ? [{ to: 'everyone' as const, except: connection, message: { type: 'joined' as const, playerId: seat } }] : []),
     ],
   };
@@ -81,7 +81,7 @@ export const leaveRoom = (room: Room, connection: ConnectionId): RoomStep => {
   const seats = Object.fromEntries(Object.entries(room.seats).filter(([seated]) => seated !== connection));
   const out: Outbound[] = [];
   if (seat) out.push({ to: 'everyone', message: { type: 'left', playerId: seat } });
-  if (host && host !== room.host) out.push({ to: host, message: { type: 'host' } });
+  if (host && host !== room.host) out.push({ to: 'one', connection: host, message: { type: 'host' } });
   return { room: { ...room, seats, connections, host }, out };
 };
 
@@ -124,7 +124,7 @@ export const receive = (room: Room, connection: ConnectionId, message: ClientMes
   }
   const refused = (reason: RoomRejection): RoomStep => ({
     room,
-    out: [{ to: connection, message: { type: 'rejected', id: message.id, reason } }],
+    out: [{ to: 'one', connection, message: { type: 'rejected', id: message.id, reason } }],
   });
   const allowed = mayAsk(room, connection, message.command);
   if (allowed) return refused(allowed);
@@ -134,4 +134,11 @@ export const receive = (room: Room, connection: ConnectionId, message: ClientMes
     room: { ...room, game: applied.state },
     out: [{ to: 'everyone', message: { type: 'update', state: applied.state, events: applied.events } }],
   };
+};
+
+/** Who, of `connections`, an outbound message is for. */
+export const recipients = (outbound: Outbound, connections: readonly ConnectionId[]): readonly ConnectionId[] => {
+  if (outbound.to === 'one') return connections.includes(outbound.connection) ? [outbound.connection] : [];
+  const { except } = outbound;
+  return connections.filter((connection) => connection !== except);
 };

@@ -279,12 +279,21 @@ throw from its intent and seed. The main acquisition loop for a web game.
 - ✅ Ready for it (ARCHITECTURE.md): the game is a `GameState` moved on only
   by `applyCommand`; the authority stamps each throw's seed; the client talks
   to a `Session`, and what is on screen is derived from events and the clock.
-- 📋 A room server that holds a `GameState`, applies commands with seeds it
-  draws, and broadcasts events and state.
-- 📋 A `NetSession` with the `Session` shape; a join link; late joiners get
-  the state.
-- 📋 A presence channel for where each player stands and points right now:
-  lossy, never deciding anything.
+- ✅ The room, as pure functions in the core (`core/room`): seats, the host,
+  who may ask for what, the seeds, what everyone is told; the wire protocol,
+  with every client message checked before it is used.
+- ✅ A `NetSession` with the `Session` shape over any `Transport`; late
+  joiners get the whole match. Tested end to end against an in-memory room.
+- ✅ The presence channel: each screen publishes where its player stands and
+  points, ten times a second; the room relays it under the sender's seat.
+- 📋 The carrier: a WebSocket server that hosts rooms (Colyseus, or a plain
+  `ws` process — the room logic is already written), and a `Transport` over
+  it.
+- 📋 A join link: create a room, share its address, open it to take a seat.
+- 📋 The others on screen: a character per remote player, posed from their
+  presence, smoothed between updates.
+- 📋 The HUD for a room: whose turn, who is here, rejections said plainly,
+  the sandbox controls only for the host.
 
 ### Leaderboards — 💡 · R
 Scores on the **Daily board**, weekly biggest cut, longest stick, per knife.

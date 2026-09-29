@@ -13,6 +13,7 @@ import type { HandInput, StageSnapshot } from './snapshot.js';
 import { useThrowControls, STICK_REACH } from './useThrowControls.js';
 import type { Comfort } from '../state/useComfort.js';
 import { useGamepadThrow } from './useGamepadThrow.js';
+import { usePublishPresence } from './usePublishPresence.js';
 
 const snapshotOf = (game: GameUi, comfort: Comfort): StageSnapshot => ({
   comfort,
@@ -51,6 +52,7 @@ export const Stage = ({ game, comfort }: { game: GameUi; comfort: Comfort }) => 
   // Placed by the stage on the thrower's own ground once it has a board to read.
   const stance = useRef<Stance>({ feet: [0, 0], facing: 0 });
   const touchWalk = useRef<WalkInput>(STANDING_STILL);
+  usePublishPresence(game.session.presence, stance, hand, game.session.controls().length > 0);
 
   useEffect(() => {
     snapshot.current = snapshotOf(game, comfort);

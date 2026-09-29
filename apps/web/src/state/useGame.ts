@@ -11,6 +11,7 @@ import {
   throwConfigFor,
   type GameState,
   type PlayerId,
+  type RoomRejection,
   type Stance,
   type ThrowConfig,
   type ThrowIntent,
@@ -130,15 +131,26 @@ export const useGame = (initialPlayers = 4, makeSession: () => Session = () => c
   const release = useCallback(
     (intent: ThrowIntent, stance: Stance) => {
       setDraw(null);
-      if (phase.kind !== 'ready') return;
+      if (phase.kind !== 'ready' || !session.controls().includes(thrower)) return;
       session.send({ type: 'throw', playerId: thrower, stance, intent });
     },
     [session, phase.kind, thrower],
   );
 
+  // The last command of this screen's that the game turned down, and why —
+  // from a room this can arrive a moment after the command went.
+  const [refusal, setRefusal] = useState<RoomRejection | null>(null);
+  useEffect(() => session.onRejected(setRefusal), [session]);
+  useEffect(() => setRefusal(null), [state]);
+
   return {
     session,
     state,
+    /** Whether the player whose go it is plays at this screen — at a hotseat table always; in a room, on your turn. */
+    yourTurn: session.controls().includes(thrower),
+    /** Whether this screen runs the table: a new match, the sandbox's settings, handing the turn. */
+    isHost: session.isHost(),
+    refusal,
     /** The board on screen, which lags the game's by the playback. */
     board,
     players: state.match.players,

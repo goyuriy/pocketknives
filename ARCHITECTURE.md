@@ -28,7 +28,8 @@ state is plain objects, and the per-frame work is a list of small systems.
 | --- | --- | --- | --- |
 | **Rules and physics** | `packages/core/src/{geometry,rules,throw}` | Pure maths: the cut, the flight, sticking, the knives. | Nothing but itself. |
 | **Game** | `packages/core/src/game` | The match as data (`GameState`), what can be asked of it (`Command`), what it answers (`GameEvent`), and the one function that moves it on (`applyCommand`). | The rules. |
-| **Session** | `apps/web/src/session` | The client's one line to the game: read the state, send commands, hear updates. Today a local authority; next, a networked one. | The game. |
+| **Room** | `packages/core/src/room` | The authority at a network table, as pure functions: who sits where, who may ask for what (`mayAsk`), and what everyone is told (`joinRoom`, `receive`, `leaveRoom`). The wire protocol, and `parseClientMessage`, which checks everything a client sends. | The game. |
+| **Session** | `apps/web/src/session` | The client's one line to the game: read the state, send commands, hear updates and rejections, which players this screen plays for, and others' presence. A local authority (`createLocalSession`) or a room over a `Transport` (`connectNetSession`). | The game, the room's protocol. |
 | **Presentation state** | `apps/web/src/state`, `apps/web/src/playback` | What to show and when: a throw event becomes a playback, and the playback decides which board and whose turn are on screen. Plus this device's preferences (camera, reach line, slow motion). | Session, game types. |
 | **Stage** | `apps/web/src/stage` | `frameOf` works out a frame's facts; systems pose the views. `math/` is pure and tested; `views/` and `systems/` are the only code that touches Babylon. | Presentation state. |
 | **Input** | `apps/web/src/input`, `stage/use*Controls` | Pointer, touch, pad and keys turned into intents and walking. | — |
@@ -83,6 +84,8 @@ nothing of React, Babylon or the browser, and a test fails if it starts to
 | decides who owns land, whether a knife sticks, whose turn it is | `packages/core/src/rules` or `throw` — with a test |
 | is something a player can ask for | a `Command` in `core/game/commands.ts`, handled in `applyCommand` |
 | is something everyone should be told about | a `GameEvent` |
+| is something a player may or may not ask for at a network table | `mayAsk` in `core/room/room.ts` |
+| arrives from another machine | a `ClientMessage`, checked in `parseClientMessage` before anything else sees it |
 | is a number that shapes a throw | `ThrowConfig` (`core/throw/config.ts`), so it can be tuned and sent |
 | is about pacing what is shown | `apps/web/src/playback` — pure, from events and the clock |
 | is a new thing on screen | a view in `stage/views`, posed by a system in `stage/systems` |
@@ -93,15 +96,21 @@ nothing of React, Babylon or the browser, and a test fails if it starts to
 
 ## How the backlog plugs in
 
-- **Link rooms.** A server runs a room: it holds a `GameState`, receives
-  commands over a socket, calls `applyCommand` with a seed it draws, and
-  broadcasts the resulting events and state. On the client a `NetSession`
-  implements the same `Session` shape, so nothing above it changes. A client
-  that joins late gets the state and sees knives already lying where they
-  fell. Walking and aiming — where a player stands and points *this instant* —
-  never decide anything, so they go on a separate, lossy presence channel
-  rather than through commands; only the stance a throw is thrown from is
-  part of the command.
+- **Link rooms.** The room's whole behaviour is already in the core
+  (`room/room.ts`): seats in turn order, the first to join hosts, a player
+  acts only for their own seat, the room draws every seed and broadcasts
+  state and events, a late joiner's welcome carries the whole match. On the
+  client `connectNetSession` gives the same `Session` shape over any
+  `Transport`, so nothing above it changes; `createLoopbackRoom` runs the
+  lot in memory, through JSON, and the tests play two screens against each
+  other with it. What is left is the carrier: a server process that keeps a
+  `Room`, feeds it what arrives on a socket (through `parseClientMessage`),
+  and delivers what it answers (`recipients`) — the loopback room is that
+  process minus the socket. Walking and aiming — where a player stands and
+  points *this instant* — never decide anything, so they go on the lossy
+  presence channel (`usePublishPresence`, ten times a second) rather than
+  through commands; only the stance a throw is thrown from is part of the
+  command.
 - **Party mode.** Hotseat is a local session with every player on one device —
   today's sandbox with the practice settings off. Phones as controllers are a
   network session where each phone sends one player's commands.

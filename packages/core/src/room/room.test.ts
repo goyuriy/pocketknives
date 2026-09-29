@@ -5,7 +5,7 @@ import { DEFAULT_CONFIG } from '../throw/config.js';
 import type { Command } from '../game/commands.js';
 import { createGame, currentPlayer, type GameState } from '../game/state.js';
 import type { ClientMessage } from './protocol.js';
-import { createRoom, joinRoom, leaveRoom, receive, type Room, type RoomStep } from './room.js';
+import { createRoom, joinRoom, leaveRoom, receive, recipients, type Room, type RoomStep } from './room.js';
 
 const game = createGame({ players: ['Red', 'Blue'] });
 
@@ -28,16 +28,16 @@ describe('a room', () => {
   it('seats players in turn order, the first as host, and then lets people watch', () => {
     const first = joinRoom(createRoom(game), 'a');
     expect(first.out).toEqual([
-      { to: 'a', message: { type: 'welcome', you: 'Red', host: true, state: game } },
+      { to: 'one', connection: 'a', message: { type: 'welcome', you: 'Red', host: true, state: game } },
       { to: 'everyone', except: 'a', message: { type: 'joined', playerId: 'Red' } },
     ]);
     const second = joinRoom(first.room, 'b');
     expect(second.out).toEqual([
-      { to: 'b', message: { type: 'welcome', you: 'Blue', host: false, state: game } },
+      { to: 'one', connection: 'b', message: { type: 'welcome', you: 'Blue', host: false, state: game } },
       { to: 'everyone', except: 'b', message: { type: 'joined', playerId: 'Blue' } },
     ]);
     const third = joinRoom(second.room, 'c');
-    expect(third.out).toEqual([{ to: 'c', message: { type: 'welcome', you: null, host: false, state: game } }]);
+    expect(third.out).toEqual([{ to: 'one', connection: 'c', message: { type: 'welcome', you: null, host: false, state: game } }]);
   });
 
   it('applies a player’s throw with the room’s seed, and tells everyone', () => {
@@ -80,7 +80,7 @@ describe('a room', () => {
     expect(gone.room.host).toBe('b');
     expect(gone.out).toEqual([
       { to: 'everyone', message: { type: 'left', playerId: 'Red' } },
-      { to: 'b', message: { type: 'host' } },
+      { to: 'one', connection: 'b', message: { type: 'host' } },
     ]);
     const back = joinRoom(gone.room, 'd');
     expect(back.out[0]!.message).toMatchObject({ type: 'welcome', you: 'Red', host: false });
@@ -90,6 +90,17 @@ describe('a room', () => {
     const room = seated('a');
     expect(receive(room, 'stranger', command(1, throwFor(game, 'Red')), 1)).toEqual({ room, out: [] });
     expect(leaveRoom(room, 'stranger')).toEqual({ room, out: [] });
+  });
+});
+
+describe('recipients', () => {
+  it('sends to one, to everyone, or to everyone but one — and never to someone not here', () => {
+    const here = ['a', 'b', 'c'];
+    const message = { type: 'host' } as const;
+    expect(recipients({ to: 'one', connection: 'b', message }, here)).toEqual(['b']);
+    expect(recipients({ to: 'one', connection: 'z', message }, here)).toEqual([]);
+    expect(recipients({ to: 'everyone', message }, here)).toEqual(here);
+    expect(recipients({ to: 'everyone', except: 'a', message }, here)).toEqual(['b', 'c']);
   });
 });
 
