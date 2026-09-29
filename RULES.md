@@ -27,7 +27,13 @@ whole game runs on: there are no retries.
 
 Eliminated players are skipped.
 
-> `playTurn` — [turn.ts](packages/core/src/rules/turn.ts)
+A throw is only taken from the player whose turn it is, standing on their own
+ground; anything else is turned down and changes nothing. The match is over,
+and takes no more throws, once one player is left standing. (In the sandbox
+the turn can be kept, to practise.)
+
+> `applyCommand` — [apply.ts](packages/core/src/game/apply.ts), and ARCHITECTURE.md for how commands work
+> `nextLivePlayer`, `playTurn` — [turn.ts](packages/core/src/rules/turn.ts)
 
 ## The throw
 
