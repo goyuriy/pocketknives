@@ -22,3 +22,4 @@ export * from './rules/standing.js';
 export * from './rules/turn.js';
 
 export * from './game/index.js';
+export * from './room/index.js';

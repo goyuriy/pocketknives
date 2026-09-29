@@ -48,7 +48,9 @@ export type PlayerState = {
  * - `longHands`: reach further past your own ground to draw the line, 0 to 5
  *   (`longHandsReach`).
  */
-export type SkillId = 'longHands';
+export const SKILL_IDS = ['longHands'] as const;
+
+export type SkillId = (typeof SKILL_IDS)[number];
 
 export type Skills = Readonly<Partial<Record<SkillId, number>>>;
 
