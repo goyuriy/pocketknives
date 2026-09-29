@@ -48,7 +48,8 @@ export const createMatch = (
   rules: RuleSet = DEFAULT_RULES,
 ): Match => ({ board, players, turn: 0, rules, history: [] });
 
-const nextLivePlayer = (match: Match, board: Board): number => {
+/** The next player round from whoever has the turn who can still stand on `board`. */
+export const nextLivePlayer = (match: Match, board: Board): number => {
   for (let step = 1; step <= match.players.length; step++) {
     const index = (match.turn + step) % match.players.length;
     if (isAlive(board, match.rules, match.players[index]!)) return index;

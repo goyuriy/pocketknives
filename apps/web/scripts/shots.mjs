@@ -12,6 +12,8 @@
  *   --knife=cleaver                pick a knife first
  *   --walk=900                     hold W this many ms before the shots
  *   --draw                         hold the button and pull back before the shots
+ *   --throw=0.4                    throw at this draw (through window.pocketknives)
+ *   --wait=1200                    ms after the throw before the shot
  *
  * Uses Playwright, which is not a dependency of the game: install it with
  * `npm i -g playwright` (or point PLAYWRIGHT at an installed copy's
@@ -81,6 +83,12 @@ for (const view of views) {
       await page.mouse.move(640, 450 + i * 12);
       await page.waitForTimeout(16);
     }
+  }
+  if (options.throw) {
+    await page.evaluate((draw) => {
+      window.pocketknives.throw({ aim: 0, pitch: 0.35, draw, drift: 0 });
+    }, Number(options.throw));
+    await page.waitForTimeout(Number(options.wait ?? 1200));
   }
   await page.waitForTimeout(600);
   const file = `${out}/${view}.png`;

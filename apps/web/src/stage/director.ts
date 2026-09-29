@@ -1,6 +1,8 @@
 import { homeSpot, isOnOwnLand, keepOnOwnLand, type KnifeSpec, type Vec2, type Vec3 } from '@pocketknives/core';
 import type { MutableRefObject } from 'react';
-import { CUT_DURATION, IMPACT_BEAT, type Attempt, type Stance } from '../state/useSandbox.js';
+import type { Attempt, Stance } from '../state/useGame.js';
+import { attemptOf } from '../state/attempts.js';
+import { CUT_DURATION, IMPACT_BEAT, playbackPhase } from '../playback/throwPlayback.js';
 import { walkStep, type WalkInput } from '../input/walk.js';
 import type { ImpactSound } from '../audio/impactSound.js';
 import { impactFeel, type ImpactFeel } from './math/impactFeel.js';
@@ -121,8 +123,9 @@ export const createDirector = (stage: Stage, { read, hand, walk, stance, sound }
   // Where the arm was when the hand let go: the hand-off swings it from here.
   let swingAtRelease = 0;
   let look: number | null = null;
-  let phaseSeen = first.phase;
-  let phaseStartedAt = performance.now();
+  // Which throw, and which part of its playback, the last frame showed —
+  // moments like the landing happen on the frame that crosses into them.
+  let seen: { index: number; kind: string } | null = null;
   // The last knife to hit the ground, and when: everything that happens on
   // impact — dust, sound, shake, quiver, bounce — is timed from this.
   let impact: { attempt: Attempt; at: number; feel: ImpactFeel } | null = null;
@@ -131,11 +134,17 @@ export const createDirector = (stage: Stage, { read, hand, walk, stance, sound }
     const now = performance.now();
     const seconds = Math.min(engine.getDeltaTime() / 1000, LONGEST_FRAME);
     const state = read();
-    const { phase } = state;
+    // Where the playback is, from the clock: nothing here waits on a timer.
+    const at = playbackPhase(state.playing, now);
+    const phase =
+      at.kind === 'done' || !state.playing
+        ? ({ kind: 'ready' } as const)
+        : { kind: at.kind, attempt: attemptOf(state.playing.record) };
+    const intoPhase = at.kind === 'done' ? 0 : at.into;
+    const playbackScale = state.playing?.scale ?? 1;
 
-    if (phase !== phaseSeen) {
-      phaseSeen = phase;
-      phaseStartedAt = now;
+    const moment = phase.kind === 'ready' ? null : { index: phase.attempt.record.index, kind: phase.kind };
+    if (moment && (moment.index !== seen?.index || moment.kind !== seen.kind)) {
       if (phase.kind === 'flying') swingAtRelease = motion.shown;
       if (phase.kind === 'cutting') {
         // The flight's playback has just reached the ground.
@@ -148,7 +157,7 @@ export const createDirector = (stage: Stage, { read, hand, walk, stance, sound }
         sound.play(feel);
       }
     }
-    const intoPhase = (now - phaseStartedAt) / 1000;
+    seen = moment;
     const { handOff } = RELEASE_SLOW_MOTION;
     // Still in the fist: the arm is swinging through to let go.
     const handingOff = phase.kind === 'flying' && intoPhase < handOff;
@@ -177,11 +186,19 @@ export const createDirector = (stage: Stage, { read, hand, walk, stance, sound }
     if (inAir && phase.kind === 'flying' && !handingOff) {
       // Off the fingers at a crawl, then up to the cruising pace — which is
       // itself slower than real time, because the knife's turn is worth watching.
-      const flightTime = flightTimeAt(intoFlight, state.playbackScale);
+      const flightTime = flightTimeAt(intoFlight, playbackScale);
       place(inAir.root, flyingPlacement(phase.attempt.flight, flightTime));
     }
-    // Forget landings for knives that have been picked up.
+    // Forget landings for knives that have been picked up. Knives already on
+    // the ground when this screen first saw them — a reload, or joining a
+    // room mid-match — landed long ago, and lie still.
     for (const attempt of landings.keys()) if (!state.thrown.includes(attempt)) landings.delete(attempt);
+    for (const attempt of state.thrown) {
+      const inPlay = phase.kind !== 'ready' && phase.attempt === attempt;
+      if (!inPlay && !landings.has(attempt)) {
+        landings.set(attempt, { at: now - LONG_AGO, feel: impactFeel(attempt.verdict, attempt.flight.impact, attempt.knife) });
+      }
+    }
     ground.show(state.thrown, landings, now);
     const sinceImpact = impact && landings.has(impact.attempt) ? (now - impact.at) / 1000 : Infinity;
     dust.update(now / 1000);
@@ -227,7 +244,7 @@ export const createDirector = (stage: Stage, { read, hand, walk, stance, sound }
       // Through the follow-through the arm lives on the world's clock, so it
       // moves in slow motion with the knife it just let go of.
       const worldSeconds =
-        phase.kind === 'flying' ? seconds * rateAt(intoFlight, state.playbackScale) : seconds;
+        phase.kind === 'flying' ? seconds * rateAt(intoFlight, playbackScale) : seconds;
       motion = stepArm(motion, draw === null ? READY_SWING : swingForDraw(draw), released, worldSeconds);
     }
     // The free arm comes up to point only while the button is held.
@@ -332,6 +349,9 @@ export const createDirector = (stage: Stage, { read, hand, walk, stance, sound }
     },
   };
 };
+
+/** Milliseconds before now that a knife found already on the ground is taken to have landed. */
+const LONG_AGO = 60_000;
 
 /** How quickly the character's pace follows the feet, per second. */
 const PACE_EASE = 10;

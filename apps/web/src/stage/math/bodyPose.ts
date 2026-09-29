@@ -1,4 +1,4 @@
-import type { KnifeSpec, Vec2, Vec3 } from '@pocketknives/core';
+import { RELEASE_AHEAD, RELEASE_RIGHT, releasePoint, type KnifeSpec, type Vec2, type Vec3 } from '@pocketknives/core';
 import { bladeDirection } from './coords.js';
 import { twoBoneIk, type Limb } from './twoBoneIk.js';
 
@@ -14,10 +14,13 @@ export const READY_SWING = -0.35;
  * 1.75 m tall, eyes at 1.62, arms reaching 0.63 from the shoulder to the
  * middle of the fist, with a real 30 cm knife in it.
  */
-/** How far behind the release point the thrower stands. The arm reaches forward to let go. */
-const STAND_BACK = 0.6;
-/** How far left of the throwing line the body is, so the throwing shoulder is on it. */
-const BODY_LEFT = 0.19;
+/**
+ * How far behind the release point the thrower stands, and how far left of the
+ * throwing line, so the throwing shoulder is on it. The rules own these — the
+ * release is where the flight starts — and the body is drawn round them.
+ */
+const STAND_BACK = RELEASE_AHEAD;
+const BODY_LEFT = RELEASE_RIGHT;
 const SHOULDER_HEIGHT = 1.42;
 const SHOULDER_HALF_WIDTH = 0.19;
 export const EYE_HEIGHT = 1.62;
@@ -204,17 +207,10 @@ const lerp3 = (a: Vec3, b: Vec3, t: number): Vec3 => [lerp(a[0], b[0], t), lerp(
 
 /**
  * Where the knife leaves the hand for a thrower standing at `feet` and throwing
- * along `heading`: out in front, and a little right, where the throwing arm is.
- * The inverse of how `bodyPose` finds the feet from a release.
+ * along `heading` — the rules' own `releasePoint`. The inverse of how
+ * `bodyPose` finds the feet from a release.
  */
-export const releasePointFor = (feet: Vec2, heading: number): Vec2 => {
-  const forward: Vec2 = [Math.cos(heading), Math.sin(heading)];
-  const right: Vec2 = [Math.sin(heading), -Math.cos(heading)];
-  return [
-    feet[0] + forward[0] * STAND_BACK + right[0] * BODY_LEFT,
-    feet[1] + forward[1] * STAND_BACK + right[1] * BODY_LEFT,
-  ];
-};
+export const releasePointFor: (feet: Vec2, heading: number) => Vec2 = releasePoint;
 
 /** Where the eye is, for a thrower about to throw from `release` along `heading`. */
 export const eyeAt = (release: Vec3, heading: number): Vec3 =>
