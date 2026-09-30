@@ -26,7 +26,7 @@ Status: ✅ done · 🔨 in progress · 📋 ready · 💡 idea · ⏸ parked
 | | **Acquisition** — brings new players in | **Engagement** — makes a session better | **Retention** — brings players back | **Monetization** — earns without spoiling it |
 | --- | --- | --- | --- | --- |
 | **Core** — the throw and the match | Slow-motion release ✅ · Impact juice ✅ · Throw replay · Physics comedy · First three throws | Slow-motion release · Impact juice · Walking · Cut reveal · Reach rule ✅ · Match flow · Bots · Physics comedy · Grounds · Wind | Match flow · First three throws · Bots · Grounds | Nothing, on purpose — the throw is never for sale |
-| **Meta** — what you carry between matches | Daily board | Knife collection · Progression tree · Knife mastery | Knife collection · Progression tree · Daily board · Knife mastery · Season pass | Cosmetics · Season pass · Character & hands |
+| **Meta** — what you carry between matches | Playable lobby · Daily board | Playable lobby · Knife collection · Progression tree · Knife mastery | Knife collection · Progression tree · Daily board · Knife mastery · Season pass | Cosmetics · Season pass · Character & hands |
 | **Social** — playing with other people | Link rooms · Reactions · Clip share · Party mode | Link rooms · Reactions · Party mode · Tournaments | Leaderboards · Friends & rivals · Crews · Tournaments | Supporter pack |
 
 ---
@@ -165,6 +165,12 @@ throws. Makes the angle choice matter even more.
 ---
 
 ## Meta — around the match
+
+### Playable lobby — 💡 · A, E
+The lobby is a knife-throwing yard, not a separate menu: walk around it and
+throw at targets to choose a mode, open a menu or start a match. Each target
+makes its destination clear before the throw, so entering the game keeps the
+same physical language as playing it.
 
 ### Knife collection — 📋 · E, R
 The five knives exist; make choosing one a moment. A rack to pick from,
