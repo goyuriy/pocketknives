@@ -14,9 +14,9 @@ state is plain objects, and the per-frame work is a list of small systems.
 ## The layers
 
 ```
- input devices ──► intents ──► Command ──► Session ──► applyCommand ──► GameState + GameEvents
- (mouse, touch,    (aim, draw,              (local or      (pure, core)            │
-  pad, keys)        push, walk)              network)                               ▼
+ input devices ──► intents ──► Command ──► Session ──► authority ──► applyCommand ──► GameState + GameEvents
+ (mouse, touch,    (aim, draw,              (local or      (local session          (pure, core)            │
+  pad, keys)        push, walk)              network)       or Room)                                      ▼
                                                                      useGame: playback + what to show
                                                                                     │
                                                          frameOf(snapshot, clock) ──┤ once a frame

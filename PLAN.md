@@ -1,5 +1,5 @@
 # Plan
 
-- [complete] Identify the intended documentation update: a playable knife-throwing lobby.
-- [complete] Add the playable lobby to the backlog and its planning matrix.
+- [complete] Identify the intended documentation update: clarify the command path in the architecture diagram.
+- [complete] Show that a local session or a network Room authority applies commands.
 - [complete] Verify the documentation change and record the outcome.
