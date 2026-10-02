@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useReducer, useState, useSyncExternalStore } from 'react';
+import { useCallback, useEffect, useMemo, useState, useSyncExternalStore } from 'react';
 import {
   createGame,
   currentPlayer,
@@ -17,12 +17,11 @@ import {
   type ThrowIntent,
 } from '@pocketknives/core';
 import { PLAYER_NAMES } from '../ui/theme.js';
-import { useRememberedFlag } from '../ui/useRememberedFlag.js';
-import { useRememberedChoice } from '../ui/useRememberedChoice.js';
-import { isCameraView } from '../stage/math/cameraPose.js';
 import { createLocalSession, type Session } from '../session/session.js';
-import { nextChangeAt, shownBoard, shownThrow, startPlaying, type Playing } from '../playback/throwPlayback.js';
+import { shownBoard, shownThrow } from '../playback/throwPlayback.js';
 import { attemptOf, knivesOut } from '../playback/attempts.js';
+import { usePlayback } from './usePlayback.js';
+import { usePreferences } from './usePreferences.js';
 
 export const ARENA_RADIUS = 10;
 
@@ -40,40 +39,17 @@ const sandbox = (players: number): GameState =>
  *
  * It decides nothing. The game lives behind the session; this reads it, sends
  * the player's commands to it, and turns what comes back into what to show:
- * a thrown knife starts a playback, the playback decides which board and whose
- * turn are on screen, and the rest is this device's own preferences — the
- * camera, the reach line, how slow the slow motion is.
+ * a thrown knife starts a playback (`usePlayback`), the playback decides which
+ * throw, which board and whose turn are on screen, and the rest is this
+ * device's own choices (`usePreferences`).
  */
 export const useGame = (initialPlayers = 4, makeSession: () => Session = () => createLocalSession(sandbox(initialPlayers))) => {
   const [session] = useState(makeSession);
   const subscribe = useCallback((onChange: () => void) => session.subscribe(() => onChange()), [session]);
   const state = useSyncExternalStore(subscribe, session.state);
 
-  const [playbackScale, setPlaybackScale] = useState(0.55);
-  const [playing, setPlaying] = useState<Playing | null>(null);
-  useEffect(
-    () =>
-      session.subscribe(({ events }) => {
-        for (const event of events) {
-          if (event.type === 'thrown') {
-            setPlaying(startPlaying(event.record, event.boardBefore, performance.now(), playbackScale));
-          } else if (event.type === 'matchStarted') {
-            setPlaying(null);
-          }
-        }
-      }),
-    [session, playbackScale],
-  );
-
-  // Re-render when the playback moves on — the one moment the HUD's answers
-  // change — rather than on a chain of timers that each decide something.
-  const [, moveOn] = useReducer((n: number) => n + 1, 0);
-  useEffect(() => {
-    const at = nextChangeAt(playing, performance.now());
-    if (at === null) return;
-    const wait = window.setTimeout(moveOn, Math.max(0, at - performance.now()) + 1);
-    return () => window.clearTimeout(wait);
-  });
+  const preferences = usePreferences();
+  const { playing, stopPlaying } = usePlayback(session, preferences.playbackScale);
 
   const now = performance.now();
   const phase = shownThrow(playing, now);
@@ -97,12 +73,6 @@ export const useGame = (initialPlayers = 4, makeSession: () => Session = () => c
     (radians: number) => setPitchExactly(Math.round((radians * 180) / Math.PI) * (Math.PI / 180)),
     [],
   );
-  // Whether the edge of the thrower's reach is chalked on the ground. On by
-  // default; switched off only to see the ground bare while debugging.
-  const [showReach, setShowReach] = useRememberedFlag('pocketknives.reachLine', true);
-  // Where the camera is: through the thrower's eyes to play, or one of the
-  // debug views to look at the scene. `?camera=side` in the address picks one.
-  const [cameraView, setCameraView] = useRememberedChoice('pocketknives.camera', 'camera', isCameraView, 'eyes');
 
   const config = useMemo<ThrowConfig>(() => throwConfigFor(state, thrower), [state, thrower]);
   const knifeId = state.players[thrower]?.knifeId ?? 'thrower';
@@ -175,23 +145,18 @@ export const useGame = (initialPlayers = 4, makeSession: () => Session = () => c
     release,
     playerCount: state.match.players.length,
     reset: (count: number) => {
-      setPlaying(null);
+      stopPlaying();
       session.send({ type: 'newMatch', players: PLAYER_NAMES.slice(0, count) });
     },
     selectPlayer: (index: number) => {
-      setPlaying(null);
+      stopPlaying();
       session.send({ type: 'giveTurn', playerId: state.match.players[index % state.match.players.length]! });
     },
     setKnifeId: (id: string) => session.send({ type: 'chooseKnife', playerId: thrower, knifeId: id }),
     setTuning: (tuned: ThrowConfig) => session.send({ type: 'configure', settings: { throw: tuned } }),
     stayOnPlayer: !state.settings.passTurns,
     setStayOnPlayer: (stay: boolean) => session.send({ type: 'configure', settings: { passTurns: !stay } }),
-    showReach,
-    setShowReach,
-    cameraView,
-    setCameraView,
-    playbackScale,
-    setPlaybackScale,
+    ...preferences,
   };
 };
 
