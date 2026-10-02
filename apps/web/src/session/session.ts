@@ -5,7 +5,6 @@ import {
   type GameState,
   type PlayerId,
   type Presence,
-  type Rejection,
   type RoomRejection,
 } from '@pocketknives/core';
 
@@ -34,13 +33,14 @@ export type PresenceChannel = {
 export type Session = {
   readonly state: () => GameState;
   /**
-   * Asks for something. A local session answers at once with why it was
-   * turned down, or null if it went through; a networked one answers null and
-   * lets the outcome arrive as an update, like everyone else's.
+   * Asks for something. The answer always comes back the same way, whoever
+   * the authority is: the new state through `subscribe` if it went through,
+   * the reason through `onRejected` if not — at once from a local session, a
+   * moment later from a room.
    */
-  readonly send: (command: Command) => Rejection | null;
+  readonly send: (command: Command) => void;
   readonly subscribe: (listener: (update: SessionUpdate) => void) => () => void;
-  /** Hears every command of this screen's that was turned down, and why — however late the answer comes. */
+  /** Hears every command of this screen's that was turned down, and why. */
   readonly onRejected: (listener: (reason: RoomRejection) => void) => () => void;
   /**
    * The players this screen plays for: every player at a hotseat table, one
@@ -75,12 +75,11 @@ export const createLocalSession = (initial: GameState, nextSeed: () => number = 
       const applied = applyCommand(state, command, { seed: nextSeed() });
       if (!applied.ok) {
         refusals.forEach((listener) => listener(applied.reason));
-        return applied.reason;
+        return;
       }
       state = applied.state;
       const update = { state, events: applied.events };
       listeners.forEach((listener) => listener(update));
-      return null;
     },
     subscribe: (listener) => {
       listeners.add(listener);

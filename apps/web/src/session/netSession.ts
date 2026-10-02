@@ -24,10 +24,7 @@ export const connectNetSession = (transport: Transport): Promise<Session> =>
 
     const session: Session = {
       state: () => state!,
-      send: (command) => {
-        transport.send({ type: 'command', id: nextId++, command });
-        return null;
-      },
+      send: (command) => transport.send({ type: 'command', id: nextId++, command }),
       subscribe: (listener) => {
         listeners.add(listener);
         return () => listeners.delete(listener);

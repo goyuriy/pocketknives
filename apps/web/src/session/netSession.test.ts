@@ -36,7 +36,7 @@ describe('connectNetSession, through a loopback room', () => {
     const seen: SessionUpdate[] = [];
     blue.subscribe((update) => seen.push(update));
 
-    expect(red.send(throwFor(game, 'Red'))).toBeNull();
+    red.send(throwFor(game, 'Red'));
     await settle();
     expect(seen).toHaveLength(1);
     expect(seen[0]!.events[0]!.type).toBe('thrown');

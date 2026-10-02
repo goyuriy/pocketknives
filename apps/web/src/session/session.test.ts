@@ -16,7 +16,7 @@ describe('createLocalSession', () => {
     const session = createLocalSession(game, () => 42);
     const heard: SessionUpdate[] = [];
     session.subscribe((update) => heard.push(update));
-    expect(session.send(throwCommand)).toBeNull();
+    session.send(throwCommand);
     expect(session.state().throws[0]!.seed).toBe(42);
     expect(currentPlayer(session.state())).toBe('Blue');
     expect(heard).toHaveLength(1);
@@ -26,8 +26,11 @@ describe('createLocalSession', () => {
   it('says why a command was turned down, and changes nothing', () => {
     const session = createLocalSession(game, () => 42);
     let heard = 0;
+    const refusals: string[] = [];
     session.subscribe(() => heard++);
-    expect(session.send({ ...throwCommand, playerId: 'Blue' })).toBe('not_your_turn');
+    session.onRejected((reason) => refusals.push(reason));
+    session.send({ ...throwCommand, playerId: 'Blue' });
+    expect(refusals).toEqual(['not_your_turn']);
     expect(session.state()).toBe(game);
     expect(heard).toBe(0);
   });
