@@ -1,4 +1,5 @@
 import type { Board, ThrowRecord } from '@pocketknives/core';
+import { attemptOf, type Attempt } from './attempts.js';
 import { playbackDuration } from './releaseTimeline.js';
 
 /**
@@ -62,6 +63,20 @@ export const playbackPhase = (playing: Playing | null, now: number): PlaybackPha
   const rested = landed - IMPACT_BEAT - CUT_DURATION;
   if (rested < REST_DURATION) return { kind: 'resting', into: rested };
   return { kind: 'done' };
+};
+
+/**
+ * What the screen is doing with the last throw: ready for the next one, or
+ * showing one — which throw, which part of it, and how far into that part.
+ */
+export type ShownThrow =
+  | { readonly kind: 'ready' }
+  | { readonly kind: 'flying' | 'cutting' | 'resting'; readonly attempt: Attempt; readonly into: number };
+
+/** The throw on screen at `now`. The HUD and the stage both learn it here, so they cannot disagree. */
+export const shownThrow = (playing: Playing | null, now: number): ShownThrow => {
+  const at = playbackPhase(playing, now);
+  return at.kind === 'done' || !playing ? { kind: 'ready' } : { kind: at.kind, attempt: attemptOf(playing.record), into: at.into };
 };
 
 /** When the next part of the playback starts, in the clock's milliseconds; null once it is over. */

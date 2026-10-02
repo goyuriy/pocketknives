@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type MutableRefObject } from 'react';
 import type { ThrowIntent } from '@pocketknives/core';
-import type { GameUi, Stance } from '../state/useGame.js';
+import type { Stance } from '@pocketknives/core';
+import type { GameUi } from '../state/useGame.js';
 import {
   advanceStroke,
   aimFromPointer,

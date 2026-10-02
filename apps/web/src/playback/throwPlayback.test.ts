@@ -1,6 +1,16 @@
 import { describe, expect, it } from 'vitest';
 import { applyCommand, createGame, DEFAULT_CONFIG, homeSpot, type ThrowRecord } from '@pocketknives/core';
-import { CUT_DURATION, IMPACT_BEAT, nextChangeAt, playbackPhase, REST_DURATION, shownBoard, startPlaying } from './throwPlayback.js';
+import { attemptOf } from './attempts.js';
+import {
+  CUT_DURATION,
+  IMPACT_BEAT,
+  nextChangeAt,
+  playbackPhase,
+  REST_DURATION,
+  shownBoard,
+  shownThrow,
+  startPlaying,
+} from './throwPlayback.js';
 
 const game = createGame({ players: ['Red', 'Blue'] });
 const feet = homeSpot(game.match.board, 'Red')!;
@@ -39,6 +49,14 @@ describe('throw playback', () => {
     expect(shownBoard(playing, at(0), after)).toBe(game.match.board);
     expect(shownBoard(playing, at(playing.landsAfter + 0.1), after)).toBe(game.match.board);
     expect(shownBoard(playing, at(playing.landsAfter + IMPACT_BEAT + CUT_DURATION + 0.1), after)).toBe(after);
+  });
+
+  it('names the throw on screen, the same one every time it is asked', () => {
+    expect(shownThrow(playing, at(0.1))).toEqual({ kind: 'flying', attempt: attemptOf(record), into: 0.1 });
+    expect(shownThrow(playing, at(0.1))).toEqual(shownThrow(playing, at(0.1)));
+    expect((shownThrow(playing, at(0.1)) as { attempt: unknown }).attempt).toBe(attemptOf(record));
+    expect(shownThrow(playing, at(100))).toEqual({ kind: 'ready' });
+    expect(shownThrow(null, at(0))).toEqual({ kind: 'ready' });
   });
 
   it('plays slower when asked to', () => {

@@ -1,5 +1,6 @@
 import { useEffect, useRef, type MutableRefObject } from 'react';
-import type { GameUi, Stance } from '../state/useGame.js';
+import type { Stance } from '@pocketknives/core';
+import type { GameUi } from '../state/useGame.js';
 import { advanceStroke, gripStroke, lookReach, type Stroke } from '../input/throwStroke.js';
 import {
   PAD_PITCH_RATE,

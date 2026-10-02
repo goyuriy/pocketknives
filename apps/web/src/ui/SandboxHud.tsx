@@ -1,5 +1,6 @@
 import { area, type MissReason, type StickOutcome } from '@pocketknives/core';
-import type { Attempt, GameUi } from '../state/useGame.js';
+import type { Attempt } from '../playback/attempts.js';
+import type { GameUi } from '../state/useGame.js';
 import { CAMERA_VIEWS, type CameraView } from '../stage/math/cameraPose.js';
 import { colorOf } from './theme.js';
 import { DrawMeter } from './DrawMeter.js';

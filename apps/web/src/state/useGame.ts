@@ -21,18 +21,10 @@ import { useRememberedFlag } from '../ui/useRememberedFlag.js';
 import { useRememberedChoice } from '../ui/useRememberedChoice.js';
 import { isCameraView } from '../stage/math/cameraPose.js';
 import { createLocalSession, type Session } from '../session/session.js';
-import { nextChangeAt, playbackPhase, shownBoard, startPlaying, type Playing } from '../playback/throwPlayback.js';
-import { attemptOf, knivesOut, type Attempt } from './attempts.js';
-
-export type { Attempt } from './attempts.js';
-export type { Stance } from '@pocketknives/core';
+import { nextChangeAt, shownBoard, shownThrow, startPlaying, type Playing } from '../playback/throwPlayback.js';
+import { attemptOf, knivesOut } from '../playback/attempts.js';
 
 export const ARENA_RADIUS = 10;
-
-/** What the screen is doing with the last throw. Ready when there is none being shown. */
-export type Phase =
-  | { readonly kind: 'ready' }
-  | { readonly kind: 'flying' | 'cutting' | 'resting'; readonly attempt: Attempt };
 
 /** The practice table the game opens on: everyone at one screen, the settings open to tuning. */
 const sandbox = (players: number): GameState =>
@@ -84,9 +76,7 @@ export const useGame = (initialPlayers = 4, makeSession: () => Session = () => c
   });
 
   const now = performance.now();
-  const stage = playbackPhase(playing, now);
-  const phase: Phase =
-    stage.kind === 'done' || !playing ? { kind: 'ready' } : { kind: stage.kind, attempt: attemptOf(playing.record) };
+  const phase = shownThrow(playing, now);
   // While a throw is shown it is still the thrower's go on screen, whatever
   // the game has moved on to.
   const thrower: PlayerId = phase.kind === 'ready' ? currentPlayer(state) : phase.attempt.playerId;
@@ -117,7 +107,7 @@ export const useGame = (initialPlayers = 4, makeSession: () => Session = () => c
     [board, state.match.rules, state.match.players],
   );
   const fields = useMemo(
-    () => fieldOutlines(board, state.match.rules.minSharedBorder, ARENA_RADIUS * 1e-6),
+    () => fieldOutlines(board, state.match.rules.minSharedBorder, board.radius * 1e-6),
     [board, state.match.rules.minSharedBorder],
   );
   const thrown = useMemo(() => knivesOut(state.throws), [state.throws]);

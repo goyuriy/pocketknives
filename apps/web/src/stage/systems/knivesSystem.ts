@@ -2,7 +2,7 @@ import type { Scene } from '@babylonjs/core/scene';
 import type { TransformNode } from '@babylonjs/core/Meshes/transformNode';
 import type { ShadowGenerator } from '@babylonjs/core/Lights/Shadows/shadowGenerator';
 import type { KnifeSpec, Vec3 } from '@pocketknives/core';
-import type { Attempt } from '../../state/attempts.js';
+import type { Attempt } from '../../playback/attempts.js';
 import type { ImpactSound } from '../../audio/impactSound.js';
 import { flightTimeAt } from '../../playback/releaseTimeline.js';
 import { impactFeel, type ImpactFeel } from '../math/impactFeel.js';

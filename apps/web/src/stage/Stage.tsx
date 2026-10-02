@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react';
 import type { ThrowIntent } from '@pocketknives/core';
-import type { GameUi, Stance } from '../state/useGame.js';
-import { ARENA_RADIUS } from '../state/useGame.js';
+import type { Stance } from '@pocketknives/core';
+import type { GameUi } from '../state/useGame.js';
 import { colorOf } from '../ui/theme.js';
 import { createWalkDevices } from '../input/devices.js';
 import { combineWalks, STANDING_STILL, type WalkInput } from '../input/walk.js';
@@ -32,7 +32,7 @@ const snapshotOf = (game: GameUi, comfort: Comfort): StageSnapshot => ({
   knife: game.config.knife,
   hands: game.knife.hands,
   playerColor: colorOf(game.currentPlayer),
-  arenaRadius: ARENA_RADIUS,
+  arenaRadius: game.board.radius,
 });
 
 /**

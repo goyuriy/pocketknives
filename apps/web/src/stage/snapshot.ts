@@ -5,7 +5,7 @@ import type {
   PlayerId,
   ThrowConfig,
 } from '@pocketknives/core';
-import type { Attempt } from '../state/useGame.js';
+import type { Attempt } from '../playback/attempts.js';
 import type { Playing } from '../playback/throwPlayback.js';
 import type { Comfort } from '../state/useComfort.js';
 import type { CameraView } from './math/cameraPose.js';

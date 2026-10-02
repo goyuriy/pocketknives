@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { applyCommand, createGame, DEFAULT_CONFIG, homeSpot, knifeById } from '@pocketknives/core';
-import { attemptOf } from '../state/attempts.js';
+import { attemptOf } from '../playback/attempts.js';
 import { IMPACT_BEAT, startPlaying } from '../playback/throwPlayback.js';
 import { RELEASE_SLOW_MOTION } from '../playback/releaseTimeline.js';
 import { frameOf, LONGEST_FRAME } from './frame.js';

@@ -1,14 +1,9 @@
-import { attemptOf, type Attempt } from '../state/attempts.js';
-import { IMPACT_BEAT, playbackPhase } from '../playback/throwPlayback.js';
+import type { Attempt } from '../playback/attempts.js';
+import { IMPACT_BEAT, shownThrow, type ShownThrow } from '../playback/throwPlayback.js';
 import { RELEASE_SLOW_MOTION } from '../playback/releaseTimeline.js';
 import type { CameraView } from './math/cameraPose.js';
 import type { WorldTime } from './math/worldClock.js';
 import type { StageSnapshot } from './snapshot.js';
-
-/** What the screen is doing with the last throw. */
-export type FramePhase =
-  | { readonly kind: 'ready' }
-  | { readonly kind: 'flying' | 'cutting' | 'resting'; readonly attempt: Attempt };
 
 /**
  * Everything the systems need to know about this frame, worked out once.
@@ -25,7 +20,7 @@ export type Frame = {
   readonly seconds: number;
   /** The world's clock this frame: real time, held still through a hitstop (`worldClock.ts`). */
   readonly world: WorldTime;
-  readonly phase: FramePhase;
+  readonly phase: ShownThrow;
   /** Seconds into the current part of the playback. */
   readonly into: number;
   /** How fast the flight is played once past its slow start. */
@@ -60,10 +55,8 @@ export const frameSeconds = (seconds: number): number => Math.min(Math.max(0, se
 
 /** `world` defaults to real time, as if nothing had ever hit. */
 export const frameOf = (state: StageSnapshot, now: number, seconds: number, world?: WorldTime): Frame => {
-  const at = playbackPhase(state.playing, now);
-  const phase: FramePhase =
-    at.kind === 'done' || !state.playing ? { kind: 'ready' } : { kind: at.kind, attempt: attemptOf(state.playing.record) };
-  const into = at.kind === 'done' ? 0 : at.into;
+  const phase = shownThrow(state.playing, now);
+  const into = phase.kind === 'ready' ? 0 : phase.into;
   const { handOff } = RELEASE_SLOW_MOTION;
   const landed = phase.kind === 'cutting' || phase.kind === 'resting';
   // Lift over the circle only once the impact has had its moment at eye level.
