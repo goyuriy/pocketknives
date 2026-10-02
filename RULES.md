@@ -33,7 +33,7 @@ and takes no more throws, once one player is left standing. (In the sandbox
 the turn can be kept, to practise.)
 
 > `applyCommand` — [apply.ts](packages/core/src/game/apply.ts), and ARCHITECTURE.md for how commands work
-> `nextLivePlayer`, `playTurn` — [turn.ts](packages/core/src/rules/turn.ts)
+> `nextLivePlayer`, `winner` — [turn.ts](packages/core/src/rules/turn.ts)
 
 ## The throw
 

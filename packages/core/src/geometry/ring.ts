@@ -17,12 +17,6 @@ export const signedArea = (ring: Ring): number => {
 
 export const area = (ring: Ring): number => Math.abs(signedArea(ring));
 
-export const perimeter = (ring: Ring): number => {
-  let sum = 0;
-  for (const [a, b] of edges(ring)) sum += distance(a, b);
-  return sum;
-};
-
 export const centroid = (ring: Ring): Vec2 => {
   const a2 = signedArea(ring) * 6;
   if (Math.abs(a2) < EPS) {

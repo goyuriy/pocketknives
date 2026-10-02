@@ -1,13 +1,26 @@
 import { describe, expect, it } from 'vitest';
-import type { Board, Vec2 } from '../types.js';
+import type { Board, Throw, Vec2 } from '../types.js';
 import { area } from '../geometry/ring.js';
 import { clusterRings, ringsOf } from '../geometry/cluster.js';
 import { createBoard, territoriesOf } from './board.js';
 import { DEFAULT_RULES, longHandsReach, resolveThrow } from './cut.js';
-import { createMatch, isAlive, playTurn, winner } from './turn.js';
+import { createMatch, isAlive, nextLivePlayer, winner, type Match } from './turn.js';
 import { seededRandom } from '../throw/random.js';
 
 const RADIUS = 10;
+
+/**
+ * One throw for whoever's turn it is, as the rules alone see it: the cut
+ * resolved, the turn passed on. The game does this inside `applyCommand`, with
+ * a flight and a seed; these tests are about the geometry, so they skip both.
+ */
+const playTurn = (match: Match, attempt: Throw) => {
+  const playerId = match.players[match.turn]!;
+  const outcome = resolveThrow(match.board, playerId, attempt, match.rules);
+  const board = outcome.kind === 'claimed' ? outcome.board : match.board;
+  const history = [...match.history, { playerId, attempt, outcome }];
+  return { outcome, match: { ...match, board, turn: nextLivePlayer(match, board), history } };
+};
 const players = ['a', 'b'] as const;
 /** For tests about the geometry of a cut, not about how far a player can reach. */
 const LONG_ARMS = { ...DEFAULT_RULES, reach: Infinity };
@@ -345,20 +358,6 @@ describe('elimination', () => {
 
     expect(isAlive(after.board, after.rules, 'b')).toBe(false);
     expect(winner(after)).toBe('a');
-  });
-});
-
-describe('playTurn', () => {
-  it('passes the turn even when the throw achieves nothing', () => {
-    const match = createMatch(createBoard([...players], RADIUS), [...players]);
-    const { match: next, outcome } = playTurn(match, {
-      point: [0, -RADIUS - 5],
-      direction: [1, 0],
-    });
-
-    expect(outcome.kind).toBe('miss');
-    expect(next.players[next.turn]).toBe('b');
-    expect(next.history).toHaveLength(1);
   });
 });
 

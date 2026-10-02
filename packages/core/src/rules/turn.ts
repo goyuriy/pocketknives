@@ -1,7 +1,7 @@
 import type { Board, PlayerId, RuleSet, Throw, ThrowOutcome } from '../types.js';
 import { clusterInscribedRadius, clusterRings, ringsOf } from '../geometry/cluster.js';
 import { territoriesOf } from './board.js';
-import { DEFAULT_RULES, resolveThrow } from './cut.js';
+import { DEFAULT_RULES } from './cut.js';
 
 export type Match = {
   readonly board: Board;
@@ -56,40 +56,6 @@ export const nextLivePlayer = (match: Match, board: Board): number => {
   }
   return match.turn;
 };
-
-/**
- * Plays one throw for whoever's turn it is and hands the turn on.
- *
- * The turn always passes — hitting nothing costs you your go, which is the
- * pressure the whole game runs on.
- */
-export const playTurn = (match: Match, attempt: Throw): { match: Match; outcome: ThrowOutcome } => {
-  const playerId = match.players[match.turn]!;
-  const outcome = resolveThrow(match.board, playerId, attempt, match.rules);
-  const board = outcome.kind === 'claimed' ? outcome.board : match.board;
-
-  return {
-    outcome,
-    match: {
-      ...match,
-      board,
-      turn: nextLivePlayer(match, board),
-      history: [...match.history, { playerId, attempt, outcome }],
-    },
-  };
-};
-
-/**
- * Passes the turn without a cut being resolved.
- *
- * For a throw that never reached the rules — the knife arrived flat and skipped
- * away. It failed before there was any line to draw, but it still cost the go,
- * like every other miss.
- */
-export const passTurn = (match: Match): Match => ({
-  ...match,
-  turn: nextLivePlayer(match, match.board),
-});
 
 export const winner = (match: Match): PlayerId | null => {
   const alive = survivors(match.board, match.rules, match.players);

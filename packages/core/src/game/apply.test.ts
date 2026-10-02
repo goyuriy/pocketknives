@@ -32,8 +32,9 @@ const ok = (applied: Applied) => {
 describe('applyCommand: a throw', () => {
   const game = createGame({ players });
 
-  it('records the throw, tells everyone, and hands the turn on', () => {
+  it('records the throw, tells everyone, and hands the turn on — even when it took nothing', () => {
     const { state, events } = ok(applyCommand(game, throwing(game), stamp));
+    expect(state.throws[0]!.outcome?.kind).not.toBe('claimed');
     expect(state.throws).toHaveLength(1);
     expect(state.throws[0]).toMatchObject({ index: 0, playerId: 'Red', seed: 7, knifeId: 'thrower' });
     expect(events[0]).toMatchObject({ type: 'thrown', boardBefore: game.match.board });

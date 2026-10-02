@@ -50,7 +50,3 @@ export const createBoard = (
 
 export const territoriesOf = (board: Board, ownerId: PlayerId): readonly Territory[] =>
   board.territories.filter((t) => t.ownerId === ownerId);
-
-export const ownersOf = (board: Board): readonly PlayerId[] => [
-  ...new Set(board.territories.map((t) => t.ownerId)),
-];
