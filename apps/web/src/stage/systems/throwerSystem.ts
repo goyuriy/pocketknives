@@ -1,4 +1,3 @@
-import type { MutableRefObject } from 'react';
 import {
   homeSpot,
   isOnOwnLand,
@@ -20,7 +19,7 @@ import { bodyPose, gripOffset, READY_SWING, releasePointFor, STANDING, swingForD
 import { bladeDirection } from '../math/coords.js';
 import { springAt, stepHeadingSpring, stepSpring, type Spring, type SpringTuning } from '../math/spring.js';
 import { paceFor, strideFor } from '../math/stride.js';
-import type { HandInput } from '../snapshot.js';
+import type { HandInput, Live } from '../snapshot.js';
 import { createBodyView } from '../views/bodyView.js';
 import { createCharacterView } from '../views/characterView.js';
 import { createWalker } from '../views/walker.js';
@@ -59,7 +58,7 @@ export type ThrowerInputs = {
   /** How hard the player is asking to turn right now, -1 to 1, positive right. */
   readonly turn: () => number;
   /** Where the thrower stands and faces. This system moves the feet and turns the body; the controls turn the facing too. */
-  readonly stance: MutableRefObject<Stance>;
+  readonly stance: Live<Stance>;
 };
 
 /**

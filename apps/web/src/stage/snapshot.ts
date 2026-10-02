@@ -51,6 +51,13 @@ export type StageSnapshot = {
 };
 
 /**
+ * A value the controls change between frames and the stage reads every frame
+ * — where the thrower stands, say. The shape of a React ref, so the controls
+ * can hand one straight over, without the engine side knowing React.
+ */
+export type Live<T> = { current: T };
+
+/**
  * The player's hand as the pointer has it right now — read every frame, and
  * changed far more often than React renders, so it travels by ref instead.
  */

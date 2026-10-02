@@ -1,4 +1,3 @@
-import type { MutableRefObject } from 'react';
 import type { Stance } from '@pocketknives/core';
 import type { WalkInput } from '../input/walk.js';
 import type { ImpactSound } from '../audio/impactSound.js';
@@ -6,7 +5,7 @@ import type { Stage } from './engine/createStage.js';
 import { frameOf, frameSeconds } from './frame.js';
 import { hitstopFor } from './math/shake.js';
 import { holdWorld, tickWorld, WORLD_START } from './math/worldClock.js';
-import type { HandInput, StageSnapshot } from './snapshot.js';
+import type { HandInput, Live, StageSnapshot } from './snapshot.js';
 import { createArenaSystem } from './systems/arenaSystem.js';
 import { createCameraSystem } from './systems/cameraSystem.js';
 import { createKnivesSystem } from './systems/knivesSystem.js';
@@ -24,7 +23,7 @@ export type DirectorInputs = {
   /** How hard the player is asking to turn right now, -1 to 1, positive right. */
   readonly turn: () => number;
   /** Where the thrower stands and faces. The thrower system moves the feet; the controls turn the facing. */
-  readonly stance: MutableRefObject<Stance>;
+  readonly stance: Live<Stance>;
   /** Where impacts are heard. */
   readonly sound: ImpactSound;
 };
