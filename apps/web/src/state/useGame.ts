@@ -80,6 +80,10 @@ export const useGame = (initialPlayers = 4, makeSession: () => Session = () => c
   // While a throw is shown it is still the thrower's go on screen, whatever
   // the game has moved on to.
   const thrower: PlayerId = phase.kind === 'ready' ? currentPlayer(state) : phase.attempt.playerId;
+  // Whether this screen may start a throw now: nothing is being shown, and the
+  // player whose go it is plays here. Every control asks this one question.
+  const yourTurn = session.controls().includes(thrower);
+  const canThrow = phase.kind === 'ready' && yourTurn;
   const board = shownBoard(playing, now, state.match.board);
 
   // How far the arm is drawn while the button is down; null when it is not.
@@ -121,10 +125,10 @@ export const useGame = (initialPlayers = 4, makeSession: () => Session = () => c
   const release = useCallback(
     (intent: ThrowIntent, stance: Stance) => {
       setDraw(null);
-      if (phase.kind !== 'ready' || !session.controls().includes(thrower)) return;
+      if (!canThrow) return;
       session.send({ type: 'throw', playerId: thrower, stance, intent });
     },
-    [session, phase.kind, thrower],
+    [session, canThrow, thrower],
   );
 
   // The last command of this screen's that the game turned down, and why —
@@ -137,7 +141,9 @@ export const useGame = (initialPlayers = 4, makeSession: () => Session = () => c
     session,
     state,
     /** Whether the player whose go it is plays at this screen — at a hotseat table always; in a room, on your turn. */
-    yourTurn: session.controls().includes(thrower),
+    yourTurn,
+    /** Whether a throw may start from this screen now: nothing is being shown, and it is the go of a player here. */
+    canThrow,
     /** Whether this screen runs the table: a new match, the sandbox's settings, handing the turn. */
     isHost: session.isHost(),
     refusal,

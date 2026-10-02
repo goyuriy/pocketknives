@@ -110,7 +110,7 @@ export const useThrowControls = ({
   touchWalk: MutableRefObject<WalkInput>;
   sound: MutableRefObject<ImpactSound | null>;
 }): ThrowControls => {
-  const { phase, setDraw, setPitch, release } = game;
+  const { canThrow, setDraw, setPitch, release } = game;
   const stroke = useRef<Stroke | null>(null);
   // Mouse-look has no pointer position, only motion: this is the motion summed,
   // a place for the stroke reader to measure draws and pushes in.
@@ -132,7 +132,6 @@ export const useThrowControls = ({
   const [paused, setPaused] = useState(false);
   const refused = useRef(false);
   const unlockedAt = useRef(-Infinity);
-  const canThrow = phase.kind === 'ready';
 
   /** Puts the hand somewhere new, and shows its angle. */
   const point = (next: HandInput) => {

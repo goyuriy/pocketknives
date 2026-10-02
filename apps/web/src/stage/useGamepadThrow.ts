@@ -80,7 +80,7 @@ export const useGamepadThrow = ({
           hand.current = { ...hand.current, aim: 0, pitch, draw: null, look, viewFollowsAim: true };
           game.setPitch(pitch);
         }
-        if (grip && game.phase.kind === 'ready') {
+        if (grip && game.canThrow) {
           across = 0;
           gripFacing = stance.current.facing;
           stroke = gripStroke({ x: 0, y: padGripY(config), t: now }, lookReach(0, RADIANS_PER_PIXEL), hand.current.pitch);
