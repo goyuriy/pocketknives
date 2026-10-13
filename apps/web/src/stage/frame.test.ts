@@ -32,6 +32,7 @@ const snapshot = (changes: Partial<StageSnapshot> = {}): StageSnapshot => ({
   lastAttempt: attemptOf(record),
   swinging: false,
   playerId: 'Red',
+  yourTurn: true,
   reach: 1.5,
   showReach: true,
   cameraView: 'eyes',

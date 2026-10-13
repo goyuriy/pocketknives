@@ -24,6 +24,7 @@ const snapshotOf = (game: GameUi, comfort: Comfort): StageSnapshot => ({
   lastAttempt: game.lastAttempt,
   swinging: game.draw !== null,
   playerId: game.currentPlayer,
+  yourTurn: game.yourTurn,
   reach: game.reach,
   showReach: game.showReach,
   cameraView: game.cameraView,

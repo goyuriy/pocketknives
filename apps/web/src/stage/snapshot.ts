@@ -35,6 +35,8 @@ export type StageSnapshot = {
   readonly swinging: boolean;
   /** Whose turn it is — whose ground the thrower may walk. */
   readonly playerId: PlayerId;
+  /** Whether that player plays at this screen. Someone else's thrower is not this screen's to walk or turn. */
+  readonly yourTurn: boolean;
   /** How far past their own ground the thrower can reach to draw a line. */
   readonly reach: number;
   /** Whether that reach is chalked on the ground. */

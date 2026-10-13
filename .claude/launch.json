@@ -18,6 +18,16 @@
         "start"
       ],
       "port": 4173
+    },
+    {
+      "name": "rooms",
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": [
+        "--filter",
+        "@pocketknives/server",
+        "start"
+      ],
+      "port": 8787
     }
   ]
 }
