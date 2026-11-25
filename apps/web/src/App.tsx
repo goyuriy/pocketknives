@@ -1,28 +1,14 @@
-import { Stage } from './stage/Stage.js';
-import { SandboxHud } from './ui/SandboxHud.js';
-import { TuningPanel } from './ui/TuningPanel.js';
-import { useGame } from './state/useGame.js';
-import { useRememberedFlag } from './ui/useRememberedFlag.js';
-import { useComfort } from './state/useComfort.js';
+import { GameScreen } from './GameScreen.js';
+import { useTable } from './state/useTable.js';
+import { RoomNotice } from './ui/RoomNotice.js';
 
+/**
+ * The page: the practice table in this browser, or — when the address names a
+ * room — that room's table, once the room server has let this screen in.
+ */
 export const App = () => {
-  const game = useGame(4);
-  const comfort = useComfort();
-  // The tuning panel and sandbox controls, for working on the game rather
-  // than playing it. Hidden, the screen is just the game.
-  const [debug, setDebug] = useRememberedFlag('pocketknives.debug', true);
-
-  return (
-    <div className="app">
-      <Stage game={game} comfort={comfort.comfort} />
-      {debug ? (
-        <TuningPanel config={game.config} onChange={game.setTuning} />
-      ) : (
-        <button type="button" className="debug-toggle" onClick={() => setDebug(true)}>
-          Debug
-        </button>
-      )}
-      <SandboxHud game={game} comfort={comfort} debug={debug} onHideDebug={() => setDebug(false)} />
-    </div>
-  );
+  const table = useTable();
+  if (table.kind === 'local') return <GameScreen />;
+  if (table.kind === 'room') return <GameScreen room={{ code: table.room, session: table.session }} />;
+  return <RoomNotice table={table} />;
 };

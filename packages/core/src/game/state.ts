@@ -112,6 +112,9 @@ export const DEFAULT_SETTINGS: GameSettings = {
 
 export const STARTING_KNIFE = 'thrower';
 
+/** The seats at a table, in turn order: a match takes the first two, three or all four. */
+export const SEAT_NAMES = ['Red', 'Blue', 'Gold', 'Mint'] as const;
+
 export const createGame = ({ players, radius = 10, rules = DEFAULT_RULES, settings, knives, skills }: NewGame): GameState => ({
   match: createMatch(createBoard([...players], radius), players, rules),
   players: Object.fromEntries(

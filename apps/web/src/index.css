@@ -543,3 +543,55 @@ body {
     grid-template-columns: 86px minmax(0, 1fr) 48px;
   }
 }
+
+/* --- Rooms -------------------------------------------------------------- */
+
+.room-bar {
+  position: absolute;
+  z-index: 10;
+  /* Under the row the look hint and the debug toggle share. */
+  top: calc(46px + env(safe-area-inset-top));
+  left: 10px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 10px;
+  max-width: calc(100% - 20px);
+  padding: 6px 12px;
+  border-radius: 999px;
+  background: #16130fcc;
+  color: var(--ink);
+  font-size: 13px;
+  text-decoration: none;
+}
+
+.room-bar button {
+  font-size: 12px;
+  padding: 3px 9px;
+}
+
+.room-bar em {
+  font-style: normal;
+  color: #f0b3a8;
+}
+
+.room-notice {
+  display: grid;
+  place-content: center;
+  gap: 12px;
+  height: 100%;
+  padding: 24px;
+  text-align: center;
+  color: var(--ink);
+}
+
+.room-notice-actions {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 16px;
+}
+
+.room-notice a {
+  color: inherit;
+}

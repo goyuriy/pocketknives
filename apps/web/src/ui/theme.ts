@@ -1,4 +1,6 @@
-export const PLAYER_NAMES = ['Red', 'Blue', 'Gold', 'Mint'] as const;
+import { SEAT_NAMES } from '@pocketknives/core';
+
+export const PLAYER_NAMES = SEAT_NAMES;
 
 export const PLAYER_COLORS: Record<string, string> = {
   Red: '#e2564a',

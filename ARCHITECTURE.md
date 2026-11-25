@@ -102,6 +102,7 @@ flowchart TB
 | --- | --- | --- | --- |
 | **Rules and physics** | `packages/core/src/{geometry,rules,throw}` | Pure maths: the cut, the flight, sticking, the knives. | Nothing but itself. |
 | **Game** | `packages/core/src/game` | The match as data (`GameState`), what can be asked of it (`Command`), what it answers (`GameEvent`), and the one function that moves it on (`applyCommand`). | The rules. |
+| **Room server** | `apps/server` | The carrier: `ws` sockets plugged into the core's `createRoomHost`. Rooms by code; a size cap, a heartbeat. Decides nothing. | The room. |
 | **Room** | `packages/core/src/room` | The authority at a network table, as pure functions: who sits where, who may ask for what (`mayAsk`), and what everyone is told (`joinRoom`, `receive`, `leaveRoom`). The wire protocol, and `parseClientMessage`, which checks everything a client sends. | The game. |
 | **Session** | `apps/web/src/session` | The client's one line to the game: read the state, send commands, hear updates and rejections, which players this screen plays for, others' presence. A local authority (`createLocalSession`) or a room over a `Transport` (`connectNetSession`). | The game, the room's protocol. |
 | **Playback** | `apps/web/src/playback` | Pure: a throw event becomes a playback, and the playback and the clock decide which throw (`shownThrow`) and which board (`shownBoard`) are on screen. | The game's types. |
@@ -340,8 +341,8 @@ flowchart LR
   subgraph screenB["Screen B, Blue"]
     gameB["useGame"] --> netB["NetSession"] --> lineB["Transport"]
   end
-  subgraph host["Room host: in memory today, a WebSocket server next"]
-    shell["the shell<br/>keeps a Room, draws the seeds,<br/>delivers to recipients"]
+  subgraph host["Room host: apps/server over WebSockets, or in memory for tests"]
+    shell["createRoomHost<br/>keeps a Room, draws the seeds,<br/>delivers to recipients"]
     check["parseClientMessage<br/>trust nothing from outside"]
     pureRoom["joinRoom · receive · leaveRoom<br/>mayAsk · recipients"]
     applyIt["applyCommand"]
@@ -393,9 +394,28 @@ sequenceDiagram
   cannot tell a local game from a room. Every answer comes back one way: the
   update through `subscribe`, the refusal through `onRejected`.
 
-`createLoopbackRoom` is the room host minus the socket: messages go through
-JSON and `parseClientMessage` exactly as they would off a wire, and arrive a
-moment later. The tests play two screens against each other with it.
+**The carrier is the only part that is not ours.** `createRoomHost` (core)
+keeps a room and puts messages on and off the wire, once, for every carrier.
+Round it:
+
+- `apps/server` is a plain [`ws`](https://github.com/websockets/ws) server:
+  a socket opened on `/rooms/<code>` joins that room, its text goes to the
+  host, the host's replies go back down the sockets they are for. Rooms are
+  made by the first to open the link and forgotten when the last one leaves.
+  It adds only what a public socket needs — a size cap on messages, the usual
+  ping/pong heartbeat, a cap on rooms — and decides nothing. No game framework:
+  the state, the protocol and the rules were already written and tested, so a
+  framework's own state sync would have been a second copy of them.
+- `openWebSocketTransport` (web) is the same `Transport` the session already
+  speaks, over the browser's own `WebSocket`.
+- `createLoopbackRoom` (web) is the same host with a queue where the socket
+  would be; the tests play two screens against each other with it.
+
+**Joining is an address.** `?room=<code>` makes the page join that room
+(`useTable`); without it the page is the practice table in this browser. "Play
+with friends" makes a fresh code and goes there; the room bar copies the link
+to send. The room server is looked for beside the page on port 8787 — what a
+phone on the same Wi-Fi needs — unless `VITE_ROOM_SERVER` names another.
 
 ---
 
@@ -455,17 +475,16 @@ moment later. The tests play two screens against each other with it.
 | is a new thing on screen | a view in `stage/views`, posed by a system in `stage/systems` |
 | is maths for the screen | `stage/math` — pure, with a test |
 | is this device's preference | `usePreferences`, remembered with `useRememberedFlag` / `useRememberedChoice` |
-| carries messages to a room (WebSocket, WebRTC) | a `Transport` in `apps/web/src/session` |
+| carries messages to a room (WebRTC, another socket) | a `Transport` in `apps/web/src/session`; on the server, connections plugged into `createRoomHost` |
 
 ---
 
 ## 10. How the backlog plugs in
 
-- **Link rooms.** The room is written (§7). What is left is the carrier: a
-  server process that keeps a `Room`, feeds it what arrives on a socket and
-  delivers what it answers — the loopback room is exactly that, minus the
-  socket — and a `Transport` over it; then a join link, the other players
-  drawn from their presence, and a HUD for the room.
+- **Link rooms.** Playable (§7): `pnpm rooms` beside the web app, and a link.
+  What is left is what makes it feel like a room: the other players drawn
+  from their presence, taking your seat back after a dropped connection, and
+  the match flow round it (a lobby, a rematch).
 - **Party mode.** Hotseat is a local session with every player on one device —
   today's sandbox with the practice settings off. Phones as controllers are a
   network session where each phone sends one player's commands.
@@ -495,6 +514,9 @@ moment later. The tests play two screens against each other with it.
   every malformed message turned away, a played game surviving JSON.
 - **The web's pure parts** — playback, the frame, poses, strides, the camera,
   the world clock — are tested the same way, with no browser.
+- **The room server is tested over real sockets** (`apps/server`): two
+  players in a room, a throw seen by both, rubbish survived, rooms kept apart
+  and forgotten when empty.
 - **Two screens play each other** through the loopback room
   (`session/netSession.test.ts`): a throw seen on the other screen, a
   rejection heard, a late joiner given the match, presence, the host handing on.
@@ -516,16 +538,23 @@ packages/core/src/                 pure, deterministic; no React, Babylon or bro
   rules/                           the board, the cut, orphaned ground, standing, turns
   throw/                           the knife: config, swing → launch, flight, sticking
   game/                            GameState, Command, GameEvent, applyCommand, stance
-  room/                            the network table: room, protocol, message checks
+  room/                            the network table: room, protocol, message checks, the host that keeps one
+
+apps/server/src/                   the room server: carries messages, decides nothing
+  server.ts                        WebSockets (ws) on /rooms/<code>, heartbeat, limits
+  rooms.ts                         rooms by code: made on first join, forgotten when empty
+  main.ts                          `pnpm rooms` — listens on PORT, 8787 by default
 
 apps/web/src/
   session/                         the client's line to the game
     session.ts                     Session; the local authority
     netSession.ts                  a room across a Transport
     transport.ts                   what carries messages
-    loopback.ts                    a room in memory, for tests and one-browser play
+    webSocketTransport.ts          …over a WebSocket, to apps/server
+    roomLink.ts                    room codes, the join link, where the server is
+    loopback.ts                    a room in memory, for tests
   playback/                        pure: attempts, slow motion, which throw and board are shown
-  state/                           React hooks: useGame, usePlayback, usePreferences, useComfort
+  state/                           React hooks: useTable, useGame, usePlayback, usePreferences, useComfort
   input/                           gestures → intents: strokes, look, turning, walking, devices
   ui/                              the HUD, the knife picker, tuning and comfort panels
   audio/                           the sound of a knife hitting the ground

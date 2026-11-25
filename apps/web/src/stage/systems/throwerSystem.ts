@@ -137,9 +137,10 @@ export const createThrowerSystem = (
         }
         // Turning, for when nothing captures the mouse: the keys, or a cursor
         // held out at the edge of the screen pulling the body round after it.
-        stance.current = { ...stance.current, facing: turnedFacing(stance.current.facing, turn(), seconds) };
+        if (state.yourTurn) stance.current = { ...stance.current, facing: turnedFacing(stance.current.facing, turn(), seconds) };
       }
-      walkable = planted ? null : { board: state.board, playerId: state.playerId };
+      // Only the player whose go it is walks the thrower, and only from their own screen.
+      walkable = planted || !state.yourTurn ? null : { board: state.board, playerId: state.playerId };
 
       // Where the feet went since the last frame — walking happens in the
       // fixed physics steps before it, however many there were.

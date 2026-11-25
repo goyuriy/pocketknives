@@ -280,8 +280,8 @@ Later: sleeves, gloves, tattoos as cosmetics.
 
 ### Link rooms — 📋 · A, E
 Create a match, send a link, friends join in the browser with no install. The
-core is deterministic, so a small authoritative server (Colyseus) checks each
-throw from its intent and seed. The main acquisition loop for a web game.
+core is deterministic, so a small authoritative server checks each throw from
+its intent and seed. The main acquisition loop for a web game.
 - ✅ Ready for it (ARCHITECTURE.md): the game is a `GameState` moved on only
   by `applyCommand`; the authority stamps each throw's seed; the client talks
   to a `Session`, and what is on screen is derived from events and the clock.
@@ -292,14 +292,19 @@ throw from its intent and seed. The main acquisition loop for a web game.
   joiners get the whole match. Tested end to end against an in-memory room.
 - ✅ The presence channel: each screen publishes where its player stands and
   points, ten times a second; the room relays it under the sender's seat.
-- 📋 The carrier: a WebSocket server that hosts rooms (Colyseus, or a plain
-  `ws` process — the room logic is already written), and a `Transport` over
-  it.
-- 📋 A join link: create a room, share its address, open it to take a seat.
+- ✅ The carrier: `apps/server`, a plain `ws` server round the core's
+  `createRoomHost` (`pnpm rooms`), and a WebSocket `Transport` in the web app.
+  No game framework — the state, protocol and rules were already ours.
+- ✅ A join link: "Play with friends" makes a room and its address
+  (`?room=<code>`); opening it takes the next seat, or watches.
+- ✅ A first HUD for a room: which room, who you are, whose go it is, the
+  invite link, refusals said plainly; the sandbox's tools stay at the
+  practice table. Nobody walks or turns another player's thrower.
 - 📋 The others on screen: a character per remote player, posed from their
   presence, smoothed between updates.
-- 📋 The HUD for a room: whose turn, who is here, rejections said plainly,
-  the sandbox controls only for the host.
+- 📋 Coming back: a seat kept for a dropped connection, and reconnecting on
+  its own.
+- 📋 Somewhere to run it: the room server deployed, `VITE_ROOM_SERVER` set.
 
 ### Leaderboards — 💡 · R
 Scores on the **Daily board**, weekly biggest cut, longest stick, per knife.
